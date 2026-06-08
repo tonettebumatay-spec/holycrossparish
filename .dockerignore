@@ -1,0 +1,15 @@
+.env
+.git
+.gitignore
+.github
+docker-compose.yml
+node_modules
+npm-debug.log
+storage/logs/*.log
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+tests/
+*.md
+.vscode
+.idea
