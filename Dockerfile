@@ -23,14 +23,23 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 COPY . .
 
-# 6. Install your core backend production packages
-RUN composer install --no-dev --optimize-autoloader
+# 6. MEMORY OPTIMIZATION: Tell Composer to restrict its memory limit allocation
+ENV COMPOSER_MEMORY_LIMIT=-1
 
-# 7. Configure Apache permissions for Laravel public directory
+# 7. Install production packages with strict low-memory optimization flags
+RUN composer install \
+    --no-dev \
+    --optimize-autoloader \
+    --no-interaction \
+    --no-plugins \
+    --no-scripts \
+    --prefer-dist
+
+# 8. Configure Apache permissions for Laravel public directory
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf \
     && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# 8. Expose the standard internet deployment port
+# 9. Expose the standard internet deployment port
 EXPOSE 80
