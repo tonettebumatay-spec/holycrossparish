@@ -1,26 +1,42 @@
-# 1. Use an official production-ready PHP-Apache engine build
 FROM php:8.2-apache
 
-# 2. Install only essential system utilities (Lightweight)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    zip \
-    unzip \
     git \
     curl \
-    && docker-php-ext-install pdo_mysql
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    libzip-dev \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
-# 3. Enable Apache rewriting rules for Laravel routing
+# Enable Apache mod_rewrite
 RUN a2enmod rewrite
 
-# 4. Copy your custom project source files to the web directory
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Set working directory
 WORKDIR /var/www/html
-COPY . .
 
-# 5. Configure Apache permissions for Laravel public directory
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# Copy existing application directory contents
+COPY . /var/www/html
 
-# 6. Expose the standard internet deployment port
+# Create storage and bootstrap/cache directories
+RUN mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Set permissions - create the user if needed
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && \
+    chmod -R 775 /var/www/html/storage && \
+    chmod -R 775 /var/www/html/bootstrap/cache
+
+# Install PHP dependencies
+RUN composer install --no-interaction --no-progress --optimize-autoloader
+
+# Expose port 80
 EXPOSE 80
+
+# Start Apache
+CMD ["apache2-foreground"]
