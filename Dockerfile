@@ -1,42 +1,35 @@
+# 1. Use an official production-ready PHP-Apache engine build
 FROM php:8.2-apache
 
-# Install system dependencies
+# 2. Install essential system utilities and PHP core extensions
 RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
     zip \
     unzip \
-    libzip-dev \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+    git \
+    curl \
+    && docker-php-ext-install pdo_mysql
 
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite
-
-# Install Composer
+# 3. Securely install Composer inside the container image
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Set working directory
+# 4. Enable Apache rewriting rules for Laravel routing
+RUN a2enmod rewrite
+
+# 5. Set up the working directory layout
 WORKDIR /var/www/html
+COPY . .
 
-# Copy existing application directory contents
-COPY . /var/www/html
+# 6. Memory-Optimized Dependency Install (Prevents Exit Code 4)
+# We set php memory limits for composer explicitly and bypass heavy dev engines
+RUN COMPOSER_MEMORY_LIMIT=-1 composer install --no-dev --no-interaction --no-plugins --no-scripts --optimize-autoloader
 
-# Create storage and bootstrap/cache directories
+# 7. Configure Apache permissions and ensure required directories exist
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
+
 RUN mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Set permissions - create the user if needed
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && \
-    chmod -R 775 /var/www/html/storage && \
-    chmod -R 775 /var/www/html/bootstrap/cache
-
-# Install PHP dependencies
-RUN composer install --no-interaction --no-progress --optimize-autoloader
-
-# Expose port 80
+# 8. Expose the standard internet deployment port
 EXPOSE 80
-
-# Start Apache
-CMD ["apache2-foreground"]
