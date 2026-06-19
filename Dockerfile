@@ -1,9 +1,11 @@
 FROM php:8.2-apache
 
+# 1. Added libpq-dev so the container can compile PostgreSQL drivers
 RUN apt-get update && apt-get install -y \
     zip \
     unzip \
-    && docker-php-ext-install pdo_mysql
+    libpq-dev \
+    && docker-php-ext-install pdo_mysql pdo_pgsql pgsql
 
 RUN a2enmod rewrite
 
