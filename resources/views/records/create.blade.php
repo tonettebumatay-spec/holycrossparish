@@ -110,7 +110,7 @@
                             <label class="block text-xs font-semibold text-gray-600 mb-1.5">Legitimacy</label>
                             <select name="legitimacy" class="text-sm w-full bg-white border border-gray-300 rounded px-3 py-2.5 text-gray-800 focus:outline-none focus:border-gray-500 transition-all">
                                 <option value="Legitimate">Legitimate (Leg.)</option>
-                                <option value="Illegitimate">Illegitimate (Illeg.)</option>
+                                <option value="Natural">Natural (Nat.)</option>
                             </select>
                         </div>
                     </div>
