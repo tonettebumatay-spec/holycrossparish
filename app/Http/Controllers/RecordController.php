@@ -154,6 +154,10 @@ class RecordController extends Controller
         // Run the dynamic validation checklist
         $request->validate($rules);
 
+        // Resolve the target model and fetch its distinct table name
+        $model = $this->resolveModel($category);
+        $tableName = $model->getTable();
+
         // 3) Process specific layout transformations for Baptisms
         if ($category === 'baptism') {
             $candidateName = trim((string) $request->input('candidate_name'));
@@ -197,12 +201,22 @@ class RecordController extends Controller
             ]);
         }
 
-        // 4) Clean request attributes to avoid SQL column missing errors
-        // Strips out metadata parameters ('category' and internal CSRF token) before saving
-        $saveData = $request->except(['_token', 'category']);
+        // 4) Cross-book structural data normalization 
+        // Handles input parameter mappings where HTML form keys differ from table columns
+        if ($category === 'confirmation' && $request->has('sponsor_name')) {
+            $request->merge(['sponsor' => $request->input('sponsor_name')]);
+        }
 
-        // Save the record securely utilizing mass-assignment fill attributes
-        $model = $this->resolveModel($category);
+        if ($category === 'wedding' && $request->has('minister_name')) {
+            $request->merge(['minister' => $request->input('minister_name')]);
+        }
+
+        // 5) DYNAMIC CLEANING FILTER: Match payload keys directly against database columns
+        // This drops metadata like 'category' or 'sponsor_name' automatically if the column doesn't exist
+        $dbColumns = Schema::getColumnListing($tableName);
+        $saveData = array_intersect_key($request->all(), array_flip($dbColumns));
+
+        // Save the cleaned dataset securely utilizing Eloquent model definitions
         $model->fill($saveData)->save();
 
         return redirect()->route('records.index', ['category' => $category, 'book_number' => $request->book_number])
