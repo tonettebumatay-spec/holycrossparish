@@ -124,93 +124,87 @@ class RecordController extends Controller
     /**
      * Store a newly created record.
      */
-public function store(Request $request)
-{
-    $category = strtolower($request->category ?? '');
-    
-    // 1) Validation rules (match your Baptism create form inputs)
-    $request->validate([
-        'category' => 'required|string',
-        'book_number' => 'required|integer',
-        // NOTE: your Blade form uses: candidate_name + birth_date
-        // The controller's duplicate logic will extract names from candidate_name.
-        'candidate_name' => 'required|string',
-        'birth_date' => 'required|date',
-        // Ensure fields required by the baptisms table are present
-        'baptism_date' => 'required|date',
-        'birth_place' => 'required|string',
-'father_name' => 'required|string',
-        'mother_name' => 'required|string',
-        // Your form field is named `residence`; however your submit may not always include it.
-        // Default to null to prevent SQL errors.
-        'residence' => 'nullable|string',
-        'minister_name' => 'required|string',
-        'legitimacy' => 'required|string',
-    ]);
+    public function store(Request $request)
+    {
+        $category = strtolower($request->category ?? '');
+        
+        // 1) Define base validation rules required by EVERY single book
+        $rules = [
+            'category' => 'required|string',
+            'book_number' => 'required|integer',
+            'page_number' => 'required|integer',
+            'line_number' => 'required|integer',
+        ];
 
-    // 2) Duplicate Check for Baptisms based on (first_name, last_name, birth_date)
-    // We parse the first and last name from candidate_name ("First M.I. Surname" in your form).
-    if ($category === 'baptism') {
-        $candidateName = trim((string) $request->input('candidate_name'));
-        $parts = preg_split('/\s+/', $candidateName);
+        // 2) Apply strict validation rules ONLY if the book category is Baptism
+        if ($category === 'baptism') {
+            $rules['candidate_name'] = 'required|string';
+            $rules['birth_date'] = 'required|date';
+            $rules['baptism_date'] = 'required|date';
+            $rules['birth_place'] = 'required|string';
+            $rules['father_name'] = 'required|string';
+            $rules['mother_name'] = 'required|string';
+            $rules['minister_name'] = 'required|string';
+            $rules['legitimacy'] = 'required|string|in:Legitimate,Natural'; // required for Baptism only
+            $rules['residence'] = 'nullable|string';
+        } else {
+            // Rules for other categories can be added here as needed, or handled gracefully
+            $rules['legitimacy'] = 'nullable|string';
+        }
 
-        $firstName = $parts[0] ?? null;
-        $lastName = count($parts) ? $parts[count($parts) - 1] : null;
+        // Run the dynamic validation checklist
+        $request->validate($rules);
 
-        // If we can't parse names reliably, fail validation so the user sees an error.
-        if (!$firstName || !$lastName) {
-            $request->validate([
-                'candidate_name' => [
-                    function ($attribute, $value, $fail) {
-                        $fail('Please provide a valid candidate name (First ... Surname).');
-                    }
-                ],
+        // 3) Process specific layout transformations for Baptisms
+        if ($category === 'baptism') {
+            $candidateName = trim((string) $request->input('candidate_name'));
+            $parts = preg_split('/\s+/', $candidateName);
+
+            $firstName = $parts[0] ?? null;
+            $lastName = count($parts) ? $parts[count($parts) - 1] : null;
+
+            if (!$firstName || !$lastName) {
+                $request->validate([
+                    'candidate_name' => [
+                        function ($attribute, $value, $fail) {
+                            $fail('Please provide a valid candidate name (First ... Surname).');
+                        }
+                    ],
+                ]);
+            }
+
+            // Duplicate Check logic for Baptisms
+            $exists = \App\Models\Baptism::where('first_name', $firstName)
+                ->where('last_name', $lastName)
+                ->whereDate('birth_date', $request->birth_date)
+                ->exists();
+
+            if ($exists) {
+                $request->validate([
+                    'candidate_name' => [
+                        function ($attribute, $value, $fail) use ($firstName, $lastName, $request) {
+                            $fail('A baptismal record for ' . $firstName . ' ' . $lastName . ' (born on ' . $request->birth_date . ') already exists.');
+                        }
+                    ],
+                ]);
+            }
+
+            // Map and merge normalized keys for the Baptism table schema
+            $request->merge([
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'mother_maiden_name' => $request->input('mother_name'),
+                'residence' => $request->input('residence') ?: 'N/A',
             ]);
         }
 
-        $exists = \App\Models\Baptism::where('first_name', $firstName)
-            ->where('last_name', $lastName)
-            ->whereDate('birth_date', $request->birth_date)
-            ->exists();
+        // 4) Save the record securely utilizing mass-assignment fill attributes
+        $model = $this->resolveModel($category);
+        $model->fill($request->all())->save();
 
-        if ($exists) {
-            $request->validate([
-                'candidate_name' => [
-                    function ($attribute, $value, $fail) use ($firstName, $lastName, $request) {
-                        $fail('A baptismal record for ' . $firstName . ' ' . $lastName . ' (born on ' . $request->birth_date . ') already exists.');
-                    }
-                ],
-            ]);
-        }
-
-        // Map candidate_name into the DB columns expected by the Baptism model.
-        // Keeps the existing resolveModel + fill($request->all()) approach working.
-        $request->merge([
-            'first_name' => $firstName,
-            'last_name' => $lastName,
-            // Your form uses mother_name, but the baptisms table column is mother_maiden_name
-            'mother_maiden_name' => $request->input('mother_name'),
-        ]);
-
-        // Default optional fields to null to avoid SQL errors.
-        $request->merge([
-            'mother_birthplace' => $request->input('mother_birthplace'),
-            'father_birthplace' => $request->input('father_birthplace'),
-            'godfather' => $request->input('godfather'),
-            'godmother' => $request->input('godmother'),
-            // Column `residence` is NOT nullable in your migration, but your form may submit without it.
-            // Only set it if present; otherwise provide a safe fallback.
-            'residence' => $request->input('residence') ?: 'N/A',
-        ]);
+        return redirect()->route('records.index', ['category' => $category, 'book_number' => $request->book_number])
+                         ->with('success', 'Record successfully saved!');
     }
-
-    // 3. Save the record
-    $model = $this->resolveModel($category);
-    $model->fill($request->all())->save();
-
-    return redirect()->route('records.index', ['category' => $category, 'book_number' => $request->book_number])
-                     ->with('success', 'Record successfully saved!');
-}
 
     /**
      * Helper to resolve model based on category
