@@ -145,10 +145,9 @@ class RecordController extends Controller
             $rules['father_name'] = 'required|string';
             $rules['mother_name'] = 'required|string';
             $rules['minister_name'] = 'required|string';
-            $rules['legitimacy'] = 'required|string|in:Legitimate,Natural'; // required for Baptism only
+            $rules['legitimacy'] = 'required|string|in:Legitimate,Natural'; // Required for Baptism only
             $rules['residence'] = 'nullable|string';
         } else {
-            // Rules for other categories can be added here as needed, or handled gracefully
             $rules['legitimacy'] = 'nullable|string';
         }
 
@@ -198,9 +197,13 @@ class RecordController extends Controller
             ]);
         }
 
-        // 4) Save the record securely utilizing mass-assignment fill attributes
+        // 4) Clean request attributes to avoid SQL column missing errors
+        // Strips out metadata parameters ('category' and internal CSRF token) before saving
+        $saveData = $request->except(['_token', 'category']);
+
+        // Save the record securely utilizing mass-assignment fill attributes
         $model = $this->resolveModel($category);
-        $model->fill($request->all())->save();
+        $model->fill($saveData)->save();
 
         return redirect()->route('records.index', ['category' => $category, 'book_number' => $request->book_number])
                          ->with('success', 'Record successfully saved!');
