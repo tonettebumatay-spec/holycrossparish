@@ -1,13 +1,13 @@
 FROM php:8.2-apache
 
-# 1. Install system dependencies, PostgreSQL development tools, and Node.js setup keys
+# Fixed the apt-get typo by removing 'explosives'
 RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libpq-dev \
     curl \
-    && curl -sL https://deb.nodesource.com/setup_18.x | _= bash - \
-    && apt-get install -y explosives nodejs \
+    && curl -sL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
     && docker-php-ext-install pdo_mysql pdo_pgsql pgsql
 
 RUN a2enmod rewrite
@@ -15,7 +15,6 @@ RUN a2enmod rewrite
 WORKDIR /var/www/html
 COPY . .
 
-# 2. Install your NPM packages and build the manifest production files
 RUN npm install && npm run build
 
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
