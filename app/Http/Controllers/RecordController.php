@@ -135,24 +135,6 @@ class RecordController extends Controller
             'page_number' => 'required|integer',
             'line_number' => 'required|integer',
         ];
-    public function store(Request $request)
-{
-    $category = strtolower($request->category ?? '');
-    
-    // 1) Validation rules (match your Baptism create form inputs)
-    $request->validate([
-        'category' => 'required|string',
-        'book_number' => 'required|integer',
-        'candidate_name' => 'required|string',
-        'birth_date' => 'required|date',
-        'baptism_date' => 'required|date',
-        'birth_place' => 'required|string',
-        'father_name' => 'required|string',
-        'mother_name' => 'required|string',
-        'residence' => 'nullable|string',
-        'minister_name' => 'required|string',
-        'legitimacy' => 'required|string',
-    ]);
 
         // 2) Apply strict validation rules ONLY if the book category is Baptism
         if ($category === 'baptism') {
@@ -163,7 +145,7 @@ class RecordController extends Controller
             $rules['father_name'] = 'required|string';
             $rules['mother_name'] = 'required|string';
             $rules['minister_name'] = 'required|string';
-            $rules['legitimacy'] = 'required|string|in:Legitimate,Natural'; // Required for Baptism only
+            $rules['legitimacy'] = 'required|string|in:Legitimate,Natural'; 
             $rules['residence'] = 'nullable|string';
         } else {
             $rules['legitimacy'] = 'nullable|string';
@@ -220,7 +202,6 @@ class RecordController extends Controller
         }
 
         // 4) Cross-book structural data normalization 
-        // Handles input parameter mappings where HTML form keys differ from table columns
         if ($category === 'confirmation' && $request->has('sponsor_name')) {
             $request->merge(['sponsor' => $request->input('sponsor_name')]);
         }
@@ -230,7 +211,6 @@ class RecordController extends Controller
         }
 
         // 5) DYNAMIC CLEANING FILTER: Match payload keys directly against database columns
-        // This drops metadata like 'category' or 'sponsor_name' automatically if the column doesn't exist
         $dbColumns = Schema::getColumnListing($tableName);
         $saveData = array_intersect_key($request->all(), array_flip($dbColumns));
 
