@@ -11,10 +11,12 @@ use Illuminate\Support\Facades\Validator;
 
 class SacramentApiController extends Controller
 {
-    // Register a new mobile user account from Android Studio
+    /**
+     * Handle registration requests originating from the Android client application.
+     */
     public function registerMobileUser(Request $request)
     {
-        // 1. Validate fields coming from your Android Layout
+        // 1. Validate fields coming from your Android Layout parameters
         $validator = Validator::make($request->all(), [
             'name'         => 'required|string|max:255',
             'email'        => 'required|string|email|max:255|unique:users,email',
@@ -22,7 +24,7 @@ class SacramentApiController extends Controller
             'password'     => 'required|string|min:8',
         ]);
 
-        // 2. Return a precise error back to your Android Toast message if validation fails
+        // 2. Return a precise error back to your Android Toast if validation rules fail
         if ($validator->fails()) {
             return response()->json([
                 'status'  => 'error',
@@ -30,7 +32,7 @@ class SacramentApiController extends Controller
             ], 422);
         }
 
-        // 3. Create the user record in your PostgreSQL database
+        // 3. Create the mobile user entry inside your PostgreSQL users table
         $user = User::create([
             'name'         => $request->input('name'),
             'email'        => $request->input('email'),
