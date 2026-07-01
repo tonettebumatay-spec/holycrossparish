@@ -52,6 +52,9 @@ class SacramentApiController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
+            // 🟢 This line will print the exact PostgreSQL database error text to your Render logs panel!
+            error_log("DATABASE REGISTRATION CRASH: " . $e->getMessage());
+
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Database error: ' . $e->getMessage()
