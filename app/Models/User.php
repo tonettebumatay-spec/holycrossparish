@@ -20,7 +20,6 @@ class User extends Authenticatable
         'email',
         'password',
         'phone',
-        'phone_number', // Added to allow mobile app registration inputs
     ];
 
     /**
