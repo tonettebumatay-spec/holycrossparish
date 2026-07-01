@@ -203,7 +203,7 @@ class RecordController extends Controller
 
         // 4) Cross-book structural data normalization 
         if ($category === 'confirmation' && $request->has('sponsor_name')) {
-            $request->merge(['sponsor' => $request->input('sponsor_name')]);
+            $request->merge(['sponsors' => $request->input('sponsor_name')]);
         }
 
         if ($category === 'wedding' && $request->has('minister_name')) {
