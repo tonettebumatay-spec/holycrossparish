@@ -135,6 +135,24 @@ class RecordController extends Controller
             'page_number' => 'required|integer',
             'line_number' => 'required|integer',
         ];
+    public function store(Request $request)
+{
+    $category = strtolower($request->category ?? '');
+    
+    // 1) Validation rules (match your Baptism create form inputs)
+    $request->validate([
+        'category' => 'required|string',
+        'book_number' => 'required|integer',
+        'candidate_name' => 'required|string',
+        'birth_date' => 'required|date',
+        'baptism_date' => 'required|date',
+        'birth_place' => 'required|string',
+        'father_name' => 'required|string',
+        'mother_name' => 'required|string',
+        'residence' => 'nullable|string',
+        'minister_name' => 'required|string',
+        'legitimacy' => 'required|string',
+    ]);
 
         // 2) Apply strict validation rules ONLY if the book category is Baptism
         if ($category === 'baptism') {
