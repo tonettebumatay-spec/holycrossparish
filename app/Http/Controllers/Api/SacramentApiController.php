@@ -21,7 +21,7 @@ class SacramentApiController extends Controller
             'name'     => 'required|string|max:255',
             'email'    => 'required|string|email|max:255', 
             'phone'    => 'required|string|max:20',        
-            'password' => 'required|string|min:6', 
+            'password' => 'nullable|string|min:6', 
         ]);
 
         // 2. Catch validation failures and write them explicitly to the Render console logs
