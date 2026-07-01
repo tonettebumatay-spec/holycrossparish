@@ -16,15 +16,17 @@ class SacramentApiController extends Controller
      */
     public function registerMobileUser(Request $request)
     {
-        // 1. Check for 'phone' to match Android's parameter key precisely
+        // 1. Validate fields coming from your Android app parameters
         $validator = Validator::make($request->all(), [
             'name'     => 'required|string|max:255',
+            // Checks uniqueness explicitly against the 'email' column in the 'users' table
             'email'    => 'required|string|email|max:255|unique:users,email',
-            'phone'    => 'required|string|max:20', // 🟢 Changed from phone_number to phone
-            'password' => 'required|string|min:6',   // Aligned to match Android's minimum of 6 chars
+            // Checks uniqueness explicitly against the 'phone_number' column in the 'users' table, using the 'phone' key sent by Android
+            'phone'    => 'required|string|max:20|unique:users,phone_number', 
+            'password' => 'required|string|min:6', // Aligned to match Android's minimum requirement
         ]);
 
-        // 2. Return validation errors explicitly back to your Android layout handler
+        // 2. Return a precise validation error back to your Android Toast if validation rules fail
         if ($validator->fails()) {
             return response()->json([
                 'status'  => 'error',
@@ -34,23 +36,22 @@ class SacramentApiController extends Controller
 
         try {
             // 3. Create the mobile user entry inside your users table
-            // Note: If your actual database column name is 'phone_number', we assign it the incoming 'phone' value here.
             $user = User::create([
                 'name'         => $request->input('name'),
                 'email'        => $request->input('email'),
-                'phone_number' => $request->input('phone'), // 🟢 Maps Android 'phone' to database 'phone_number'
+                'phone_number' => $request->input('phone'), // Maps Android layout 'phone' data directly to the database column 'phone_number'
                 'password'     => Hash::make($request->input('password')),
             ]);
 
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Registration successful!',
-                'token'   => 'dummy-auth-token', // Matches the response.body()?.token validation loop in Android
+                'token'   => 'dummy-auth-token', // Matches the response.body()?.token layout validation in Android
                 'user'    => $user
             ], 201);
 
         } catch (\Exception $e) {
-            // Safe fallback catcher if there is a missing field migration conflict
+            // Catches any underlying table issues or missing structural array items
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Database error: ' . $e->getMessage()
@@ -58,14 +59,18 @@ class SacramentApiController extends Controller
         }
     }
 
-    // Get all records for the Android List View
+    /**
+     * Get all records for the Android List View
+     */
     public function index()
     {
         $records = Sacrament::where('year', '>=', 2000)->get();
         return response()->json($records);
     }
 
-    // Search specifically by Name or Book Number
+    /**
+     * Search specifically by Name or Book Number
+     */
     public function search(Request $request)
     {
         $query = $request->input('query');
@@ -78,7 +83,9 @@ class SacramentApiController extends Controller
         return response()->json($records);
     }
 
-    // Verify a QR Code scan
+    /**
+     * Verify a QR Code scan
+     */
     public function verify($token)
     {
         $record = Sacrament::where('qr_code_token', $token)->first();
@@ -88,9 +95,9 @@ class SacramentApiController extends Controller
         }
 
         return response()->json([
-            'status' => 'Verified',
+            'status'      => 'Verified',
             'parishioner' => $record->name,
-            'details' => "Book #{$record->book_number}, Page #{$record->page_number}"
+            'details'     => "Book #{$record->book_number}, Page #{$record->page_number}"
         ]);
     }
 }
