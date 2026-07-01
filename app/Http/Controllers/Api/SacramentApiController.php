@@ -17,7 +17,6 @@ class SacramentApiController extends Controller
     public function registerMobileUser(Request $request)
     {
         // 1. Validate fields coming from your Android app parameters
-        // 🟢 REMOVED unique checks completely to break the 422 loop
         $validator = Validator::make($request->all(), [
             'name'     => 'required|string|max:255',
             'email'    => 'required|string|email|max:255', 
@@ -25,7 +24,11 @@ class SacramentApiController extends Controller
             'password' => 'required|string|min:6', 
         ]);
 
+        // 2. Catch validation failures and write them explicitly to the Render console logs
         if ($validator->fails()) {
+            // 🟢 This line outputs the exact array of errors to your Render Live logs panel
+            error_log("MOBILE VALIDATION FAILED: " . json_encode($validator->errors()->toArray()));
+
             return response()->json([
                 'status'  => 'error',
                 'message' => $validator->errors()->first()
@@ -33,7 +36,7 @@ class SacramentApiController extends Controller
         }
 
         try {
-            // 2. Create the mobile user entry inside your users table
+            // 3. Create the mobile user entry inside your users table
             $user = User::create([
                 'name'         => $request->input('name'),
                 'email'        => $request->input('email'),
@@ -56,12 +59,18 @@ class SacramentApiController extends Controller
         }
     }
 
+    /**
+     * Get all records for the Android List View
+     */
     public function index()
     {
         $records = Sacrament::where('year', '>=', 2000)->get();
         return response()->json($records);
     }
 
+    /**
+     * Search specifically by Name or Book Number
+     */
     public function search(Request $request)
     {
         $query = $request->input('query');
@@ -74,6 +83,9 @@ class SacramentApiController extends Controller
         return response()->json($records);
     }
 
+    /**
+     * Verify a QR Code scan
+     */
     public function verify($token)
     {
         $record = Sacrament::where('qr_code_token', $token)->first();
