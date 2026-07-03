@@ -10,10 +10,13 @@ Route::prefix('v1')->group(function () {
     // Mobile client authentication routes
     Route::post('/register', [SacramentApiController::class, 'registerMobileUser']);
     
+    // ADDED: Mobile client login route
+    Route::post('/login', [SacramentApiController::class, 'loginMobileUser']);
+    
     // Public routes (Keep these for your QR/Search functionality)
     Route::get('/sacraments', [RecordController::class, 'indexApi']);
     Route::get('/verify/{id}', [RecordController::class, 'verifyApi']);
     
-    // Protected routes (You can add ->middleware('auth:sanctum') later for security)
+    // Protected routes
     Route::get('/records/{category}/{id}', [RecordController::class, 'showApi']);
 });
