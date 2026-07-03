@@ -1,19 +1,24 @@
 # Use PHP 8.2 with Apache
 FROM php:8.2-apache
 
-# 1. Install System Dependencies
+# 1. Install System Dependencies & Libraries for PHP Extensions
 RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libpq-dev \
     curl \
     git \
+    zlib1g-dev \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
     && curl -sL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
-    && docker-php-ext-install pdo_mysql
- RUN docker-php-ext-install pdo_mysql bcmath gd
+    # Configure and install PHP extensions
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo_mysql bcmath gd
 
-# 2. Install Composer for PHP dependencies
+# 2. Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # 3. Enable Apache Rewrite Module
@@ -23,13 +28,19 @@ RUN a2enmod rewrite
 WORKDIR /var/www/html
 COPY . .
 
-# # 5. Install PHP Dependencies separately
-RUN composer install --no-dev --optimize-autoloader
+# 5. Install PHP and JS Dependencies
+RUN composer install --no-dev --optimize-autoloader \
+    && npm install --no-audit --prefer-offline \
+    && npm run build
 
-# 6. Install JS Dependencies separately
-RUN npm install --no-audit --prefer-offline
+# 6. Configure Apache Document Root
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 
-# 7. Build Assets
-RUN npm run build
+# 7. Set Permissions
+RUN mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
 EXPOSE 80
 CMD ["apache2-foreground"]
