@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     && curl -sL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && docker-php-ext-install pdo_mysql
+ RUN docker-php-ext-install pdo_mysql bcmath gd
 
 # 2. Install Composer for PHP dependencies
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -22,20 +23,13 @@ RUN a2enmod rewrite
 WORKDIR /var/www/html
 COPY . .
 
-# 5. Install PHP and JS Dependencies
-# --prefer-dist and no-audit help bypass common network/git errors
-RUN composer install --no-dev --optimize-autoloader \
-    && npm install --no-audit --prefer-offline \
-    && npm run build
+# # 5. Install PHP Dependencies separately
+RUN composer install --no-dev --optimize-autoloader
 
-# 6. Configure Apache Document Root
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
+# 6. Install JS Dependencies separately
+RUN npm install --no-audit --prefer-offline
 
-# 7. Set Permissions
-RUN mkdir -p /var/www/html/storage /var/www/html/bootstrap/cache \
-    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-
+# 7. Build Assets
+RUN npm run build
 EXPOSE 80
 CMD ["apache2-foreground"]
