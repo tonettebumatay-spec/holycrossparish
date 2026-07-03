@@ -6,6 +6,7 @@ use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ViewingController;
+use App\Http\Controllers\BookingController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -93,7 +94,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/viewing/{id}', [ViewingController::class, 'show'])->name('viewing.show');
     Route::delete('/viewing/{id}', [ViewingController::class, 'destroy'])->name('viewing.destroy');
+
+    Route::get('/booking/create', [BookingController::class, 'create']);
+    Route::post('/booking', [BookingController::class, 'store'])->name('booking.store');
 });
+
 
 // --- Public/Redirect Routes Fallback ---
 

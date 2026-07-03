@@ -19,4 +19,7 @@ Route::prefix('v1')->group(function () {
     
     // Protected routes
     Route::get('/records/{category}/{id}', [RecordController::class, 'showApi']);
+
+    // Make sure it is POST, not GET
+    Route::post('/book-appointment', [SacramentApiController::class, 'bookAppointment']);
 });
