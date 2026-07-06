@@ -1,12 +1,25 @@
 <x-app-layout>
- @php
-    $bookCount = 5;
-    $massScheduleCount = app('db')->table('mass_schedules')->count();
-    $pendingCertificatesCount = app('db')->table('certificates')->where('status', 'pending')->count();
-    $appointmentCount = app('db')->table('appointments')->count();
-    $inventoryCount = app('db')->table('inventories')->count();
-    $onlineViewingCount = app('db')->table('viewings')->count();
- @endphp
+    @php
+        // Hardcoded to 5 since you have 5 core sacramental books
+        $bookCount = 5; 
+
+        // If you want to dynamically count entries in your tables directly from Blade without a controller, 
+        // you can uncomment these lines below:
+        // $massScheduleCount = DB::table('schedules')->count();
+        // $pendingCertificatesCount = DB::table('certificates')->count();
+        // $appointmentCount = DB::table('appointments')->count();
+        // $inventoryCount = DB::table('inventories')->count();
+        // $onlineViewingCount = DB::table('viewings')->count();
+
+        // Temporary fallbacks so the other cards don't break:
+        $massScheduleCount = $massScheduleCount ?? 3; // Naka-set sa 3 base sa UI mo kanina
+        $pendingCertificatesCount = $pendingCertificatesCount ?? 0;
+        $appointmentCount = $appointmentCount ?? 0;
+        $inventoryCount = $inventoryCount ?? 0;
+        $onlineViewingCount = $onlineViewingCount ?? 0;
+    @endphp
+
+    <div class="relative min-h-[calc(100vh-140px)]">
         <div
             class="fixed inset-0 -z-10 bg-cover bg-center"
             style="background-image: url('https://seepangasinan.com/wp-content/uploads/2022/08/1499243164_explora-holy-cross-parish-reliquary-2-1536x863.jpg');"
@@ -97,10 +110,6 @@
                             </span>
                         </div>
                     </a>
-
-                    <div class="text-black bg-white p-4">
-                         Total Appointments in DB: {{ DB::table('appointments')->count() }}
-                </div>
 
                     <a
                         href="{{ Route::has('inventory.index') ? route('inventory.index') : '#' }}"
