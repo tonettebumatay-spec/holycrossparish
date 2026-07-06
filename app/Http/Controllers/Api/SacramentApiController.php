@@ -102,6 +102,7 @@ class SacramentApiController extends Controller
             ], 422);
         }
 
+        Log::info('REGISTER_RAW_INPUT', ['input' => $request->all()]);
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
