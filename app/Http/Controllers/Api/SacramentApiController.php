@@ -14,7 +14,6 @@ class SacramentApiController extends Controller
 {
     /**
      * Register a new mobile user.
-     * Expects: name, email, password, and phone or phone_number.
      */
     public function registerMobileUser(Request $request)
     {
@@ -41,6 +40,7 @@ class SacramentApiController extends Controller
 
             if ($validator->fails()) {
                 return response()->json([
+                    'success' => false,
                     'status'  => 'error',
                     'message' => 'Validation failed',
                     'errors'  => $validator->errors()
@@ -57,6 +57,7 @@ class SacramentApiController extends Controller
             $token = $user->createToken('mobile-app')->plainTextToken;
 
             return response()->json([
+                'success' => true,
                 'status'  => 'success',
                 'message' => 'Registration successful!',
                 'user'    => $user,
@@ -66,6 +67,7 @@ class SacramentApiController extends Controller
         } catch (\Exception $e) {
             Log::error('REGISTER_ERROR', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json([
+                'success' => false,
                 'status'  => 'error',
                 'message' => 'Registration failed: ' . $e->getMessage()
             ], 500);
@@ -74,7 +76,6 @@ class SacramentApiController extends Controller
 
     /**
      * Login a mobile user.
-     * Expects: email, password.
      */
     public function loginMobileUser(Request $request)
     {
@@ -88,6 +89,7 @@ class SacramentApiController extends Controller
 
             if ($validator->fails()) {
                 return response()->json([
+                    'success' => false,
                     'status'  => 'error',
                     'message' => 'Validation failed',
                     'errors'  => $validator->errors()
@@ -99,6 +101,7 @@ class SacramentApiController extends Controller
             if (!$user || !Hash::check($request->password, $user->password)) {
                 Log::warning('LOGIN_DEBUG: Authentication failed', ['email' => $request->email]);
                 return response()->json([
+                    'success' => false,
                     'status'  => 'error',
                     'message' => 'Invalid credentials'
                 ], 401);
@@ -109,6 +112,7 @@ class SacramentApiController extends Controller
             $token = $user->createToken('mobile-app')->plainTextToken;
 
             return response()->json([
+                'success' => true,
                 'status'  => 'success',
                 'message' => 'Login successful',
                 'user'    => $user,
@@ -118,6 +122,7 @@ class SacramentApiController extends Controller
         } catch (\Exception $e) {
             Log::error('LOGIN_ERROR', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json([
+                'success' => false,
                 'status'  => 'error',
                 'message' => 'Login failed: ' . $e->getMessage()
             ], 500);
@@ -125,19 +130,21 @@ class SacramentApiController extends Controller
     }
 
     /**
-     * Logout a mobile user (revoke the current token).
+     * Logout a mobile user.
      */
     public function logoutMobileUser(Request $request)
     {
         try {
             $request->user()->currentAccessToken()->delete();
             return response()->json([
+                'success' => true,
                 'status'  => 'success',
                 'message' => 'Logged out successfully'
             ], 200);
         } catch (\Exception $e) {
             Log::error('LOGOUT_ERROR', ['error' => $e->getMessage()]);
             return response()->json([
+                'success' => false,
                 'status'  => 'error',
                 'message' => 'Logout failed: ' . $e->getMessage()
             ], 500);
@@ -145,13 +152,14 @@ class SacramentApiController extends Controller
     }
 
     /**
-     * Get the authenticated user's profile.
+     * Get authenticated user profile.
      */
     public function getUserProfile(Request $request)
     {
         return response()->json([
-            'status' => 'success',
-            'user'   => $request->user()
+            'success' => true,
+            'status'  => 'success',
+            'user'    => $request->user()
         ], 200);
     }
 
@@ -173,6 +181,7 @@ class SacramentApiController extends Controller
 
             if ($validator->fails()) {
                 return response()->json([
+                    'success' => false,
                     'status'  => 'error',
                     'message' => 'Validation failed',
                     'errors'  => $validator->errors()
@@ -189,6 +198,7 @@ class SacramentApiController extends Controller
             ]);
 
             return response()->json([
+                'success'     => true,
                 'status'      => 'success',
                 'message'     => 'Appointment booked successfully!',
                 'appointment' => $appointment,
@@ -197,6 +207,7 @@ class SacramentApiController extends Controller
         } catch (\Exception $e) {
             Log::error('APPOINTMENT_ERROR', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json([
+                'success' => false,
                 'status'  => 'error',
                 'message' => 'Appointment booking failed: ' . $e->getMessage()
             ], 500);
