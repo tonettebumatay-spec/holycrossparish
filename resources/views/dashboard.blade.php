@@ -1,36 +1,36 @@
 <x-app-layout>
     @php
-        // Hardcoded to 5 since you have 5 core sacramental books
-        $bookCount = 5; 
+        // Calculate counts by querying each model table directly
+        $appointmentCount = \App\Models\Baptism::count() + 
+                            \App\Models\Communion::count() + 
+                            \App\Models\Confirmation::count() + 
+                            \App\Models\Wedding::count() + 
+                            \App\Models\Funeral::count();
 
-        // If you want to dynamically count entries in your tables directly from Blade without a controller, 
-        // you can uncomment these lines below:
-        // $massScheduleCount = DB::table('schedules')->count();
-        // $pendingCertificatesCount = DB::table('certificates')->count();
-        // $appointmentCount = DB::table('appointments')->count();
-        // $inventoryCount = DB::table('inventories')->count();
-        // $onlineViewingCount = DB::table('viewings')->count();
-
-        // Temporary fallbacks so the other cards don't break:
-        $massScheduleCount = $massScheduleCount ?? 3; // Naka-set sa 3 base sa UI mo kanina
-        $pendingCertificatesCount = $pendingCertificatesCount ?? 0;
-        $appointmentCount = $appointmentCount ?? 0;
-        $inventoryCount = $inventoryCount ?? 0;
-        $onlineViewingCount = $onlineViewingCount ?? 0;
+        // Other counts
+        $bookCount = 5; // Hardcoded to 5 since you have 5 core sacramental books
+        $massScheduleCount = \DB::table('schedules')->count() ?? 0;
+        $pendingCertificatesCount = \DB::table('certificates')->count() ?? 0;
+        $inventoryCount = \DB::table('inventories')->count() ?? 0;
+        $onlineViewingCount = \DB::table('viewing')->count() ?? 0;
     @endphp
 
     <div class="relative min-h-[calc(100vh-140px)]">
+        <!-- Background Image -->
         <div
             class="fixed inset-0 -z-10 bg-cover bg-center"
             style="background-image: url('https://seepangasinan.com/wp-content/uploads/2022/08/1499243164_explora-holy-cross-parish-reliquary-2-1536x863.jpg');"
         ></div>
 
+        <!-- Overlay -->
         <div class="fixed inset-0 -z-10 bg-white/30"></div>
 
+        <!-- Main Content -->
         <main class="relative">
             <div class="max-w-[1500px] mx-auto px-6 py-12">
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 justify-items-center">
 
+                    <!-- Indexed Books Card -->
                     <a
                         href="{{ Route::has('records.index') ? route('records.index') : '#' }}"
                         class="block w-full bg-white rounded-3xl shadow-lg p-8 border border-white/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
@@ -51,6 +51,7 @@
                         </div>
                     </a>
 
+                    <!-- Mass Schedules Card -->
                     <a
                         href="{{ Route::has('schedules.index') ? route('schedules.index') : '#' }}"
                         class="block w-full bg-white rounded-3xl shadow-lg p-8 border border-white/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
@@ -71,6 +72,7 @@
                         </div>
                     </a>
 
+                    <!-- Certificates Card -->
                     <a
                         href="{{ Route::has('certificates.index') ? route('certificates.index') : '#' }}"
                         class="block w-full bg-white rounded-3xl shadow-lg p-8 border border-white/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
@@ -91,6 +93,7 @@
                         </div>
                     </a>
 
+                    <!-- Appointments Card -->
                     <a
                         href="{{ Route::has('appointments.index') ? route('appointments.index') : '#' }}"
                         class="block w-full bg-white rounded-3xl shadow-lg p-8 border border-white/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
@@ -111,6 +114,7 @@
                         </div>
                     </a>
 
+                    <!-- Inventory Card -->
                     <a
                         href="{{ Route::has('inventory.index') ? route('inventory.index') : '#' }}"
                         class="block w-full bg-white rounded-3xl shadow-lg p-8 border border-white/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
@@ -131,6 +135,7 @@
                         </div>
                     </a>
 
+                    <!-- Online Viewing Card -->
                     <a
                         href="{{ Route::has('viewing.index') ? route('viewing.index') : '#' }}"
                         class="block w-full bg-white rounded-3xl shadow-lg p-8 border border-white/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"

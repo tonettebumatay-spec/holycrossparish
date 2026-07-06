@@ -35,16 +35,13 @@
                             </thead>
                             <tbody>
                                 @foreach($appointments as $app)
-                                    <tr class="border-b hover:bg-gray-50 transition">
-                                        <td class="p-4 font-black text-gray-700">{{ $app->category ?? 'N/A' }}</td>
-                                        <td class="p-4 font-medium text-gray-600">
-                                            {{ $app->first_name ?? $app->candidate_name ?? $app->groom_name ?? $app->deceased_name ?? 'N/A' }}
-                                        </td>
-                                        <td class="p-4 text-gray-500">
-                                            {{ $app->baptism_date ?? $app->communion_date ?? $app->confirmation_date ?? $app->burial_date ?? ($app->year . '-' . $app->month_day) }}
-                                        </td>
-                                    </tr>
-                                @endforeach
+                             <tr class="border-b">
+        <td>{{ $app->category }}</td>
+        {{-- Use conditional logic to pick the name field based on the table --}}
+        <td>{{ $app->first_name ?? $app->candidate_name ?? $app->groom_name ?? $app->deceased_name ?? 'N/A' }}</td>
+        <td>{{ $app->baptism_date ?? $app->communion_date ?? $app->confirmation_date ?? $app->burial_date ?? 'N/A' }}</td>
+    </tr>
+@endforeach
                             </tbody>
                         </table>
                     </div>

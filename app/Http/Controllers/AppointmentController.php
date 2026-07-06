@@ -20,17 +20,17 @@ class AppointmentController extends Controller
         $weddings = Wedding::all();
         $funerals = Funeral::all();
 
-        // Combine into one collection for easier handling in the view
-        $appointments = collect()
-            ->concat($baptisms)
-            ->concat($communions)
-            ->concat($confirmations)
-            ->concat($weddings)
-            ->concat($funerals)
-            ->sortByDesc('created_at'); // Sort by most recent
 
-        return view('appointments.index', compact('appointments'));
-    }
+    // Collect all appointments from all five tables
+    $appointments = collect()
+        ->concat(\App\Models\Baptism::all())
+        ->concat(\App\Models\Communion::all())
+        ->concat(\App\Models\Confirmation::all())
+        ->concat(\App\Models\Wedding::all())
+        ->concat(\App\Models\Funeral::all());
+
+    return view('appointments.index', compact('appointments'));
+}
 
     // Keep your existing create() and store() methods below...
 }
