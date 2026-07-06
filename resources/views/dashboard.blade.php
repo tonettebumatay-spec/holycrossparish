@@ -1,17 +1,18 @@
 <x-app-layout>
     @php
-        use Illuminate\Support\Facades\DB;
-
-        // Hardcoded book count
+    // Use the global DB helper or fully qualified namespace to avoid 'use' errors
         $bookCount = 5; 
-
-        // Fetching actual counts from the database
-        // Ensure table names ('schedules', 'certificates', 'appointments', etc.) match your DB exactly
-        $massScheduleCount = DB::table('schedules')->count();
-        $pendingCertificatesCount = DB::table('certificates')->where('status', 'pending')->count();
-        $appointmentCount = DB::table('appointments')->count();
-        $inventoryCount = DB::table('inventories')->count();
-        $onlineViewingCount = DB::table('viewing')->count();
+        $massScheduleCount = \Illuminate\Support\Facades\DB::table('schedules')->count();
+        $pendingCertificatesCount = \Illuminate\Support\Facades\DB::table('certificates')->where('status', 'pending')->count();
+    
+    // If this specific line causes a 500 error, it means the table "appointments" does not exist.
+    // Try changing 'appointments' to 'booking' or whatever table stores your appointments.
+        $appointmentCount = \Illuminate\Support\Facades\DB::table('appointments')->exists() 
+                        ? \Illuminate\Support\Facades\DB::table('appointments')->count() 
+                        : 0;
+                        
+        $inventoryCount = \Illuminate\Support\Facades\DB::table('inventories')->count();
+        $onlineViewingCount = \Illuminate\Support\Facades\DB::table('viewing')->count();
     @endphp
 
     <div class="relative min-h-[calc(100vh-140px)]">
