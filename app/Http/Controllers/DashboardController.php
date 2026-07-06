@@ -27,7 +27,7 @@ class DashboardController extends Controller
             'pendingCertificatesCount' => DB::table('certificates')->count() ?? 0,
             'appointmentCount' => $appointmentCount,
             'inventoryCount' => DB::table('inventories')->count() ?? 0,
-            'onlineViewingCount' => DB::table('viewing')->count() ?? 0,
+            'onlineViewingCount' => DB::table('viewings')->count() ?? 0,
         ];
 
         return view('dashboard', $data);

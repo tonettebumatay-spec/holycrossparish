@@ -12,7 +12,7 @@
         // $onlineViewingCount = DB::table('viewings')->count();
 
         // Temporary fallbacks so the other cards don't break:
-        $massScheduleCount = $massScheduleCount ?? 3; 
+        $massScheduleCount = $massScheduleCount ?? 3; // Naka-set sa 3 base sa UI mo kanina
         $pendingCertificatesCount = $pendingCertificatesCount ?? 0;
         $appointmentCount = $appointmentCount ?? 0;
         $inventoryCount = $inventoryCount ?? 0;
