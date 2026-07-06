@@ -3,7 +3,6 @@ FROM php:8.2-apache
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install core dependencies and Node.js
-# The --no-install-recommends prevents l10n package conflicts
 RUN apt-get update && apt-get install -y --no-install-recommends \
     zip unzip libpq-dev curl git build-essential \
     libz-dev libpng-dev libjpeg-dev libfreetype6-dev \
@@ -13,8 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Configure PHP extensions
+# Added pdo_pgsql and pgsql to resolve the "could not find driver" error
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_mysql bcmath gd
+    && docker-php-ext-install pdo_mysql pdo_pgsql pgsql bcmath gd
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -29,8 +29,8 @@ RUN sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-avail
 RUN sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/apache2.conf
 
 # Final Install
-# This now works because you removed the QR dependency locally
-RUN composer install --no-dev --optimize-autoloader --no-interaction \
+# --no-scripts prevents artisan errors during build time
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts \
     && npm install --no-audit --prefer-offline \
     && npm run build
 
