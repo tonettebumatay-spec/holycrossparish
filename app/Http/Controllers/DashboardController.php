@@ -16,31 +16,31 @@ class DashboardController extends Controller
     public function index()
     {
         try {
-            // Using try-catch ensures that if a single table is missing,
-            // the dashboard still loads instead of throwing a 500 error
-            // which causes the redirect loop.
-            
+            // Calculate total appointments from all sacrament tables
+            $appointmentCount = Baptism::count() + 
+                                Communion::count() + 
+                                Confirmation::count() + 
+                                Wedding::count() + 
+                                Funeral::count();
+
+            // If you also have a separate `Appointment` model for other purposes,
+            // you can add it as well:
+            // $appointmentCount += Appointment::count();
+
             $data = [
                 'bookCount' => 5,
-                'sacramentalRecordCount' => (
-                    Baptism::count() + 
-                    Communion::count() + 
-                    Confirmation::count() + 
-                    Wedding::count() + 
-                    Funeral::count()
-                ),
-                'massScheduleCount' => DB::table('schedules')->count(),
-                'pendingCertificatesCount' => DB::table('certificates')->count(),
-                'appointmentCount' => Appointment::count(),
-                'inventoryCount' => DB::table('inventories')->count(),
-                'onlineViewingCount' => DB::table('viewings')->count(),
+                'sacramentalRecordCount' => $appointmentCount, // same as appointments total
+                'massScheduleCount' => DB::table('schedules')->count() ?? 0,
+                'pendingCertificatesCount' => DB::table('certificates')->count() ?? 0,
+                'appointmentCount' => $appointmentCount, // now includes Android bookings
+                'inventoryCount' => DB::table('inventories')->count() ?? 0,
+                'onlineViewingCount' => DB::table('viewings')->count() ?? 0,
             ];
 
             return view('dashboard', $data);
 
         } catch (\Exception $e) {
-            // If any table is missing or query fails, log the error and 
-            // return the dashboard with 0 values so the user stays logged in.
+            // If any table is missing, log the error and return 0 values
             Log::error('Dashboard Error: ' . $e->getMessage());
             
             return view('dashboard', [
