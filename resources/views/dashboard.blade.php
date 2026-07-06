@@ -1,23 +1,15 @@
 <x-app-layout>
-    @php
-        // Hardcoded to 5 since you have 5 core sacramental books
-        $bookCount = 5; 
+  @php
+    use Illuminate\Support\Facades\DB;
 
-        // If you want to dynamically count entries in your tables directly from Blade without a controller, 
-        // you can uncomment these lines below:
-        // $massScheduleCount = DB::table('schedules')->count();
-        // $pendingCertificatesCount = DB::table('certificates')->count();
-        // $appointmentCount = DB::table('appointments')->count();
-        // $inventoryCount = DB::table('inventories')->count();
-        // $onlineViewingCount = DB::table('viewings')->count();
-
-        // Temporary fallbacks so the other cards don't break:
-        $massScheduleCount = $massScheduleCount ?? 3; // Naka-set sa 3 base sa UI mo kanina
-        $pendingCertificatesCount = $pendingCertificatesCount ?? 0;
-        $appointmentCount = $appointmentCount ?? 0;
-        $inventoryCount = $inventoryCount ?? 0;
-        $onlineViewingCount = $onlineViewingCount ?? 0;
-    @endphp
+    // Fetch counts directly from the database
+    $bookCount = 5; 
+    $massScheduleCount = DB::table('mass_schedules')->count();
+    $pendingCertificatesCount = DB::table('certificates')->where('status', 'pending')->count();
+    $appointmentCount = DB::table('appointments')->count();
+    $inventoryCount = DB::table('inventories')->count();
+    $onlineViewingCount = DB::table('viewings')->count();
+@endphp
 
     <div class="relative min-h-[calc(100vh-140px)]">
         <div
@@ -110,6 +102,10 @@
                             </span>
                         </div>
                     </a>
+
+                    <div class="text-black bg-white p-4">
+                         Total Appointments in DB: {{ DB::table('appointments')->count() }}
+                </div>
 
                     <a
                         href="{{ Route::has('inventory.index') ? route('inventory.index') : '#' }}"
