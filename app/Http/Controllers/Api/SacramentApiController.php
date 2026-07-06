@@ -15,8 +15,11 @@ class SacramentApiController extends Controller
     /**
      * Register a new mobile user.
      * 
-     * Expects: name, email, phone, password
-     * (password_confirmation is NOT required – Android sends only password)
+     * Accepts:
+     * - name (required)
+     * - email (required, unique)
+     * - phone OR phone_number (required, unique)
+     * - password (required, min:6)
      * 
      * Returns: user data with success message or validation errors.
      */
@@ -25,12 +28,28 @@ class SacramentApiController extends Controller
         // Log incoming request for debugging
         Log::info('REGISTER_DEBUG_REQUEST', $request->all());
 
+        // Get phone from either 'phone' or 'phone_number' field
+        $phone = $request->input('phone') ?? $request->input('phone_number');
+
+        // Basic validation first
         $validator = Validator::make($request->all(), [
             'name'     => 'required|string|max:255',
             'email'    => 'required|string|email|max:255|unique:users,email',
-            'phone'    => 'required|string|max:20|unique:users,phone_number', // unique in the table
-            'password' => 'required|string|min:6', // No confirmation needed
+            'password' => 'required|string|min:6',
         ]);
+
+        // Add custom validation for phone number presence and uniqueness
+        $validator->after(function ($validator) use ($phone, $request) {
+            if (empty($phone)) {
+                $validator->errors()->add('phone', 'Phone number is required (field name: phone or phone_number)');
+                return;
+            }
+
+            // Check uniqueness in users table (column: phone_number)
+            if (User::where('phone_number', $phone)->exists()) {
+                $validator->errors()->add('phone', 'The phone number has already been taken.');
+            }
+        });
 
         if ($validator->fails()) {
             // Return all errors for better debugging
@@ -41,10 +60,11 @@ class SacramentApiController extends Controller
             ], 422);
         }
 
+        // Create the user
         $user = User::create([
             'name'         => $request->input('name'),
             'email'        => $request->input('email'),
-            'phone_number' => $request->input('phone'), // map 'phone' to 'phone_number'
+            'phone_number' => $phone, // store in the correct column
             'password'     => Hash::make($request->input('password')),
         ]);
 
