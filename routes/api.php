@@ -2,24 +2,25 @@
 
 use App\Http\Controllers\Api\SacramentApiController;
 use App\Http\Controllers\RecordController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BookingController;
+use Illuminate\Support\Facades\Route;
 
-// Standard API group
 Route::prefix('v1')->group(function () {
     
-    // Mobile client authentication routes
+    // Auth
     Route::post('/register', [SacramentApiController::class, 'registerMobileUser']);
-    
-    // ADDED: Mobile client login route
     Route::post('/login', [SacramentApiController::class, 'loginMobileUser']);
     
-    // Public routes (Keep these for your QR/Search functionality)
+    // Public Data
     Route::get('/sacraments', [RecordController::class, 'indexApi']);
     Route::get('/verify/{id}', [RecordController::class, 'verifyApi']);
-    
-    // Protected routes
     Route::get('/records/{category}/{id}', [RecordController::class, 'showApi']);
 
-    Route::post('/appointment', [BookingController::class, 'store']);
+    // Booking Endpoints
+    // We separate these so the BookingController knows which model to save to
+    Route::post('/booking/baptism', [BookingController::class, 'storeBaptism']);
+    Route::post('/booking/wedding', [BookingController::class, 'storeWedding']);
+    Route::post('/booking/communion', [BookingController::class, 'storeCommunion']);
+    Route::post('/booking/confirmation', [BookingController::class, 'storeConfirmation']);
+    Route::post('/booking/funeral', [BookingController::class, 'storeFuneral']);
 });
