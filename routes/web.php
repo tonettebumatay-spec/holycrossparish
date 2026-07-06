@@ -82,3 +82,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::fallback(function () {
     return redirect()->route('login');
 });
+
+Route::get('/test-route', function () {
+    return "The server is working!";
+});
