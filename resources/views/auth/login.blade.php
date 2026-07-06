@@ -14,6 +14,7 @@
                 <img src="{{ asset('images/parishlogo.png') }}" alt="Logo" class="w-16">
             </div>
 
+            
             <h2 class="text-3xl font-bold text-[#4d290a] mb-8 tracking-wider uppercase">Login</h2>
 
             <form method="POST" action="{{ route('login') }}" class="w-full space-y-6">
