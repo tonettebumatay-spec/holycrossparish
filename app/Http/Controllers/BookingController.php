@@ -181,7 +181,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Generic API store method – updated to parse Android payload.
+     * Generic API store method – with enhanced error handling and defaults.
      */
     private function storeSacrament(Request $request, string $type)
     {
@@ -201,16 +201,11 @@ class BookingController extends Controller
             $modelClass = $modelMap[$type];
 
             // --- Extract fields from the actual Android payload ---
-            // Android sends: appointment_date, contact_number, details (with Purpose, Child, Father, Email)
             $appointmentDate = $request->input('appointment_date') ?? $request->input('preferred_date') ?? '';
             $contactNumber   = $request->input('contact_number') ?? $request->input('phone') ?? '';
             $details         = $request->input('details') ?? '';
 
-            // Parse the details string to extract Purpose, Child, Father, Email
-            $purpose = '';
-            $childName = '';
-            $fatherName = '';
-            $email = '';
+            $purpose = $childName = $fatherName = $email = '';
 
             if (!empty($details)) {
                 preg_match('/Purpose:\s*([^\n]+)/i', $details, $purposeMatch);
@@ -227,10 +222,10 @@ class BookingController extends Controller
             }
 
             // Fallback to direct input fields (if details parsing fails)
-            $purpose    = $purpose ?: $request->input('purpose') ?? $request->input('appointment_purpose') ?? '';
-            $childName  = $childName ?: $request->input('child_name') ?? $request->input('child_full_name') ?? $request->input('candidate_name') ?? '';
-            $fatherName = $fatherName ?: $request->input('father_name') ?? $request->input('father_full_name') ?? '';
-            $email      = $email ?: $request->input('email') ?? $request->input('email_address') ?? '';
+            $purpose    = $purpose ?: $request->input('purpose') ?? '';
+            $childName  = $childName ?: $request->input('child_name') ?? $request->input('candidate_name') ?? '';
+            $fatherName = $fatherName ?: $request->input('father_name') ?? '';
+            $email      = $email ?: $request->input('email') ?? '';
 
             // --- Validation ---
             $validator = Validator::make(
@@ -259,13 +254,28 @@ class BookingController extends Controller
                     'success' => false,
                     'message' => 'Validation failed',
                     'errors'  => $validator->errors(),
-                    'received_data' => $request->all() // debug helper
+                    'received_data' => $request->all()
                 ], 422);
             }
 
-            // --- Map fields to the model columns ---
+            // --- Map fields to model columns (with defaults for NOT NULL columns) ---
             $mappedData = $this->mapApiFields($type, $purpose, $appointmentDate, '', $childName, $fatherName, $email, $contactNumber);
-            $booking = $modelClass::create($mappedData);
+            Log::info("API_BOOKING_MAPPED_{$type}", $mappedData);
+
+            // --- Try to create the record ---
+            try {
+                $booking = $modelClass::create($mappedData);
+            } catch (\Exception $e) {
+                Log::error("API_BOOKING_CREATE_ERROR_{$type}", [
+                    'message' => $e->getMessage(),
+                    'trace'   => $e->getTraceAsString(),
+                    'mapped_data' => $mappedData
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Database error: ' . $e->getMessage()
+                ], 500);
+            }
 
             return response()->json([
                 'success' => true,
@@ -287,7 +297,7 @@ class BookingController extends Controller
 
     /**
      * Map API fields to the correct database columns for each model.
-     * Only uses columns that exist in the model's $fillable array.
+     * Provides default values for NOT NULL columns that aren't provided.
      */
     private function mapApiFields(string $type, string $purpose, string $date, string $time, string $childName, string $fatherName, string $email, string $contactNumber = '')
     {
@@ -304,12 +314,19 @@ class BookingController extends Controller
                     'baptism_date' => $date,
                     'father_name'  => $fatherName,
                     'residence'    => $contactNumber,
+                    // Defaults for NOT NULL columns
+                    'book_number'  => 0,
+                    'page_number'  => 0,
+                    'line_number'  => 0,
                 ]);
             case 'communion':
                 return array_merge($base, [
                     'candidate_name' => $childName,
                     'communion_date' => $date,
                     'residence'      => $contactNumber,
+                    'book_number'    => 0,
+                    'page_number'    => 0,
+                    'line_number'    => 0,
                 ]);
             case 'confirmation':
                 return array_merge($base, [
@@ -317,12 +334,18 @@ class BookingController extends Controller
                     'confirmation_date' => $date,
                     'father_name'       => $fatherName,
                     'parents_residence' => $contactNumber,
+                    'book_number'       => 0,
+                    'page_number'       => 0,
+                    'line_number'       => 0,
                 ]);
             case 'funeral':
                 return array_merge($base, [
                     'deceased_name' => $childName,
                     'burial_date'   => $date,
                     'residence'     => $contactNumber,
+                    'book_number'   => 0,
+                    'page_number'   => 0,
+                    'line_number'   => 0,
                 ]);
             case 'wedding':
                 $dateObj = Carbon::parse($date);
@@ -331,6 +354,9 @@ class BookingController extends Controller
                     'month_day' => $dateObj->format('m-d'),
                     'groom_name'=> $fatherName,
                     'bride_name'=> $childName,
+                    'book_number' => 0,
+                    'page_number' => 0,
+                    'line_number' => 0,
                 ]);
             default:
                 return [];
