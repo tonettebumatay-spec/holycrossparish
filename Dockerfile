@@ -1,10 +1,11 @@
 # Use PHP 8.2 with Apache
 FROM php:8.2-apache
 
-# Set environment variables to avoid interactive prompts during installation
+# Set non-interactive to avoid hanging on configuration prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
 # 1. Install System Dependencies & Essential Build Tools
+# Using --no-install-recommends prevents unnecessary packages that cause conflicts
 RUN apt-get update && apt-get install -y --no-install-recommends \
     zip \
     unzip \
@@ -17,8 +18,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libfreetype6-dev \
     build-essential \
     && curl -sL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
-    # Cleanup apt lists to prevent "Exit Code 4" mirror/dependency issues
+    && apt-get install -y --no-install-recommends nodejs \
+    # Clean up APT cache to ensure no corrupted files remain
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     # Configure and install PHP extensions
@@ -36,7 +37,7 @@ WORKDIR /var/www/html
 COPY . .
 
 # 5. Install PHP and JS Dependencies
-# Added --no-interaction to prevent build hangs
+# Using --no-interaction to prevent build hangs
 RUN composer install --no-dev --optimize-autoloader --no-interaction \
     && npm install --no-audit --prefer-offline \
     && npm run build
