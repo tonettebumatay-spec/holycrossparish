@@ -16,12 +16,24 @@
 
             <h2 class="text-2xl font-bold text-[#4d290a] mb-6 tracking-wider uppercase text-center">Create Admin Account</h2>
 
+            <!-- ✅ Show all validation errors -->
+            @if ($errors->any())
+                <div class="w-full bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
+                    <strong class="font-bold">Please fix the following errors:</strong>
+                    <ul class="mt-2 list-disc list-inside">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <form method="POST" action="{{ route('register') }}" class="w-full space-y-4">
                 @csrf
 
                 <!-- Name -->
                 <div>
-                    <input id="name" type="text" name="name" :value="old('name')" required autofocus 
+                    <input id="name" type="text" name="name" value="{{ old('name') }}" required autofocus 
                            placeholder="Full Name"
                            class="w-full px-4 py-2 bg-transparent border-t-0 border-l-0 border-r-0 border-b-2 border-[#4d290a] focus:ring-0 focus:border-[#7a4211] text-md placeholder-[#4d290a]">
                     <x-input-error :messages="$errors->get('name')" class="mt-2" />
@@ -29,7 +41,7 @@
 
                 <!-- Email Address -->
                 <div>
-                    <input id="email" type="email" name="email" :value="old('email')" required 
+                    <input id="email" type="email" name="email" value="{{ old('email') }}" required 
                            placeholder="Email Address"
                            class="w-full px-4 py-2 bg-transparent border-t-0 border-l-0 border-r-0 border-b-2 border-[#4d290a] focus:ring-0 focus:border-[#7a4211] text-md placeholder-[#4d290a]">
                     <x-input-error :messages="$errors->get('email')" class="mt-2" />
