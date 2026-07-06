@@ -19,6 +19,7 @@ class BookingController extends Controller
      */
     public function create()
     {
+        // ... keep your existing create() method exactly as you have it ...
         $serviceDateMap = [
             'baptism'     => [Baptism::class, 'baptism_date'],
             'communion'   => [Communion::class, 'communion_date'],
@@ -84,6 +85,7 @@ class BookingController extends Controller
      */
     public function store(Request $request)
     {
+        // ... keep your existing store() method exactly as you have it ...
         $validated = $request->validate([
             'service_type' => ['required', 'string', 'in:baptism,wedding,communion,confirmation,funeral'],
             'user_name' => ['required', 'string', 'max:255'],
@@ -200,7 +202,6 @@ class BookingController extends Controller
             }
             $modelClass = $modelMap[$type];
 
-            // Extract fields from Android payload
             $appointmentDate = $request->input('appointment_date') ?? $request->input('preferred_date') ?? '';
             $contactNumber   = $request->input('contact_number') ?? $request->input('phone') ?? '';
             $details         = $request->input('details') ?? '';
@@ -226,7 +227,6 @@ class BookingController extends Controller
             $fatherName = $fatherName ?: $request->input('father_name') ?? '';
             $email      = $email ?: $request->input('email') ?? '';
 
-            // Validate
             $validator = Validator::make(
                 compact('purpose', 'appointmentDate', 'childName', 'fatherName', 'email', 'contactNumber'),
                 [
@@ -248,7 +248,6 @@ class BookingController extends Controller
                 ], 422);
             }
 
-            // Get the initial mapped data
             $mappedData = $this->mapApiFields($type, $purpose, $appointmentDate, '', $childName, $fatherName, $email, $contactNumber);
 
             // ----- AUTO-FILL MISSING FILLABLE COLUMNS WITH SAFE DEFAULTS -----
@@ -257,17 +256,15 @@ class BookingController extends Controller
 
             foreach ($fillable as $column) {
                 if (!array_key_exists($column, $mappedData)) {
-                    // Determine default based on column name
-                    if (in_array($column, ['book_number', 'page_number', 'line_number'])) {
+                    // Default based on column name
+                    if (in_array($column, ['book_number', 'page_number', 'line_number', 'year', 'age', 'age_at_death', 'groom_age', 'bride_age'])) {
                         $mappedData[$column] = 0;
                     } elseif (strpos($column, 'date') !== false) {
-                        $mappedData[$column] = null;
-                    } elseif (in_array($column, ['category', 'remarks', 'status', 'legitimacy', 'marital_status', 'cause_of_death', 'sacraments_received', 'cemetery_name', 'minister_name', 'sponsor_name', 'sponsors', 'coordinator_name', 'place_of_baptism', 'residence', 'birth_place', 'father_birthplace', 'mother_birthplace', 'godfather', 'godmother', 'mother_name', 'mother_maiden_name', 'middle_name', 'suffix', 'candidate_name', 'first_name', 'last_name', 'father_name', 'mother_name', 'groom_name', 'bride_name', 'groom_father', 'groom_mother', 'bride_father', 'bride_mother', 'groom_status', 'bride_status', 'groom_parents', 'bride_parents', 'groom_parents_residence', 'bride_parents_residence', 'groom_residence', 'bride_residence', 'witness_1', 'witness_2'])) {
-                        $mappedData[$column] = '';
-                    } elseif (in_array($column, ['year', 'age', 'age_at_death', 'groom_age', 'bride_age'])) {
-                        $mappedData[$column] = 0;
+                        // For date columns, use a placeholder date if NOT NULL
+                        $mappedData[$column] = '1900-01-01';
+                    } elseif (in_array($column, ['legitimacy', 'marital_status'])) {
+                        $mappedData[$column] = 'Unknown';
                     } else {
-                        // fallback: empty string
                         $mappedData[$column] = '';
                     }
                 }
@@ -275,7 +272,6 @@ class BookingController extends Controller
 
             Log::info("API_BOOKING_FINAL_DATA_{$type}", $mappedData);
 
-            // Create the record
             try {
                 $booking = $modelClass::create($mappedData);
             } catch (\Exception $e) {
@@ -310,7 +306,6 @@ class BookingController extends Controller
 
     /**
      * Map API fields to model columns – provides initial values.
-     * The storeSacrament method will fill any missing fillable columns automatically.
      */
     private function mapApiFields(string $type, string $purpose, string $date, string $time, string $childName, string $fatherName, string $email, string $contactNumber = '')
     {
@@ -331,7 +326,7 @@ class BookingController extends Controller
                     'father_name'  => $fatherName,
                     'residence'    => $contactNumber,
                     'legitimacy'   => 'Unknown',
-                    'birth_date'   => null,
+                    'birth_date'   => '1900-01-01', // ✅ fixed – NOT NULL column
                     'birth_place'  => '',
                     'father_birthplace' => '',
                     'mother_birthplace' => '',
