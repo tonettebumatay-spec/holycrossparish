@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\SacramentApiController;
 use App\Http\Controllers\RecordController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\BookingController;
 
 // Standard API group
 Route::prefix('v1')->group(function () {
@@ -20,6 +21,5 @@ Route::prefix('v1')->group(function () {
     // Protected routes
     Route::get('/records/{category}/{id}', [RecordController::class, 'showApi']);
 
-    // Make sure it is POST, not GET
-    Route::post('/book-appointment', [App\Http\Controllers\Api\SacramentApiController::class, 'bookAppointment']);
+    Route::post('/appointment', [BookingController::class, 'store']);
 });
