@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 class AppointmentController extends Controller
 {
     /**
-     * Display a listing of appointments (For the Dashboard view)
+     * Display a listing of appointments
      */
     public function index()
     {
@@ -21,21 +21,28 @@ class AppointmentController extends Controller
      */
     public function store(Request $request)
     {
-        // 1. Validate the incoming data from Android
-        // Adjust these field names to match exactly what your Android app sends
+        // 1. Validate the incoming data to match your Model's $fillable fields
         $validated = $request->validate([
-            'name'         => 'required|string|max:255',
-            'service_type' => 'required|string|max:255',
-            'service_date' => 'required|date',
+            'user_name'        => 'required|string|max:255',
+            'service_type'     => 'required|string|max:255',
+            'appointment_date' => 'required|date',
+            'contact_number'   => 'required|string|max:20',
+            'details'          => 'nullable|string',
+            'status'           => 'nullable|string', // Default to 'pending' if not provided
         ]);
 
-        // 2. Save to the database
+        // 2. Set a default status if the Android app doesn't send one
+        if (!isset($validated['status'])) {
+            $validated['status'] = 'pending';
+        }
+
+        // 3. Save to the database
         Appointment::create($validated);
 
-        // 3. Return JSON response for the Android app
+        // 4. Return success response
         return response()->json([
             'status' => 'success',
-            'message' => 'Appointment booked successfully'
+            'message' => 'Appointment request sent successfully'
         ], 201);
     }
 }
