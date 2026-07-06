@@ -15,7 +15,9 @@ use Illuminate\Support\Facades\Route;
 | These are used by the Android mobile app.
 |
 */
-
+Route::get('/test', function () {
+    return response()->json(['status' => 'Server is reachable']);
+});
 Route::prefix('v1')->group(function () {
 
     // ============================================================
