@@ -19,56 +19,44 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
 
     // ============================================================
-    // 1. AUTHENTICATION ENDPOINTS (Public)
+    // 1. PUBLIC AUTHENTICATION ENDPOINTS
     // ============================================================
-    // These do not require a token; they register and log in users.
-    // The Android app stores the returned token for subsequent requests.
+    // These do not require a token.
     // ------------------------------------------------------------
     Route::post('/register', [SacramentApiController::class, 'registerMobileUser']);
     Route::post('/login', [SacramentApiController::class, 'loginMobileUser']);
 
     // ============================================================
-    // 2. PUBLIC DATA ENDPOINTS (No authentication required)
+    // 2. PUBLIC DATA ENDPOINTS (No authentication)
     // ============================================================
-    // These are used to fetch list of sacraments, verify records, etc.
+    // Used to fetch sacraments, verify records, etc.
     // ------------------------------------------------------------
     Route::get('/sacraments', [RecordController::class, 'indexApi']);
     Route::get('/verify/{id}', [RecordController::class, 'verifyApi']);
     Route::get('/records/{category}/{id}', [RecordController::class, 'showApi']);
 
     // ============================================================
-    // 3. BOOKING ENDPOINTS (for each sacrament)
+    // 3. PROTECTED ENDPOINTS (Require valid Sanctum token)
     // ============================================================
-    // These accept a POST request with the booking details in JSON.
-    // Each maps to a specific sacrament model (Baptism, Wedding, etc.)
-    // The BookingController handles the storage.
+    // All routes inside this group must include the Authorization header:
+    //   Authorization: Bearer <token>
     // ------------------------------------------------------------
-    Route::post('/booking/baptism', [BookingController::class, 'storeBaptism']);
-    Route::post('/booking/wedding', [BookingController::class, 'storeWedding']);
-    Route::post('/booking/communion', [BookingController::class, 'storeCommunion']);
-    Route::post('/booking/confirmation', [BookingController::class, 'storeConfirmation']);
-    Route::post('/booking/funeral', [BookingController::class, 'storeFuneral']);
+    Route::middleware('auth:sanctum')->group(function () {
 
-    // ============================================================
-    // 4. GENERIC APPOINTMENT ENDPOINT
-    // ============================================================
-    // This can be used for a unified appointment booking.
-    // The AppointmentController::store should accept a 'type' field
-    // to differentiate between baptism, wedding, etc., if needed.
-    // ------------------------------------------------------------
-    Route::post('/appointment', [AppointmentController::class, 'store']);
+        // --- AUTHENTICATION (Logout, Profile) ---
+        Route::post('/logout', [SacramentApiController::class, 'logoutMobileUser']);
+        Route::get('/profile', [SacramentApiController::class, 'getUserProfile']);
+
+        // --- BOOKING ENDPOINTS (for each sacrament) ---
+        // These store a booking in the corresponding sacrament table.
+        Route::post('/booking/baptism', [BookingController::class, 'storeBaptism']);
+        Route::post('/booking/wedding', [BookingController::class, 'storeWedding']);
+        Route::post('/booking/communion', [BookingController::class, 'storeCommunion']);
+        Route::post('/booking/confirmation', [BookingController::class, 'storeConfirmation']);
+        Route::post('/booking/funeral', [BookingController::class, 'storeFuneral']);
+
+        // --- GENERIC APPOINTMENT ENDPOINT ---
+        // Allows booking any type of appointment (with a 'type' field).
+        Route::post('/appointment', [AppointmentController::class, 'store']);
+    });
 });
-
-// ================================================================
-// OPTIONAL: Protected Routes (if you decide to add authentication)
-// ================================================================
-// You can wrap any of the above routes with the auth:sanctum middleware
-// to require a valid token. For example:
-//
-// Route::middleware('auth:sanctum')->group(function () {
-//     Route::post('/booking/baptism', [BookingController::class, 'storeBaptism']);
-//     // ... etc.
-// });
-//
-// Then your Android app must include the token in the Authorization header.
-// ================================================================

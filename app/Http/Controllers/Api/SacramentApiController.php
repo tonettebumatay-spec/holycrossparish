@@ -4,55 +4,46 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\Appointment; // Make sure your Appointment model exists
+use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use Laravel\Sanctum\HasApiTokens;
 
 class SacramentApiController extends Controller
 {
     /**
      * Register a new mobile user.
-     * 
-     * Accepts:
-     * - name (required)
-     * - email (required, unique)
-     * - phone OR phone_number (required, unique)
-     * - password (required, min:6)
-     * 
-     * Returns: user data with success message or validation errors.
+     *
+     * Accepts: name, email, password, and phone/phone_number.
+     * Returns: user data and API token.
      */
     public function registerMobileUser(Request $request)
     {
-        // Log incoming request for debugging
         Log::info('REGISTER_DEBUG_REQUEST', $request->all());
 
-        // Get phone from either 'phone' or 'phone_number' field
+        // Accept both 'phone' and 'phone_number' fields
         $phone = $request->input('phone') ?? $request->input('phone_number');
 
-        // Basic validation first
         $validator = Validator::make($request->all(), [
             'name'     => 'required|string|max:255',
             'email'    => 'required|string|email|max:255|unique:users,email',
             'password' => 'required|string|min:6',
         ]);
 
-        // Add custom validation for phone number presence and uniqueness
-        $validator->after(function ($validator) use ($phone, $request) {
+        // Custom phone validation
+        $validator->after(function ($validator) use ($phone) {
             if (empty($phone)) {
-                $validator->errors()->add('phone', 'Phone number is required (field name: phone or phone_number)');
+                $validator->errors()->add('phone', 'Phone number is required (field: phone or phone_number)');
                 return;
             }
-
-            // Check uniqueness in users table (column: phone_number)
             if (User::where('phone_number', $phone)->exists()) {
                 $validator->errors()->add('phone', 'The phone number has already been taken.');
             }
         });
 
         if ($validator->fails()) {
-            // Return all errors for better debugging
             return response()->json([
                 'status'  => 'error',
                 'message' => 'Validation failed',
@@ -60,30 +51,29 @@ class SacramentApiController extends Controller
             ], 422);
         }
 
-        // Create the user
         $user = User::create([
             'name'         => $request->input('name'),
             'email'        => $request->input('email'),
-            'phone_number' => $phone, // store in the correct column
+            'phone_number' => $phone,
             'password'     => Hash::make($request->input('password')),
         ]);
 
-        // Optionally generate a token (if you use Sanctum)
-        // $token = $user->createToken('mobile-app')->plainTextToken;
+        // Create Sanctum token
+        $token = $user->createToken('mobile-app')->plainTextToken;
 
         return response()->json([
             'status'  => 'success',
             'message' => 'Registration successful!',
             'user'    => $user,
-            // 'token' => $token ?? null,
+            'token'   => $token,
         ], 201);
     }
 
     /**
      * Login a mobile user.
-     * 
-     * Expects: email, password
-     * Returns: user data on success, error on failure.
+     *
+     * Expects: email, password.
+     * Returns: user data and API token.
      */
     public function loginMobileUser(Request $request)
     {
@@ -102,7 +92,6 @@ class SacramentApiController extends Controller
             ], 422);
         }
 
-        Log::info('REGISTER_RAW_INPUT', ['input' => $request->all()]);
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
@@ -113,19 +102,58 @@ class SacramentApiController extends Controller
             ], 401);
         }
 
-        // Optionally generate a token
-        // $token = $user->createToken('mobile-app')->plainTextToken;
+        // Revoke old tokens (optional)
+        $user->tokens()->delete();
+
+        // Create new token
+        $token = $user->createToken('mobile-app')->plainTextToken;
 
         return response()->json([
             'status' => 'success',
+            'message' => 'Login successful',
             'user'   => $user,
-            // 'token' => $token,
+            'token'  => $token,
+        ], 200);
+    }
+
+    /**
+     * Logout a mobile user (revoke the current token).
+     *
+     * Requires authentication via Sanctum.
+     */
+    public function logoutMobileUser(Request $request)
+    {
+        try {
+            $request->user()->currentAccessToken()->delete();
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Logged out successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('LOGOUT_ERROR', ['error' => $e->getMessage()]);
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Logout failed'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get the authenticated user's profile.
+     *
+     * Requires authentication via Sanctum.
+     */
+    public function getUserProfile(Request $request)
+    {
+        return response()->json([
+            'status' => 'success',
+            'user'   => $request->user()
         ], 200);
     }
 
     /**
      * Book an appointment from the mobile app.
-     * 
+     *
      * Expects: user_name, service_type, appointment_date, contact_number, details (optional)
      * Returns: created appointment data.
      */
@@ -155,7 +183,7 @@ class SacramentApiController extends Controller
             'appointment_date' => $request->input('appointment_date'),
             'contact_number'   => $request->input('contact_number'),
             'details'          => $request->input('details'),
-            'status'           => 'pending', // default status
+            'status'           => 'pending',
         ]);
 
         return response()->json([
