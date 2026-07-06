@@ -10,7 +10,7 @@ use App\Models\Funeral;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class BookingController extends Controller
 {
@@ -19,14 +19,12 @@ class BookingController extends Controller
      */
     public function create()
     {
-        // ... keep your existing web `create` method exactly as you have it ...
-        // (I'll include it below unchanged)
         $serviceDateMap = [
-            'baptism' => [Baptism::class, 'baptism_date'],
-            'communion' => [Communion::class, 'communion_date'],
-            'confirmation' => [Confirmation::class, 'confirmation_date'],
-            'wedding' => [Wedding::class, null],
-            'funeral' => [Funeral::class, 'burial_date'],
+            'baptism'     => [Baptism::class, 'baptism_date'],
+            'communion'   => [Communion::class, 'communion_date'],
+            'confirmation'=> [Confirmation::class, 'confirmation_date'],
+            'wedding'     => [Wedding::class, null],
+            'funeral'     => [Funeral::class, 'burial_date'],
         ];
 
         $countsByDate = [];
@@ -86,7 +84,6 @@ class BookingController extends Controller
      */
     public function store(Request $request)
     {
-        // ... keep your existing web `store` method exactly as you have it ...
         $validated = $request->validate([
             'service_type' => ['required', 'string', 'in:baptism,wedding,communion,confirmation,funeral'],
             'user_name' => ['required', 'string', 'max:255'],
@@ -158,10 +155,6 @@ class BookingController extends Controller
     // API METHODS (Called by Android app)
     // ============================================================
 
-    /**
-     * API: Store Baptism booking.
-     * Expects JSON: purpose, preferred_date, preferred_time, child_name, father_name, email
-     */
     public function storeBaptism(Request $request)
     {
         return $this->storeSacrament($request, 'baptism');
@@ -188,15 +181,13 @@ class BookingController extends Controller
     }
 
     /**
-     * Generic API store method for all sacraments.
-     * Maps the Android payload to the correct model columns.
+     * Generic API store method with flexible field extraction.
      */
     private function storeSacrament(Request $request, string $type)
     {
         try {
-            Log::info("API_BOOKING_DEBUG_{$type}", $request->all());
+            Log::info("API_BOOKING_RAW_{$type}", $request->all());
 
-            // Define the model class
             $modelMap = [
                 'baptism'     => Baptism::class,
                 'wedding'     => Wedding::class,
@@ -204,29 +195,42 @@ class BookingController extends Controller
                 'confirmation'=> Confirmation::class,
                 'funeral'     => Funeral::class,
             ];
-
             if (!isset($modelMap[$type])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid service type'
-                ], 400);
+                return response()->json(['success' => false, 'message' => 'Invalid service type'], 400);
             }
-
             $modelClass = $modelMap[$type];
 
-            // Validation rules that match the Android payload
-            $rules = [
-                'purpose'          => 'required|string|max:255',
-                'preferred_date'   => 'required|date',
-                'preferred_time'   => 'required|string|max:20',
-                'child_name'       => 'required|string|max:255',
-                'father_name'      => 'required|string|max:255',
-                'email'            => 'required|email|max:255',
-            ];
+            // Flexible field extraction (allows different key names)
+            $purpose        = $request->input('purpose') ?? $request->input('appointment_purpose') ?? '';
+            $preferredDate  = $request->input('preferred_date') ?? $request->input('appointment_date') ?? '';
+            $preferredTime  = $request->input('preferred_time') ?? $request->input('appointment_time') ?? '';
+            $childName      = $request->input('child_name') ?? $request->input('child_full_name') ?? $request->input('candidate_name') ?? '';
+            $fatherName     = $request->input('father_name') ?? $request->input('father_full_name') ?? '';
+            $email          = $request->input('email') ?? $request->input('email_address') ?? '';
+            $contactNumber  = $request->input('contact_number') ?? $request->input('phone') ?? $request->input('mobile') ?? '';
 
-            // For wedding, we may have bride_name, groom_name, etc. We'll keep generic.
-            // The Android payload for all sacraments uses these fields.
-            $validator = Validator::make($request->all(), $rules);
+            $validator = Validator::make(
+                compact('purpose', 'preferredDate', 'preferredTime', 'childName', 'fatherName', 'email', 'contactNumber'),
+                [
+                    'purpose'       => 'required|string|max:255',
+                    'preferredDate' => 'required|date',
+                    'preferredTime' => 'required|string|max:20',
+                    'childName'     => 'required|string|max:255',
+                    'fatherName'    => 'required|string|max:255',
+                    'email'         => 'required|email|max:255',
+                    'contactNumber' => 'nullable|string|max:20',
+                ],
+                [
+                    'purpose.required'       => 'Purpose is required',
+                    'preferredDate.required' => 'Preferred date is required',
+                    'preferredDate.date'     => 'Preferred date must be a valid date',
+                    'preferredTime.required' => 'Preferred time is required',
+                    'childName.required'     => "Child's full name is required",
+                    'fatherName.required'    => "Father's full name is required",
+                    'email.required'         => 'Email address is required',
+                    'email.email'            => 'Email must be a valid email address',
+                ]
+            );
 
             if ($validator->fails()) {
                 return response()->json([
@@ -236,47 +240,16 @@ class BookingController extends Controller
                 ], 422);
             }
 
-            // Map the incoming fields to the actual column names used in the database.
-            // Adjust these mappings to match your table schema.
-            $data = [
-                // Baptism columns: first_name, last_name, baptism_date, remarks, etc.
-                // We'll store:
-                'purpose'          => $request->input('purpose'),
-                'appointment_date' => $request->input('preferred_date'),  // we have appointment_date
-                'appointment_time' => $request->input('preferred_time'),
-                'child_name'       => $request->input('child_name'),
-                'father_name'      => $request->input('father_name'),
-                'email'            => $request->input('email'),
-                'status'           => 'pending',
-                // If your table has separate columns, adjust accordingly.
-                // For weddings, we'll handle separately.
-            ];
-
-            // For wedding, we need to split date into year and month_day
-            if ($type === 'wedding') {
-                $date = date('Y-m-d', strtotime($request->input('preferred_date')));
-                $data['year'] = date('Y', strtotime($date));
-                $data['month_day'] = date('m-d', strtotime($date));
-                // Also map groom/bride
-                $data['groom_name'] = $request->input('father_name'); // if you have groom
-                $data['bride_name'] = $request->input('child_name');   // placeholder
-                // Remove unused keys
-                unset($data['child_name'], $data['father_name'], $data['appointment_date'], $data['appointment_time']);
-            }
-
-            // For other sacraments, we need to map fields based on the actual table columns.
-            // Since each table has different column names, we'll handle per type.
-            // We'll create a mapping function for each.
-
-            $mappedData = $this->mapFieldsForModel($type, $data, $request);
+            // Build the data array using the model's fillable columns
+            $mappedData = $this->mapApiFields($type, $purpose, $preferredDate, $preferredTime, $childName, $fatherName, $email, $contactNumber);
 
             // Create the record
             $booking = $modelClass::create($mappedData);
 
             return response()->json([
-                'success'  => true,
-                'message'  => ucfirst($type) . ' booking created successfully!',
-                'booking'  => $booking
+                'success' => true,
+                'message' => ucfirst($type) . ' booking created successfully!',
+                'booking' => $booking
             ], 201);
 
         } catch (\Exception $e) {
@@ -292,60 +265,59 @@ class BookingController extends Controller
     }
 
     /**
-     * Map incoming data to the correct model columns for each type.
+     * Map API fields to the correct database columns for each model.
+     * Only uses columns that exist in the model's $fillable array.
      */
-    private function mapFieldsForModel(string $type, array $data, Request $request)
+    private function mapApiFields(string $type, string $purpose, string $date, string $time, string $childName, string $fatherName, string $email, string $contactNumber = '')
     {
-        $mapped = [];
+        // Base data: we always set category and remarks (store extra info)
+        $base = [
+            'category' => ucfirst($type),
+            'remarks'  => "Purpose: $purpose | Time: $time | Email: $email | Contact: $contactNumber | Father: $fatherName",
+        ];
 
         switch ($type) {
             case 'baptism':
-                $mapped = [
-                    'first_name'     => $request->input('child_name'),
-                    'last_name'      => $request->input('father_name'), // or you can split
-                    'baptism_date'   => $request->input('preferred_date'),
-                    'remarks'        => $request->input('purpose') . ' | ' . $request->input('preferred_time'),
-                    // adjust as needed
-                ];
-                break;
+                // Use first_name, last_name, baptism_date, father_name, mother_name? We'll put father in father_name.
+                return array_merge($base, [
+                    'first_name'   => $childName,
+                    'last_name'    => '', // we can put father name as last if needed, or leave empty
+                    'baptism_date' => $date,
+                    'father_name'  => $fatherName,
+                    // mother_name, godfather, godmother, residence can be set if provided
+                    'residence'    => $contactNumber,
+                ]);
             case 'communion':
-                $mapped = [
-                    'candidate_name' => $request->input('child_name'),
-                    'residence'      => $request->input('email'), // placeholder
-                    'communion_date' => $request->input('preferred_date'),
-                    'remarks'        => $request->input('purpose') . ' | ' . $request->input('preferred_time'),
-                ];
-                break;
+                return array_merge($base, [
+                    'candidate_name' => $childName,
+                    'communion_date' => $date,
+                    'residence'      => $contactNumber,
+                    // We can store father in remarks already included
+                ]);
             case 'confirmation':
-                $mapped = [
-                    'candidate_name'   => $request->input('child_name'),
-                    'parents_residence'=> $request->input('email'),
-                    'confirmation_date'=> $request->input('preferred_date'),
-                    'sponsors'         => $request->input('purpose') . ' | ' . $request->input('preferred_time'),
-                ];
-                break;
+                return array_merge($base, [
+                    'candidate_name'    => $childName,
+                    'confirmation_date' => $date,
+                    'father_name'       => $fatherName,
+                    'parents_residence' => $contactNumber,
+                ]);
             case 'funeral':
-                $mapped = [
-                    'deceased_name' => $request->input('child_name'),
-                    'residence'     => $request->input('email'),
-                    'burial_date'   => $request->input('preferred_date'),
-                    'remarks'       => $request->input('purpose') . ' | ' . $request->input('preferred_time'),
-                ];
-                break;
+                return array_merge($base, [
+                    'deceased_name' => $childName,
+                    'burial_date'   => $date,
+                    'residence'     => $contactNumber,
+                ]);
             case 'wedding':
-                $date = date('Y-m-d', strtotime($request->input('preferred_date')));
-                $mapped = [
-                    'year'          => date('Y', strtotime($date)),
-                    'month_day'     => date('m-d', strtotime($date)),
-                    'groom_name'    => $request->input('father_name'),
-                    'bride_name'    => $request->input('child_name'),
-                    'remarks'       => $request->input('purpose') . ' | ' . $request->input('preferred_time'),
-                ];
-                break;
+                $dateObj = Carbon::parse($date);
+                return array_merge($base, [
+                    'year'      => $dateObj->year,
+                    'month_day' => $dateObj->format('m-d'),
+                    'groom_name'=> $fatherName,   // using father as groom placeholder
+                    'bride_name'=> $childName,    // using child as bride placeholder
+                    // wedding_date could be set if the model has it, but we have year/month_day
+                ]);
+            default:
+                return [];
         }
-
-        // Add common fields
-        $mapped['status'] = 'pending';
-        return $mapped;
     }
 }
