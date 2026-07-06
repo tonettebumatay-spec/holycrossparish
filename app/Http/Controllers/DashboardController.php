@@ -7,34 +7,51 @@ use App\Models\Communion;
 use App\Models\Confirmation;
 use App\Models\Wedding;
 use App\Models\Funeral;
-use App\Models\Appointment; // Ensure this model exists
+use App\Models\Appointment;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // 1. Count ONLY the new pending appointments
-        $appointmentCount = Appointment::count() ?? 0;
+        try {
+            // Using try-catch ensures that if a single table is missing,
+            // the dashboard still loads instead of throwing a 500 error
+            // which causes the redirect loop.
+            
+            $data = [
+                'bookCount' => 5,
+                'sacramentalRecordCount' => (
+                    Baptism::count() + 
+                    Communion::count() + 
+                    Confirmation::count() + 
+                    Wedding::count() + 
+                    Funeral::count()
+                ),
+                'massScheduleCount' => DB::table('schedules')->count(),
+                'pendingCertificatesCount' => DB::table('certificates')->count(),
+                'appointmentCount' => Appointment::count(),
+                'inventoryCount' => DB::table('inventories')->count(),
+                'onlineViewingCount' => DB::table('viewings')->count(),
+            ];
 
-        // 2. Count your total sacramental records (History)
-        $totalSacraments = Baptism::count() + 
-                           Communion::count() + 
-                           Confirmation::count() + 
-                           Wedding::count() + 
-                           Funeral::count();
+            return view('dashboard', $data);
 
-        // 3. Get other counts safely
-        $data = [
-            'bookCount' => 5,
-            'sacramentalRecordCount' => $totalSacraments, // Renamed for clarity
-            'massScheduleCount' => DB::table('schedules')->count() ?? 0,
-            'pendingCertificatesCount' => DB::table('certificates')->count() ?? 0,
-            'appointmentCount' => $appointmentCount,
-            'inventoryCount' => DB::table('inventories')->count() ?? 0,
-            'onlineViewingCount' => DB::table('viewings')->count() ?? 0,
-        ];
-
-        return view('dashboard', $data);
+        } catch (\Exception $e) {
+            // If any table is missing or query fails, log the error and 
+            // return the dashboard with 0 values so the user stays logged in.
+            Log::error('Dashboard Error: ' . $e->getMessage());
+            
+            return view('dashboard', [
+                'bookCount' => 0,
+                'sacramentalRecordCount' => 0,
+                'massScheduleCount' => 0,
+                'pendingCertificatesCount' => 0,
+                'appointmentCount' => 0,
+                'inventoryCount' => 0,
+                'onlineViewingCount' => 0,
+            ]);
+        }
     }
 }
