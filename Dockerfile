@@ -40,5 +40,12 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 RUN printf "#!/bin/bash\nphp artisan migrate --force\napache2-foreground" > /usr/local/bin/entrypoint.sh \
     && chmod +x /usr/local/bin/entrypoint.sh
 
+# Expose the web port
 EXPOSE 80
+
+# Create an entrypoint script to run migrations, then start Apache
+# This ensures tables are created in your remote DB before the app starts
+RUN printf "#!/bin/bash\necho 'Running database migrations...'\nphp artisan migrate --force\necho 'Starting Apache...'\napache2-foreground" > /usr/local/bin/entrypoint.sh \
+    && chmod +x /usr/local/bin/entrypoint.sh
+
 CMD ["/usr/local/bin/entrypoint.sh"]
