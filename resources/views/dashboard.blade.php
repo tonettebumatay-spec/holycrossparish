@@ -1,17 +1,12 @@
 <x-app-layout>
-  @php
-    use Illuminate\Support\Facades\DB;
-
-    // Fetch counts directly from the database
-    $bookCount = 5; 
-    $massScheduleCount = DB::table('mass_schedules')->count();
-    $pendingCertificatesCount = DB::table('certificates')->where('status', 'pending')->count();
-    $appointmentCount = DB::table('appointments')->count();
-    $inventoryCount = DB::table('inventories')->count();
-    $onlineViewingCount = DB::table('viewings')->count();
-@endphp
-
-    <div class="relative min-h-[calc(100vh-140px)]">
+ @php
+    $bookCount = 5;
+    $massScheduleCount = app('db')->table('mass_schedules')->count();
+    $pendingCertificatesCount = app('db')->table('certificates')->where('status', 'pending')->count();
+    $appointmentCount = app('db')->table('appointments')->count();
+    $inventoryCount = app('db')->table('inventories')->count();
+    $onlineViewingCount = app('db')->table('viewings')->count();
+ @endphp
         <div
             class="fixed inset-0 -z-10 bg-cover bg-center"
             style="background-image: url('https://seepangasinan.com/wp-content/uploads/2022/08/1499243164_explora-holy-cross-parish-reliquary-2-1536x863.jpg');"
