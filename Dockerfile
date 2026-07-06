@@ -11,8 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Configure PHP extensions
-# Added pdo_pgsql and pgsql to resolve the "could not find driver" error
+# Configure PHP extensions (including pgsql for your Postgres connection)
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo_mysql pdo_pgsql pgsql bcmath gd
 
@@ -29,12 +28,17 @@ RUN sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-avail
 RUN sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/apache2.conf
 
 # Final Install
-# --no-scripts prevents artisan errors during build time
+# --no-scripts prevents artisan from running before the DB is configured
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts \
     && npm install --no-audit --prefer-offline \
     && npm run build
 
+# Set permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
+# Create an entrypoint script to run migrations then start apache
+RUN printf "#!/bin/bash\nphp artisan migrate --force\napache2-foreground" > /usr/local/bin/entrypoint.sh \
+    && chmod +x /usr/local/bin/entrypoint.sh
+
 EXPOSE 80
-CMD ["apache2-foreground"]
+CMD ["/usr/local/bin/entrypoint.sh"]
