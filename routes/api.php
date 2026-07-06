@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\SacramentApiController;
 use App\Http\Controllers\RecordController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\AppointmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -23,4 +24,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/booking/communion', [BookingController::class, 'storeCommunion']);
     Route::post('/booking/confirmation', [BookingController::class, 'storeConfirmation']);
     Route::post('/booking/funeral', [BookingController::class, 'storeFuneral']);
+
+    // In routes/api.php
+    Route::post('/appointment', [AppointmentController::class, 'store']);
 });
