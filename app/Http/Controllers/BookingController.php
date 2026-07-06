@@ -181,7 +181,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Generic API store method with flexible field extraction.
+     * Generic API store method – updated to parse Android payload.
      */
     private function storeSacrament(Request $request, string $type)
     {
@@ -200,35 +200,57 @@ class BookingController extends Controller
             }
             $modelClass = $modelMap[$type];
 
-            // Flexible field extraction (allows different key names)
-            $purpose        = $request->input('purpose') ?? $request->input('appointment_purpose') ?? '';
-            $preferredDate  = $request->input('preferred_date') ?? $request->input('appointment_date') ?? '';
-            $preferredTime  = $request->input('preferred_time') ?? $request->input('appointment_time') ?? '';
-            $childName      = $request->input('child_name') ?? $request->input('child_full_name') ?? $request->input('candidate_name') ?? '';
-            $fatherName     = $request->input('father_name') ?? $request->input('father_full_name') ?? '';
-            $email          = $request->input('email') ?? $request->input('email_address') ?? '';
-            $contactNumber  = $request->input('contact_number') ?? $request->input('phone') ?? $request->input('mobile') ?? '';
+            // --- Extract fields from the actual Android payload ---
+            // Android sends: appointment_date, contact_number, details (with Purpose, Child, Father, Email)
+            $appointmentDate = $request->input('appointment_date') ?? $request->input('preferred_date') ?? '';
+            $contactNumber   = $request->input('contact_number') ?? $request->input('phone') ?? '';
+            $details         = $request->input('details') ?? '';
 
+            // Parse the details string to extract Purpose, Child, Father, Email
+            $purpose = '';
+            $childName = '';
+            $fatherName = '';
+            $email = '';
+
+            if (!empty($details)) {
+                preg_match('/Purpose:\s*([^\n]+)/i', $details, $purposeMatch);
+                if (!empty($purposeMatch[1])) $purpose = trim($purposeMatch[1]);
+
+                preg_match('/Child(?:ren)?:\s*([^\n]+)/i', $details, $childMatch);
+                if (!empty($childMatch[1])) $childName = trim($childMatch[1]);
+
+                preg_match('/Father:\s*([^\n]+)/i', $details, $fatherMatch);
+                if (!empty($fatherMatch[1])) $fatherName = trim($fatherMatch[1]);
+
+                preg_match('/Email:\s*([^\n]+)/i', $details, $emailMatch);
+                if (!empty($emailMatch[1])) $email = trim($emailMatch[1]);
+            }
+
+            // Fallback to direct input fields (if details parsing fails)
+            $purpose    = $purpose ?: $request->input('purpose') ?? $request->input('appointment_purpose') ?? '';
+            $childName  = $childName ?: $request->input('child_name') ?? $request->input('child_full_name') ?? $request->input('candidate_name') ?? '';
+            $fatherName = $fatherName ?: $request->input('father_name') ?? $request->input('father_full_name') ?? '';
+            $email      = $email ?: $request->input('email') ?? $request->input('email_address') ?? '';
+
+            // --- Validation ---
             $validator = Validator::make(
-                compact('purpose', 'preferredDate', 'preferredTime', 'childName', 'fatherName', 'email', 'contactNumber'),
+                compact('purpose', 'appointmentDate', 'childName', 'fatherName', 'email', 'contactNumber'),
                 [
-                    'purpose'       => 'required|string|max:255',
-                    'preferredDate' => 'required|date',
-                    'preferredTime' => 'required|string|max:20',
-                    'childName'     => 'required|string|max:255',
-                    'fatherName'    => 'required|string|max:255',
-                    'email'         => 'required|email|max:255',
-                    'contactNumber' => 'nullable|string|max:20',
+                    'purpose'        => 'required|string|max:255',
+                    'appointmentDate'=> 'required|date',
+                    'childName'      => 'required|string|max:255',
+                    'fatherName'     => 'required|string|max:255',
+                    'email'          => 'required|email|max:255',
+                    'contactNumber'  => 'nullable|string|max:20',
                 ],
                 [
-                    'purpose.required'       => 'Purpose is required',
-                    'preferredDate.required' => 'Preferred date is required',
-                    'preferredDate.date'     => 'Preferred date must be a valid date',
-                    'preferredTime.required' => 'Preferred time is required',
-                    'childName.required'     => "Child's full name is required",
-                    'fatherName.required'    => "Father's full name is required",
-                    'email.required'         => 'Email address is required',
-                    'email.email'            => 'Email must be a valid email address',
+                    'purpose.required'        => 'Purpose is required',
+                    'appointmentDate.required'=> 'Appointment date is required',
+                    'appointmentDate.date'    => 'Appointment date must be a valid date',
+                    'childName.required'      => "Child's full name is required",
+                    'fatherName.required'     => "Father's full name is required",
+                    'email.required'          => 'Email address is required',
+                    'email.email'             => 'Email must be a valid email address',
                 ]
             );
 
@@ -236,14 +258,13 @@ class BookingController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors'  => $validator->errors()
+                    'errors'  => $validator->errors(),
+                    'received_data' => $request->all() // debug helper
                 ], 422);
             }
 
-            // Build the data array using the model's fillable columns
-            $mappedData = $this->mapApiFields($type, $purpose, $preferredDate, $preferredTime, $childName, $fatherName, $email, $contactNumber);
-
-            // Create the record
+            // --- Map fields to the model columns ---
+            $mappedData = $this->mapApiFields($type, $purpose, $appointmentDate, '', $childName, $fatherName, $email, $contactNumber);
             $booking = $modelClass::create($mappedData);
 
             return response()->json([
@@ -270,7 +291,6 @@ class BookingController extends Controller
      */
     private function mapApiFields(string $type, string $purpose, string $date, string $time, string $childName, string $fatherName, string $email, string $contactNumber = '')
     {
-        // Base data: we always set category and remarks (store extra info)
         $base = [
             'category' => ucfirst($type),
             'remarks'  => "Purpose: $purpose | Time: $time | Email: $email | Contact: $contactNumber | Father: $fatherName",
@@ -278,13 +298,11 @@ class BookingController extends Controller
 
         switch ($type) {
             case 'baptism':
-                // Use first_name, last_name, baptism_date, father_name, mother_name? We'll put father in father_name.
                 return array_merge($base, [
                     'first_name'   => $childName,
-                    'last_name'    => '', // we can put father name as last if needed, or leave empty
+                    'last_name'    => '',
                     'baptism_date' => $date,
                     'father_name'  => $fatherName,
-                    // mother_name, godfather, godmother, residence can be set if provided
                     'residence'    => $contactNumber,
                 ]);
             case 'communion':
@@ -292,7 +310,6 @@ class BookingController extends Controller
                     'candidate_name' => $childName,
                     'communion_date' => $date,
                     'residence'      => $contactNumber,
-                    // We can store father in remarks already included
                 ]);
             case 'confirmation':
                 return array_merge($base, [
@@ -312,9 +329,8 @@ class BookingController extends Controller
                 return array_merge($base, [
                     'year'      => $dateObj->year,
                     'month_day' => $dateObj->format('m-d'),
-                    'groom_name'=> $fatherName,   // using father as groom placeholder
-                    'bride_name'=> $childName,    // using child as bride placeholder
-                    // wedding_date could be set if the model has it, but we have year/month_day
+                    'groom_name'=> $fatherName,
+                    'bride_name'=> $childName,
                 ]);
             default:
                 return [];
