@@ -176,7 +176,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Generic API store method – builds data from fillable columns only.
+     * Generic API store method – builds data from fillable columns.
      */
     private function storeSacrament(Request $request, string $type)
     {
@@ -275,19 +275,14 @@ class BookingController extends Controller
                 ], 422);
             }
 
-            // ----- Build data from fillable columns -----
+            // ----- Build data from ALL fillable columns (including 'category') -----
             $model = new $modelClass();
             $fillable = $model->getFillable();
 
             $mappedData = [];
 
             foreach ($fillable as $column) {
-                // Skip 'category' if it exists (some tables don't have it)
-                if ($column === 'category') {
-                    continue;
-                }
-
-                // Assign a value using the helper
+                // Now we include 'category' – it gets a default from getDefaultForColumn
                 $mappedData[$column] = $this->getDefaultForColumn($type, $column, $purpose, $appointmentDate, $name, $second, $email, $contactNumber);
             }
 
@@ -302,6 +297,7 @@ class BookingController extends Controller
                     'trace'   => $e->getTraceAsString(),
                     'mapped_data' => $mappedData
                 ]);
+                // Return the actual SQL error to the client
                 return response()->json([
                     'success' => false,
                     'message' => 'Database error: ' . $e->getMessage()
@@ -319,6 +315,7 @@ class BookingController extends Controller
                 'message' => $e->getMessage(),
                 'trace'   => $e->getTraceAsString()
             ]);
+            // Return the actual error to the client
             return response()->json([
                 'success' => false,
                 'message' => 'Server error: ' . $e->getMessage()
