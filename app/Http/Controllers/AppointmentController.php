@@ -7,7 +7,6 @@ use App\Models\Communion;
 use App\Models\Confirmation;
 use App\Models\Wedding;
 use App\Models\Funeral;
-use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -19,12 +18,14 @@ class AppointmentController extends Controller
     public function index()
     {
         try {
-            // Fetch all bookings from each sacrament table and map to a unified structure
+            Log::info('AppointmentController: Fetching all appointments from sacrament tables');
+
+            // --- FETCH FROM BAPTISMS ---
             $baptisms = Baptism::select(
                 'id',
                 'first_name',
                 'last_name',
-                'baptism_date as date',
+                'baptism_date as appointment_date',
                 'category',
                 'created_at',
                 'remarks'
@@ -34,115 +35,95 @@ class AppointmentController extends Controller
                 return $item;
             });
 
+            // --- FETCH FROM COMMUNIONS ---
             $communions = Communion::select(
                 'id',
                 'candidate_name as name',
-                'communion_date as date',
+                'communion_date as appointment_date',
                 'category',
                 'created_at',
                 'remarks'
             )->get()->map(function ($item) {
                 $item->type = 'Communion';
-                $item->last_name = '';
+                $item->name = $item->name;
                 return $item;
             });
 
+            // --- FETCH FROM CONFIRMATIONS ---
             $confirmations = Confirmation::select(
                 'id',
                 'candidate_name as name',
-                'confirmation_date as date',
+                'confirmation_date as appointment_date',
                 'category',
                 'created_at',
                 'remarks'
             )->get()->map(function ($item) {
                 $item->type = 'Confirmation';
-                $item->last_name = '';
+                $item->name = $item->name;
                 return $item;
             });
 
+            // --- FETCH FROM WEDDINGS ---
             $weddings = Wedding::select(
                 'id',
-                'groom_name as name',
-                'bride_name as last_name',
-                'wedding_date as date',
+                'groom_name as groom',
+                'bride_name as bride',
+                'wedding_date as appointment_date',
                 'category',
                 'created_at',
                 'remarks'
             )->get()->map(function ($item) {
                 $item->type = 'Wedding';
-                $item->name = $item->name . ' & ' . $item->last_name;
+                $item->name = $item->groom . ' & ' . $item->bride;
                 return $item;
             });
 
+            // --- FETCH FROM FUNERALS ---
             $funerals = Funeral::select(
                 'id',
                 'deceased_name as name',
-                'burial_date as date',
+                'burial_date as appointment_date',
                 'category',
                 'created_at',
                 'remarks'
             )->get()->map(function ($item) {
                 $item->type = 'Funeral';
-                $item->last_name = '';
+                $item->name = $item->name;
                 return $item;
             });
 
-            // Merge all collections and sort by date (newest first)
-            $appointments = collect()
+            // --- MERGE ALL COLLECTIONS ---
+            $allAppointments = collect()
                 ->merge($baptisms)
                 ->merge($communions)
                 ->merge($confirmations)
                 ->merge($weddings)
                 ->merge($funerals)
-                ->sortByDesc('date')
+                ->sortByDesc('appointment_date')
                 ->values();
 
-            return view('appointments.index', compact('appointments'));
+            Log::info('AppointmentController: Found ' . $allAppointments->count() . ' total appointments');
+
+            return view('appointments.index', ['appointments' => $allAppointments]);
 
         } catch (\Exception $e) {
             Log::error('Appointment Index Error: ' . $e->getMessage());
             
-            // Fallback: try using the Appointment model if it exists
-            try {
-                $appointments = Appointment::all();
-                return view('appointments.index', compact('appointments'));
-            } catch (\Exception $e2) {
-                $appointments = collect();
-                return view('appointments.index', compact('appointments'));
-            }
+            // Return empty collection on error
+            return view('appointments.index', ['appointments' => collect()]);
         }
     }
 
     /**
-     * Handle the POST request from the Android App (fallback).
-     * Note: The actual booking is handled by BookingController.
+     * Handle the POST request from the Android App (deprecated/fallback).
      */
     public function store(Request $request)
     {
-        Log::info('Android Appointment Request:', $request->all());
-
-        $validated = $request->validate([
-            'user_name'        => 'required|string|max:255',
-            'service_type'     => 'required|string|max:255',
-            'appointment_date' => 'required|date_format:Y-m-d H:i',
-            'contact_number'   => 'required|string|max:20',
-            'details'          => 'nullable|string',
-        ]);
-
-        $validated['status'] = $validated['status'] ?? 'pending';
-
-        try {
-            Appointment::create($validated);
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Appointment request sent successfully'
-            ], 201);
-        } catch (\Exception $e) {
-            Log::error('Appointment Save Failed: ' . $e->getMessage());
-            return response()->json([
-                'status' => 'error', 
-                'message' => 'Failed to save appointment'
-            ], 500);
-        }
+        Log::info('Appointment store called from Android:', $request->all());
+        
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Use the booking endpoints (/booking/*) instead'
+        ], 400);
     }
 }

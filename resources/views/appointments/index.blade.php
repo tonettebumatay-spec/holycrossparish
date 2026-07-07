@@ -28,37 +28,56 @@
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="text-xs uppercase text-gray-500 border-b">
-                                    <th class="p-4">Type</th>
-                                    <th class="p-4">Name</th>
-                                    <th class="p-4">Date</th>
-                                    <th class="p-4">Category</th>
-                                    <th class="p-4">Remarks</th>
-                                    <th class="p-4">Created</th>
+                                    <th class="p-4 font-semibold">#</th>
+                                    <th class="p-4 font-semibold">Type</th>
+                                    <th class="p-4 font-semibold">Name</th>
+                                    <th class="p-4 font-semibold">Date</th>
+                                    <th class="p-4 font-semibold">Category</th>
+                                    <th class="p-4 font-semibold">Remarks</th>
+                                    <th class="p-4 font-semibold">Created</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($appointments as $app)
+                                @foreach($appointments as $index => $app)
                                     <tr class="border-b hover:bg-gray-50 transition">
+                                        <td class="p-4 text-gray-400">{{ $index + 1 }}</td>
                                         <td class="p-4 font-semibold">
-                                            <span class="px-2 py-1 rounded-full text-xs font-bold uppercase
+                                            <span class="px-2 py-1 rounded-full text-xs font-bold uppercase whitespace-nowrap
                                                 @if($app->type == 'Baptism') bg-blue-100 text-blue-800
                                                 @elseif($app->type == 'Communion') bg-green-100 text-green-800
                                                 @elseif($app->type == 'Confirmation') bg-purple-100 text-purple-800
                                                 @elseif($app->type == 'Wedding') bg-pink-100 text-pink-800
                                                 @elseif($app->type == 'Funeral') bg-gray-100 text-gray-800
+                                                @else bg-gray-100 text-gray-800
                                                 @endif">
-                                                {{ $app->type }}
+                                                {{ $app->type ?? 'Unknown' }}
                                             </span>
                                         </td>
                                         <td class="p-4 font-medium">{{ $app->name ?? 'N/A' }}</td>
-                                        <td class="p-4">{{ \Carbon\Carbon::parse($app->date)->format('M d, Y') }}</td>
+                                        <td class="p-4">
+                                            @if($app->appointment_date)
+                                                {{ \Carbon\Carbon::parse($app->appointment_date)->format('M d, Y') }}
+                                            @else
+                                                N/A
+                                            @endif
+                                        </td>
                                         <td class="p-4">{{ $app->category ?? 'N/A' }}</td>
                                         <td class="p-4 text-gray-500 max-w-xs truncate">{{ $app->remarks ?? '' }}</td>
-                                        <td class="p-4 text-gray-400 text-sm">{{ \Carbon\Carbon::parse($app->created_at)->diffForHumans() }}</td>
+                                        <td class="p-4 text-gray-400 text-sm">
+                                            @if($app->created_at)
+                                                {{ \Carbon\Carbon::parse($app->created_at)->diffForHumans() }}
+                                            @else
+                                                N/A
+                                            @endif
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>
                         </table>
+                    </div>
+                    
+                    <div class="mt-6 text-sm text-gray-500 text-center">
+                        Total: {{ $appointments->count() }} appointment(s)
                     </div>
                 @endif
             </div>
