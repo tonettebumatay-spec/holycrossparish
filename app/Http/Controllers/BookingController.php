@@ -195,7 +195,7 @@ class BookingController extends Controller
             }
             $modelClass = $modelMap[$type];
 
-            // ----- Extract fields (same as before) -----
+            // ----- Extract fields -----
             $appointmentDate = $request->input('appointment_date') 
                              ?? $request->input('preferred_date') 
                              ?? $request->input('date') 
@@ -403,15 +403,13 @@ class BookingController extends Controller
      */
     private function getDefaultForColumn(string $type, string $column, string $purpose, string $date, string $name, string $second, string $email, string $contactNumber)
     {
-        // Common defaults
-        $commonDefaults = [
+        // Common defaults that apply to all tables
+        $common = [
             'remarks' => "Purpose: $purpose | Email: $email | Contact: $contactNumber | Second: $second",
             'book_number' => 0,
             'page_number' => 0,
             'line_number' => 0,
             'status' => 'pending',
-            'legitimacy' => 'Unknown',
-            'marital_status' => 'Unknown',
             'minister_name' => '',
             'residence' => $contactNumber,
             'parents_residence' => $contactNumber,
@@ -447,29 +445,84 @@ class BookingController extends Controller
             'bride_residence' => '',
             'witness_1' => '',
             'witness_2' => '',
-            'groom_name' => $second,
-            'bride_name' => $name,
-            'father_name' => $second,
-            'candidate_name' => $name,
-            'deceased_name' => $name,
             'first_name' => $name,
             'last_name' => '',
+            'candidate_name' => $name,
+            'deceased_name' => $name,
+            'father_name' => $second,
             'age' => 0,
             'age_at_death' => 0,
             'groom_age' => 0,
             'bride_age' => 0,
-            'year' => Carbon::parse($date)->year,
-            'month_day' => Carbon::parse($date)->format('m-d'),
+            'legitimacy' => 'Unknown',
+            'marital_status' => 'Unknown',
+            'birth_date' => '1900-01-01',
+            'death_date' => '1900-01-01',
             'baptism_date' => $date,
             'communion_date' => $date,
             'confirmation_date' => $date,
             'burial_date' => $date,
             'wedding_date' => $date,
-            'death_date' => '1900-01-01',
-            'birth_date' => '1900-01-01',
         ];
 
-        // Return the common default if it exists, otherwise fallback to empty string
-        return $commonDefaults[$column] ?? '';
+        // Overrides per type
+        $overrides = [];
+        switch ($type) {
+            case 'wedding':
+                $dateObj = Carbon::parse($date);
+                $overrides = [
+                    'groom_name' => $second,
+                    'bride_name' => $name,
+                    'year' => $dateObj->year,
+                    'month_day' => $dateObj->format('m-d'),
+                    'category' => 'Wedding',
+                ];
+                break;
+            case 'baptism':
+                $overrides = [
+                    'first_name' => $name,
+                    'father_name' => $second,
+                    'baptism_date' => $date,
+                    'legitimacy' => 'Unknown',
+                    'birth_date' => '1900-01-01',
+                    'candidate_name' => $name,
+                    'category' => 'Baptism',
+                ];
+                break;
+            case 'communion':
+                $overrides = [
+                    'candidate_name' => $name,
+                    'communion_date' => $date,
+                    'baptism_date' => '1900-01-01',
+                    'category' => 'Communion',
+                ];
+                break;
+            case 'confirmation':
+                $overrides = [
+                    'candidate_name' => $name,
+                    'confirmation_date' => $date,
+                    'father_name' => $second,
+                    'parents_residence' => $contactNumber,
+                    'category' => 'Confirmation',
+                ];
+                break;
+            case 'funeral':
+                $overrides = [
+                    'deceased_name' => $name,
+                    'burial_date' => $date,
+                    'marital_status' => 'Unknown',
+                    'death_date' => '1900-01-01',
+                    'category' => 'Funeral',
+                ];
+                break;
+            default:
+                break;
+        }
+
+        // Merge common and overrides
+        $merged = array_merge($common, $overrides);
+
+        // Return the value for the requested column, or empty string if not found
+        return $merged[$column] ?? '';
     }
 }
