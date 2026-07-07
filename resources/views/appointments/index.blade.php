@@ -46,6 +46,7 @@
                                     <th class="px-6 py-4">Type</th>
                                     <th class="px-6 py-4">Name</th>
                                     <th class="px-6 py-4">Date</th>
+                                    <th class="px-6 py-4">Time</th>
                                     <th class="px-6 py-4">Category</th>
                                     <th class="px-6 py-4">Status</th>
                                     <th class="px-6 py-4">Created</th>
@@ -75,6 +76,9 @@
                                             @else
                                                 <span class="text-gray-400">N/A</span>
                                             @endif
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            {{ $app->time ?? 'N/A' }}
                                         </td>
                                         <td class="px-6 py-4">{{ $app->category ?? 'N/A' }}</td>
                                         <td class="px-6 py-4">

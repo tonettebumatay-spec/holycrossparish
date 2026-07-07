@@ -16,49 +16,55 @@ class AppointmentController extends Controller
     public function index()
     {
         try {
+            // Helper function to extract time from remarks
+            $extractTime = function ($remarks) {
+                if (empty($remarks)) return null;
+                preg_match('/Time:\s*([^|]+)/i', $remarks, $matches);
+                return isset($matches[1]) ? trim($matches[1]) : null;
+            };
+
             // Baptisms
-            $baptisms = Baptism::all()->map(function ($item) {
+            $baptisms = Baptism::all()->map(function ($item) use ($extractTime) {
                 $item->type = 'Baptism';
                 $item->name = trim($item->first_name . ' ' . $item->last_name);
                 $item->appointment_date = $item->baptism_date ? Carbon::parse($item->baptism_date)->format('Y-m-d') : null;
+                $item->time = $extractTime($item->remarks);
                 $item->status = $item->status ?? 'pending';
                 return $item;
             });
 
             // Communions
-            $communions = Communion::all()->map(function ($item) {
+            $communions = Communion::all()->map(function ($item) use ($extractTime) {
                 $item->type = 'Communion';
                 $item->name = $item->candidate_name;
                 $item->appointment_date = $item->communion_date ? Carbon::parse($item->communion_date)->format('Y-m-d') : null;
+                $item->time = $extractTime($item->remarks);
                 $item->status = $item->status ?? 'pending';
                 return $item;
             });
 
             // Confirmations
-            $confirmations = Confirmation::all()->map(function ($item) {
+            $confirmations = Confirmation::all()->map(function ($item) use ($extractTime) {
                 $item->type = 'Confirmation';
                 $item->name = $item->candidate_name;
                 $item->appointment_date = $item->confirmation_date ? Carbon::parse($item->confirmation_date)->format('Y-m-d') : null;
+                $item->time = $extractTime($item->remarks);
                 $item->status = $item->status ?? 'pending';
                 return $item;
             });
 
-            // Weddings - handle year + month_day safely
-            $weddings = Wedding::all()->map(function ($item) {
+            // Weddings
+            $weddings = Wedding::all()->map(function ($item) use ($extractTime) {
                 $item->type = 'Wedding';
                 $item->name = $item->groom_name . ' & ' . $item->bride_name;
                 $item->status = $item->status ?? 'pending';
 
-                // Build a date string from year and month_day
                 $year = $item->year;
                 $monthDay = $item->month_day;
-
                 if ($year && $monthDay) {
                     try {
-                        // Try to parse as "2023 may 2" or "2023-05-02"
                         $date = Carbon::parse("$year $monthDay")->format('Y-m-d');
                     } catch (\Exception $e) {
-                        // If parsing fails, try with month_day as "05-02"
                         try {
                             $date = Carbon::parse("$year-$monthDay")->format('Y-m-d');
                         } catch (\Exception $e2) {
@@ -68,16 +74,17 @@ class AppointmentController extends Controller
                 } else {
                     $date = null;
                 }
-
                 $item->appointment_date = $date;
+                $item->time = $extractTime($item->remarks);
                 return $item;
             });
 
             // Funerals
-            $funerals = Funeral::all()->map(function ($item) {
+            $funerals = Funeral::all()->map(function ($item) use ($extractTime) {
                 $item->type = 'Funeral';
                 $item->name = $item->deceased_name;
                 $item->appointment_date = $item->burial_date ? Carbon::parse($item->burial_date)->format('Y-m-d') : null;
+                $item->time = $extractTime($item->remarks);
                 $item->status = $item->status ?? 'pending';
                 return $item;
             });
