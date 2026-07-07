@@ -12,7 +12,6 @@ class Viewing extends Model
     protected $fillable = [
         'title',
         'description',
-        'image',
+        'image', // stores base64 string
     ];
 }
-

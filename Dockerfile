@@ -23,7 +23,7 @@ RUN a2enmod rewrite
 WORKDIR /var/www/html
 COPY . .
 
-# 🔥 FIX: Install symfony/mime to support file upload validation
+# 🔥 Install symfony/mime before the main composer install to fix file upload validation
 RUN composer require symfony/mime --no-interaction --no-scripts
 
 # Adjust Apache Document Root to /public
@@ -39,14 +39,10 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --no-script
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Create an entrypoint script to run migrations then start apache
-RUN printf "#!/bin/bash\nphp artisan migrate --force\napache2-foreground" > /usr/local/bin/entrypoint.sh \
-    && chmod +x /usr/local/bin/entrypoint.sh
-
 # Expose the web port
 EXPOSE 80
 
-# Final entrypoint (combines migration and Apache start)
+# Entrypoint script (migrate then start Apache)
 RUN printf "#!/bin/bash\necho 'Running database migrations...'\nphp artisan migrate --force\necho 'Starting Apache...'\napache2-foreground" > /usr/local/bin/entrypoint.sh \
     && chmod +x /usr/local/bin/entrypoint.sh
 

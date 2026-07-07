@@ -24,7 +24,7 @@ class ViewingController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'required|string',
-            'image' => 'required|image|max:5120', // max 5MB
+            'image' => 'required|image|max:5120', // max 5MB – now works with symfony/mime installed
         ]);
 
         $file = $request->file('image');
@@ -55,5 +55,3 @@ class ViewingController extends Controller
         return redirect()->route('viewing.index')->with('success', 'Viewing deleted successfully!');
     }
 }
-
-
