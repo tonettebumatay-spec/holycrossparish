@@ -1,7 +1,24 @@
 <x-app-layout>
     <div class="py-12 bg-gray-50 min-h-screen font-sans">
         <div class="max-w-7xl mx-auto px-10">
-            
+
+            <!-- ===== DEBUG SECTION (remove after fixing) ===== -->
+            <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded-r-lg" role="alert">
+                <p class="font-bold">🐞 Debug Info:</p>
+                <p>Number of appointments passed to view: <span class="font-mono bg-yellow-200 px-2 py-1 rounded">{{ $appointments->count() }}</span></p>
+                @if($appointments->isNotEmpty())
+                    <p>First appointment: <span class="font-mono">{{ $appointments->first()->name ?? 'N/A' }}</span> 
+                       ({{ $appointments->first()->type ?? 'N/A' }}) 
+                       – Date: {{ $appointments->first()->appointment_date ?? 'N/A' }}</p>
+                    <p>Last appointment: <span class="font-mono">{{ $appointments->last()->name ?? 'N/A' }}</span> 
+                       ({{ $appointments->last()->type ?? 'N/A' }}) 
+                       – Date: {{ $appointments->last()->appointment_date ?? 'N/A' }}</p>
+                @else
+                    <p>No appointments found in the collection.</p>
+                @endif
+            </div>
+            <!-- ===== END DEBUG ===== -->
+
             <div class="flex justify-between items-center mb-10">
                 <a href="{{ route('dashboard') }}" class="border-2 border-gray-200 rounded-full px-6 py-2 text-xs font-black uppercase tracking-widest text-gray-700 hover:bg-gray-100 transition shadow-sm bg-white">
                     ← Back to Dashboard
@@ -75,7 +92,7 @@
                             </tbody>
                         </table>
                     </div>
-                    
+
                     <div class="mt-6 text-sm text-gray-500 text-center">
                         Total: {{ $appointments->count() }} appointment(s)
                     </div>
