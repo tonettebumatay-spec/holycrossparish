@@ -29,19 +29,34 @@
                             <thead>
                                 <tr class="text-xs uppercase text-gray-500 border-b">
                                     <th class="p-4">Type</th>
-                                    <th class="p-4">Primary Name</th>
+                                    <th class="p-4">Name</th>
                                     <th class="p-4">Date</th>
+                                    <th class="p-4">Category</th>
+                                    <th class="p-4">Remarks</th>
+                                    <th class="p-4">Created</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($appointments as $app)
-                             <tr class="border-b">
-        <td>{{ $app->category }}</td>
-        {{-- Use conditional logic to pick the name field based on the table --}}
-        <td>{{ $app->first_name ?? $app->candidate_name ?? $app->groom_name ?? $app->deceased_name ?? 'N/A' }}</td>
-        <td>{{ $app->baptism_date ?? $app->communion_date ?? $app->confirmation_date ?? $app->burial_date ?? 'N/A' }}</td>
-    </tr>
-@endforeach
+                                    <tr class="border-b hover:bg-gray-50 transition">
+                                        <td class="p-4 font-semibold">
+                                            <span class="px-2 py-1 rounded-full text-xs font-bold uppercase
+                                                @if($app->type == 'Baptism') bg-blue-100 text-blue-800
+                                                @elseif($app->type == 'Communion') bg-green-100 text-green-800
+                                                @elseif($app->type == 'Confirmation') bg-purple-100 text-purple-800
+                                                @elseif($app->type == 'Wedding') bg-pink-100 text-pink-800
+                                                @elseif($app->type == 'Funeral') bg-gray-100 text-gray-800
+                                                @endif">
+                                                {{ $app->type }}
+                                            </span>
+                                        </td>
+                                        <td class="p-4 font-medium">{{ $app->name ?? 'N/A' }}</td>
+                                        <td class="p-4">{{ \Carbon\Carbon::parse($app->date)->format('M d, Y') }}</td>
+                                        <td class="p-4">{{ $app->category ?? 'N/A' }}</td>
+                                        <td class="p-4 text-gray-500 max-w-xs truncate">{{ $app->remarks ?? '' }}</td>
+                                        <td class="p-4 text-gray-400 text-sm">{{ \Carbon\Carbon::parse($app->created_at)->diffForHumans() }}</td>
+                                    </tr>
+                                @endforeach
                             </tbody>
                         </table>
                     </div>
