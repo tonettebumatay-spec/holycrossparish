@@ -177,7 +177,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Generic API store method – with explicit column filtering.
+     * Generic API store method – with robust name extraction.
      */
     private function storeSacrament(Request $request, string $type)
     {
@@ -196,7 +196,7 @@ class BookingController extends Controller
             }
             $modelClass = $modelMap[$type];
 
-            // ----- Extract fields -----
+            // Extract fields from request
             $appointmentDate = $request->input('appointment_date') 
                              ?? $request->input('preferred_date') 
                              ?? $request->input('date') 
@@ -209,16 +209,43 @@ class BookingController extends Controller
 
             $details         = $request->input('details') ?? '';
 
+            // Parse details string
             $parsed = $this->parseDetails($details);
 
-            $name = $request->input('confirmand_name') 
-                  ?? $request->input('candidate_name') 
+            // ----- ROBUST NAME EXTRACTION -----
+            // Try direct inputs first, then parsed, then fallback to details or contact
+            $name = $request->input('candidate_name') 
+                  ?? $request->input('confirmand_name') 
                   ?? $request->input('child_name') 
                   ?? $request->input('name') 
                   ?? $request->input('deceased_name') 
+                  ?? $request->input('communicant_name') 
+                  ?? $request->input('groom_name') 
+                  ?? $request->input('bride_name') 
                   ?? $parsed['name'] 
+                  ?? $request->input('user_name') 
                   ?? '';
 
+            // If still empty, try to extract from details using regex fallback
+            if (empty($name) && !empty($details)) {
+                // Try to find a name pattern (e.g., "Name: John Doe" or just a standalone name)
+                preg_match('/Name:\s*([^\n]+)/i', $details, $nameMatch);
+                if (!empty($nameMatch[1])) {
+                    $name = trim($nameMatch[1]);
+                } else {
+                    // Take the first non-empty line that doesn't look like a label
+                    $lines = explode("\n", $details);
+                    foreach ($lines as $line) {
+                        $line = trim($line);
+                        if (!empty($line) && !str_contains($line, ':')) {
+                            $name = $line;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Second name (father/sponsor)
             $second = $request->input('father_name') 
                     ?? $request->input('sponsor_name') 
                     ?? $request->input('parent_name') 
@@ -285,7 +312,7 @@ class BookingController extends Controller
                 $mappedData[$column] = $this->getDefaultForColumn($type, $column, $purpose, $appointmentDate, $name, $second, $email, $contactNumber);
             }
 
-            // ----- FILTER OUT COLUMNS THAT DON'T EXIST IN THE ACTUAL TABLE -----
+            // ----- Filter out columns that don't exist in the actual table -----
             $table = $model->getTable();
             $actualColumns = DB::getSchemaBuilder()->getColumnListing($table);
             foreach ($mappedData as $column => $value) {
@@ -364,7 +391,7 @@ class BookingController extends Controller
                     $result['purpose'] = $value;
                 } elseif (str_contains($lowerKey, 'name') || str_contains($lowerKey, 'confirmand') || 
                           str_contains($lowerKey, 'candidate') || str_contains($lowerKey, 'child') || 
-                          str_contains($lowerKey, 'deceased')) {
+                          str_contains($lowerKey, 'deceased') || str_contains($lowerKey, 'communicant')) {
                     $result['name'] = $value;
                 } elseif (str_contains($lowerKey, 'father') || str_contains($lowerKey, 'sponsor') || 
                           str_contains($lowerKey, 'parent')) {
@@ -406,7 +433,6 @@ class BookingController extends Controller
      */
     private function getDefaultForColumn(string $type, string $column, string $purpose, string $date, string $name, string $second, string $email, string $contactNumber)
     {
-        // Common defaults for all tables
         $common = [
             'remarks' => "Purpose: $purpose | Email: $email | Contact: $contactNumber | Second: $second",
             'book_number' => 0,
@@ -468,7 +494,6 @@ class BookingController extends Controller
             'wedding_date' => $date,
         ];
 
-        // Type-specific overrides
         $overrides = [];
         switch ($type) {
             case 'wedding':

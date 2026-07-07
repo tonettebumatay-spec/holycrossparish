@@ -38,6 +38,7 @@ class AppointmentController extends Controller
             $baptisms = Baptism::all()->map(function ($item) use ($extractTime) {
                 $item->type = 'Baptism';
                 $item->name = trim(($item->first_name ?? '') . ' ' . ($item->last_name ?? ''));
+                if (empty($item->name)) $item->name = 'N/A';
                 $item->appointment_date = $item->baptism_date ? Carbon::parse($item->baptism_date)->format('Y-m-d') : null;
                 $item->time = $extractTime($item->remarks);
                 $item->status = $item->status ?? 'pending';
@@ -70,11 +71,13 @@ class AppointmentController extends Controller
             // ----- WEDDINGS -----
             $weddings = Wedding::all()->map(function ($item) use ($extractTime) {
                 $item->type = 'Wedding';
-                $item->name = ($item->groom_name ?? '') . ' & ' . ($item->bride_name ?? '');
+                $groom = $item->groom_name ?? '';
+                $bride = $item->bride_name ?? '';
+                $item->name = ($groom ?: '') . ($groom && $bride ? ' & ' : '') . ($bride ?: '');
+                if (empty($item->name)) $item->name = 'N/A';
                 $item->status = $item->status ?? 'pending';
                 $item->category = $item->category ?? 'Wedding';
 
-                // Build date from year and month_day
                 $year = $item->year;
                 $monthDay = $item->month_day;
                 if ($year && $monthDay) {
