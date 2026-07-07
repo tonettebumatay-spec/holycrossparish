@@ -14,144 +14,7 @@ use Carbon\Carbon;
 
 class BookingController extends Controller
 {
-    /**
-     * Show the centralized booking form (web).
-     */
-    public function create()
-    {
-        // ... keep your existing create() method exactly as you have it ...
-        $serviceDateMap = [
-            'baptism'     => [Baptism::class, 'baptism_date'],
-            'communion'   => [Communion::class, 'communion_date'],
-            'confirmation'=> [Confirmation::class, 'confirmation_date'],
-            'wedding'     => [Wedding::class, null],
-            'funeral'     => [Funeral::class, 'burial_date'],
-        ];
-
-        $countsByDate = [];
-
-        foreach (['baptism', 'communion', 'confirmation', 'funeral'] as $serviceKey) {
-            [$modelClass, $dateColumn] = $serviceDateMap[$serviceKey];
-            if (!is_string($dateColumn) || empty($dateColumn)) {
-                continue;
-            }
-            $rows = $modelClass::query()
-                ->selectRaw("DATE({$dateColumn}) as booking_date, COUNT(*) as total")
-                ->groupBy('booking_date')
-                ->get();
-            foreach ($rows as $row) {
-                $date = (string) $row->booking_date;
-                if ($date === '') continue;
-                $countsByDate[$date] = ($countsByDate[$date] ?? 0) + (int) $row->total;
-            }
-        }
-
-        $rows = Wedding::query()
-            ->selectRaw('year, month_day, COUNT(*) as total')
-            ->groupBy('year', 'month_day')
-            ->get();
-
-        foreach ($rows as $row) {
-            $year = trim((string) $row->year);
-            $monthDay = trim((string) $row->month_day);
-            if ($year === '' || $monthDay === '') continue;
-            $date = $monthDay;
-            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $monthDay)) {
-                $date = $monthDay;
-            } elseif (preg_match('/^(\d{1,2})-(\d{1,2})$/', $monthDay, $m)) {
-                $mm = str_pad($m[1], 2, '0', STR_PAD_LEFT);
-                $dd = str_pad($m[2], 2, '0', STR_PAD_LEFT);
-                $date = $year . '-' . $mm . '-' . $dd;
-            } else {
-                continue;
-            }
-            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) continue;
-            $countsByDate[$date] = ($countsByDate[$date] ?? 0) + (int) $row->total;
-        }
-
-        $fullDates = array_values(array_filter(
-            array_keys($countsByDate),
-            fn ($date) => ($countsByDate[$date] ?? 0) >= 3
-        ));
-        sort($fullDates);
-
-        return view('booking.create', [
-            'fullDates' => $fullDates,
-        ]);
-    }
-
-    /**
-     * Store the centralized booking request (web).
-     */
-    public function store(Request $request)
-    {
-        // ... keep your existing store() method exactly as you have it ...
-        $validated = $request->validate([
-            'service_type' => ['required', 'string', 'in:baptism,wedding,communion,confirmation,funeral'],
-            'user_name' => ['required', 'string', 'max:255'],
-            'contact_number' => ['required', 'string', 'max:255'],
-            'appointment_date' => ['required', 'date'],
-            'details' => ['nullable', 'string', 'max:2000'],
-        ]);
-
-        $serviceType = $validated['service_type'];
-        $appointmentDate = $validated['appointment_date'];
-        $details = $validated['details'] ?? null;
-
-        switch ($serviceType) {
-            case 'baptism':
-                $model = new Baptism();
-                $model->category = 'Baptism';
-                $model->first_name = $validated['user_name'];
-                $model->last_name = $validated['contact_number'];
-                $model->baptism_date = $appointmentDate;
-                $model->remarks = $details;
-                $model->save();
-                break;
-            case 'communion':
-                $model = new Communion();
-                $model->category = 'Communion';
-                $model->candidate_name = $validated['user_name'];
-                $model->residence = $validated['contact_number'];
-                $model->communion_date = $appointmentDate;
-                $model->remarks = $details;
-                $model->save();
-                break;
-            case 'confirmation':
-                $model = new Confirmation();
-                $model->category = 'Confirmation';
-                $model->candidate_name = $validated['user_name'];
-                $model->parents_residence = $validated['contact_number'];
-                $model->confirmation_date = $appointmentDate;
-                $model->sponsors = $details;
-                $model->save();
-                break;
-            case 'wedding':
-                $model = new Wedding();
-                $model->category = 'Wedding';
-                $date = date('Y-m-d', strtotime($appointmentDate));
-                $model->year = date('Y', strtotime($date));
-                $model->month_day = date('m-d', strtotime($date));
-                $model->groom_name = $validated['user_name'];
-                $model->bride_name = $validated['contact_number'];
-                $model->remarks = $details;
-                $model->save();
-                break;
-            case 'funeral':
-                $model = new Funeral();
-                $model->category = 'Funeral';
-                $model->deceased_name = $validated['user_name'];
-                $model->residence = $validated['contact_number'];
-                $model->burial_date = $appointmentDate;
-                $model->remarks = $details;
-                $model->save();
-                break;
-            default:
-                abort(422, 'Invalid service type.');
-        }
-
-        return redirect()->route('booking.create')->with('success', 'Booking request submitted successfully.');
-    }
+    // ... keep your existing create() and store() methods unchanged ...
 
     // ============================================================
     // API METHODS (Called by Android app)
@@ -183,7 +46,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Generic API store method – with auto-fill for missing fillable columns.
+     * Generic API store method with flexible parsing of the 'details' field.
      */
     private function storeSacrament(Request $request, string $type)
     {
@@ -202,31 +65,31 @@ class BookingController extends Controller
             }
             $modelClass = $modelMap[$type];
 
+            // Extract fields from Android payload
             $appointmentDate = $request->input('appointment_date') ?? $request->input('preferred_date') ?? '';
             $contactNumber   = $request->input('contact_number') ?? $request->input('phone') ?? '';
             $details         = $request->input('details') ?? '';
 
-            $purpose = $childName = $fatherName = $email = '';
+            // ----- FLEXIBLE PARSING OF DETAILS -----
+            $parsed = $this->parseDetails($details);
 
-            if (!empty($details)) {
-                preg_match('/Purpose:\s*([^\n]+)/i', $details, $purposeMatch);
-                if (!empty($purposeMatch[1])) $purpose = trim($purposeMatch[1]);
+            // Merge parsed values with direct inputs (if any)
+            $purpose   = $parsed['purpose'] ?? $request->input('purpose') ?? '';
+            $childName = $parsed['name'] ?? $request->input('child_name') ?? $request->input('candidate_name') ?? '';
+            $fatherName= $parsed['father'] ?? $request->input('father_name') ?? '';
+            $email     = $parsed['email'] ?? $request->input('email') ?? '';
 
-                preg_match('/Child(?:ren)?:\s*([^\n]+)/i', $details, $childMatch);
-                if (!empty($childMatch[1])) $childName = trim($childMatch[1]);
+            // Log the extracted data for debugging
+            Log::info("API_BOOKING_PARSED_{$type}", [
+                'purpose' => $purpose,
+                'childName' => $childName,
+                'fatherName' => $fatherName,
+                'email' => $email,
+                'contactNumber' => $contactNumber,
+                'appointmentDate' => $appointmentDate,
+            ]);
 
-                preg_match('/Father:\s*([^\n]+)/i', $details, $fatherMatch);
-                if (!empty($fatherMatch[1])) $fatherName = trim($fatherMatch[1]);
-
-                preg_match('/Email:\s*([^\n]+)/i', $details, $emailMatch);
-                if (!empty($emailMatch[1])) $email = trim($emailMatch[1]);
-            }
-
-            $purpose    = $purpose ?: $request->input('purpose') ?? '';
-            $childName  = $childName ?: $request->input('child_name') ?? $request->input('candidate_name') ?? '';
-            $fatherName = $fatherName ?: $request->input('father_name') ?? '';
-            $email      = $email ?: $request->input('email') ?? '';
-
+            // ----- VALIDATION -----
             $validator = Validator::make(
                 compact('purpose', 'appointmentDate', 'childName', 'fatherName', 'email', 'contactNumber'),
                 [
@@ -236,6 +99,15 @@ class BookingController extends Controller
                     'fatherName'     => 'required|string|max:255',
                     'email'          => 'required|email|max:255',
                     'contactNumber'  => 'nullable|string|max:20',
+                ],
+                [
+                    'purpose.required'        => 'Purpose is required',
+                    'appointmentDate.required'=> 'Appointment date is required',
+                    'appointmentDate.date'    => 'Appointment date must be a valid date',
+                    'childName.required'      => "Name is required (child/candidate/deceased)",
+                    'fatherName.required'     => "Father/Sponsor name is required",
+                    'email.required'          => 'Email address is required',
+                    'email.email'             => 'Email must be a valid email address',
                 ]
             );
 
@@ -244,26 +116,25 @@ class BookingController extends Controller
                     'success' => false,
                     'message' => 'Validation failed',
                     'errors'  => $validator->errors(),
-                    'received_data' => $request->all()
+                    'received_data' => $request->all(),
+                    'parsed_data' => compact('purpose', 'appointmentDate', 'childName', 'fatherName', 'email', 'contactNumber'),
                 ], 422);
             }
 
+            // ----- MAP TO MODEL COLUMNS -----
             $mappedData = $this->mapApiFields($type, $purpose, $appointmentDate, '', $childName, $fatherName, $email, $contactNumber);
 
-            // ----- AUTO-FILL MISSING FILLABLE COLUMNS WITH SAFE DEFAULTS -----
+            // Auto-fill any missing fillable columns with safe defaults
             $model = new $modelClass();
             $fillable = $model->getFillable();
-
             foreach ($fillable as $column) {
                 if (!array_key_exists($column, $mappedData)) {
-                    // Default based on column name
                     if (in_array($column, ['book_number', 'page_number', 'line_number', 'year', 'age', 'age_at_death', 'groom_age', 'bride_age'])) {
                         $mappedData[$column] = 0;
                     } elseif (strpos($column, 'date') !== false) {
-                        // For date columns, use a placeholder date if NOT NULL
                         $mappedData[$column] = '1900-01-01';
-                    } elseif (in_array($column, ['legitimacy', 'marital_status'])) {
-                        $mappedData[$column] = 'Unknown';
+                    } elseif (in_array($column, ['legitimacy', 'marital_status', 'status'])) {
+                        $mappedData[$column] = 'pending';
                     } else {
                         $mappedData[$column] = '';
                     }
@@ -272,6 +143,7 @@ class BookingController extends Controller
 
             Log::info("API_BOOKING_FINAL_DATA_{$type}", $mappedData);
 
+            // ----- CREATE RECORD -----
             try {
                 $booking = $modelClass::create($mappedData);
             } catch (\Exception $e) {
@@ -305,7 +177,59 @@ class BookingController extends Controller
     }
 
     /**
-     * Map API fields to model columns – provides initial values.
+     * Parse the 'details' string to extract key fields.
+     * Handles multiple possible labels.
+     */
+    private function parseDetails(string $details): array
+    {
+        $result = [
+            'purpose' => '',
+            'name'    => '',
+            'father'  => '',
+            'email'   => '',
+        ];
+
+        if (empty($details)) {
+            return $result;
+        }
+
+        // Split into lines
+        $lines = explode("\n", $details);
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) continue;
+
+            // Try to match "Purpose: ..."
+            if (preg_match('/^Purpose:\s*(.+)/i', $line, $matches)) {
+                $result['purpose'] = trim($matches[1]);
+                continue;
+            }
+
+            // Try to match "Child:" or "Candidate:" or "Deceased:" or "Name:"
+            if (preg_match('/^(Child|Candidate|Deceased|Name):\s*(.+)/i', $line, $matches)) {
+                $result['name'] = trim($matches[2]);
+                continue;
+            }
+
+            // Try to match "Father:" or "Sponsor:" or "Parent:"
+            if (preg_match('/^(Father|Sponsor|Parent):\s*(.+)/i', $line, $matches)) {
+                $result['father'] = trim($matches[2]);
+                continue;
+            }
+
+            // Try to match "Email:"
+            if (preg_match('/^Email:\s*(.+)/i', $line, $matches)) {
+                $result['email'] = trim($matches[1]);
+                continue;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Map API fields to the correct database columns for each model.
+     * Provides defaults for NOT NULL columns.
      */
     private function mapApiFields(string $type, string $purpose, string $date, string $time, string $childName, string $fatherName, string $email, string $contactNumber = '')
     {
@@ -326,7 +250,7 @@ class BookingController extends Controller
                     'father_name'  => $fatherName,
                     'residence'    => $contactNumber,
                     'legitimacy'   => 'Unknown',
-                    'birth_date'   => '1900-01-01', // ✅ fixed – NOT NULL column
+                    'birth_date'   => '1900-01-01',
                     'birth_place'  => '',
                     'father_birthplace' => '',
                     'mother_birthplace' => '',
@@ -344,7 +268,7 @@ class BookingController extends Controller
                     'candidate_name' => $childName,
                     'communion_date' => $date,
                     'residence'      => $contactNumber,
-                    'baptism_date'   => null,
+                    'baptism_date'   => '1900-01-01',
                     'place_of_baptism' => '',
                     'coordinator_name' => '',
                     'minister_name'  => '',
@@ -358,7 +282,7 @@ class BookingController extends Controller
                     'father_name'       => $fatherName,
                     'parents_residence' => $contactNumber,
                     'sponsor_name'      => '',
-                    'age'               => null,
+                    'age'               => 0,
                     'birthplace'        => '',
                     'minister_name'     => '',
                     'sponsors'          => '',
@@ -370,8 +294,8 @@ class BookingController extends Controller
                     'residence'     => $contactNumber,
                     'marital_status' => '',
                     'spouse_name'   => '',
-                    'death_date'    => null,
-                    'age_at_death'  => null,
+                    'death_date'    => '1900-01-01',
+                    'age_at_death'  => 0,
                     'cause_of_death' => '',
                     'sacraments_received' => '',
                     'cemetery_name' => '',
@@ -384,12 +308,12 @@ class BookingController extends Controller
                     'month_day' => $dateObj->format('m-d'),
                     'groom_name'=> $fatherName,
                     'bride_name'=> $childName,
-                    'groom_age' => null,
+                    'groom_age' => 0,
                     'groom_status' => '',
                     'groom_father' => '',
                     'groom_mother' => '',
                     'groom_residence' => '',
-                    'bride_age' => null,
+                    'bride_age' => 0,
                     'bride_status' => '',
                     'bride_father' => '',
                     'bride_mother' => '',
