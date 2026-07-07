@@ -176,7 +176,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Generic API store method – final version with all fixes.
+     * Generic API store method – builds data from fillable columns only.
      */
     private function storeSacrament(Request $request, string $type)
     {
@@ -195,7 +195,7 @@ class BookingController extends Controller
             }
             $modelClass = $modelMap[$type];
 
-            // ----- EXTRACT FIELDS -----
+            // ----- Extract fields (same as before) -----
             $appointmentDate = $request->input('appointment_date') 
                              ?? $request->input('preferred_date') 
                              ?? $request->input('date') 
@@ -208,10 +208,8 @@ class BookingController extends Controller
 
             $details         = $request->input('details') ?? '';
 
-            // Parse details
             $parsed = $this->parseDetails($details);
 
-            // ---- NAME ----
             $name = $request->input('confirmand_name') 
                   ?? $request->input('candidate_name') 
                   ?? $request->input('child_name') 
@@ -220,7 +218,6 @@ class BookingController extends Controller
                   ?? $parsed['name'] 
                   ?? '';
 
-            // ---- SECOND (father/sponsor) ----
             $second = $request->input('father_name') 
                     ?? $request->input('sponsor_name') 
                     ?? $request->input('parent_name') 
@@ -231,20 +228,18 @@ class BookingController extends Controller
                 $second = $contactNumber ?: 'N/A';
             }
 
-            // ---- EMAIL ----
             $email = $request->input('email') 
                    ?? $request->input('email_address') 
                    ?? $parsed['email'] 
                    ?? '';
 
-            // ---- PURPOSE ----
             $purpose = $request->input('purpose') 
                      ?? $parsed['purpose'] 
                      ?? 'Book ' . ucfirst($type);
 
             Log::info("API_BOOKING_PARSED_{$type}", compact('purpose', 'name', 'second', 'email', 'contactNumber', 'appointmentDate'));
 
-            // ----- VALIDATION -----
+            // ----- Validation -----
             $rules = [
                 'purpose'        => 'required|string|max:255',
                 'appointmentDate'=> 'required|date',
@@ -280,32 +275,25 @@ class BookingController extends Controller
                 ], 422);
             }
 
-            // ----- MAP TO MODEL COLUMNS -----
-            $mappedData = $this->mapApiFields($type, $purpose, $appointmentDate, '', $name, $second, $email, $contactNumber);
-
-            // Auto-fill any missing fillable columns with safe defaults
+            // ----- Build data from fillable columns -----
             $model = new $modelClass();
             $fillable = $model->getFillable();
-            foreach ($fillable as $column) {
-                if (!array_key_exists($column, $mappedData)) {
-                    if (in_array($column, ['book_number', 'page_number', 'line_number', 'year', 'age', 'age_at_death', 'groom_age', 'bride_age'])) {
-                        $mappedData[$column] = 0;
-                    } elseif (strpos($column, 'date') !== false) {
-                        $mappedData[$column] = '1900-01-01';
-                    } elseif (in_array($column, ['legitimacy', 'marital_status', 'status'])) {
-                        $mappedData[$column] = 'pending';
-                    } else {
-                        $mappedData[$column] = '';
-                    }
-                }
-            }
 
-            // 🔥 CRITICAL: Remove 'category' – it doesn't exist in confirmations table
-            unset($mappedData['category']);
+            $mappedData = [];
+
+            foreach ($fillable as $column) {
+                // Skip 'category' if it exists (some tables don't have it)
+                if ($column === 'category') {
+                    continue;
+                }
+
+                // Assign a value using the helper
+                $mappedData[$column] = $this->getDefaultForColumn($type, $column, $purpose, $appointmentDate, $name, $second, $email, $contactNumber);
+            }
 
             Log::info("API_BOOKING_FINAL_DATA_{$type}", $mappedData);
 
-            // ----- CREATE RECORD -----
+            // ----- Create record -----
             try {
                 $booking = $modelClass::create($mappedData);
             } catch (\Exception $e) {
@@ -410,105 +398,78 @@ class BookingController extends Controller
     }
 
     /**
-     * Map API fields to the correct database columns for each model.
-     * Note: 'category' is not included – it's removed before insertion.
+     * Get a safe default value for each fillable column.
+     * This ensures no NOT NULL errors.
      */
-    private function mapApiFields(string $type, string $purpose, string $date, string $time, string $name, string $second, string $email, string $contactNumber = '')
+    private function getDefaultForColumn(string $type, string $column, string $purpose, string $date, string $name, string $second, string $email, string $contactNumber)
     {
-        $base = [
-            'remarks'  => "Purpose: $purpose | Time: $time | Email: $email | Contact: $contactNumber | Second: $second",
+        // Common defaults
+        $commonDefaults = [
+            'remarks' => "Purpose: $purpose | Email: $email | Contact: $contactNumber | Second: $second",
             'book_number' => 0,
             'page_number' => 0,
             'line_number' => 0,
+            'status' => 'pending',
+            'legitimacy' => 'Unknown',
+            'marital_status' => 'Unknown',
+            'minister_name' => '',
+            'residence' => $contactNumber,
+            'parents_residence' => $contactNumber,
+            'sponsor_name' => '',
+            'sponsors' => '',
+            'godfather' => '',
+            'godmother' => '',
+            'mother_name' => '',
+            'mother_maiden_name' => '',
+            'middle_name' => '',
+            'suffix' => '',
+            'birthplace' => '',
+            'birth_place' => '',
+            'father_birthplace' => '',
+            'mother_birthplace' => '',
+            'place_of_baptism' => '',
+            'coordinator_name' => '',
+            'cemetery_name' => '',
+            'cause_of_death' => '',
+            'sacraments_received' => '',
+            'spouse_name' => '',
+            'groom_status' => '',
+            'bride_status' => '',
+            'groom_father' => '',
+            'groom_mother' => '',
+            'groom_parents' => '',
+            'groom_parents_residence' => '',
+            'groom_residence' => '',
+            'bride_father' => '',
+            'bride_mother' => '',
+            'bride_parents' => '',
+            'bride_parents_residence' => '',
+            'bride_residence' => '',
+            'witness_1' => '',
+            'witness_2' => '',
+            'groom_name' => $second,
+            'bride_name' => $name,
+            'father_name' => $second,
+            'candidate_name' => $name,
+            'deceased_name' => $name,
+            'first_name' => $name,
+            'last_name' => '',
+            'age' => 0,
+            'age_at_death' => 0,
+            'groom_age' => 0,
+            'bride_age' => 0,
+            'year' => Carbon::parse($date)->year,
+            'month_day' => Carbon::parse($date)->format('m-d'),
+            'baptism_date' => $date,
+            'communion_date' => $date,
+            'confirmation_date' => $date,
+            'burial_date' => $date,
+            'wedding_date' => $date,
+            'death_date' => '1900-01-01',
+            'birth_date' => '1900-01-01',
         ];
 
-        switch ($type) {
-            case 'baptism':
-                return array_merge($base, [
-                    'first_name'   => $name,
-                    'last_name'    => '',
-                    'baptism_date' => $date,
-                    'father_name'  => $second,
-                    'residence'    => $contactNumber,
-                    'legitimacy'   => 'Unknown',
-                    'birth_date'   => '1900-01-01',
-                    'birth_place'  => '',
-                    'father_birthplace' => '',
-                    'mother_birthplace' => '',
-                    'minister_name' => '',
-                    'godfather'    => '',
-                    'godmother'    => '',
-                    'mother_name'  => '',
-                    'mother_maiden_name'=> '',
-                    'middle_name'  => '',
-                    'suffix'       => '',
-                    'candidate_name'=> $name,
-                ]);
-            case 'communion':
-                return array_merge($base, [
-                    'candidate_name' => $name,
-                    'communion_date' => $date,
-                    'residence'      => $contactNumber,
-                    'baptism_date'   => '1900-01-01',
-                    'place_of_baptism' => '',
-                    'coordinator_name' => '',
-                    'minister_name'  => '',
-                    'first_name'     => '',
-                    'last_name'      => '',
-                ]);
-            case 'confirmation':
-                return array_merge($base, [
-                    'candidate_name'    => $name,
-                    'confirmation_date' => $date,
-                    'father_name'       => $second,
-                    'parents_residence' => $contactNumber,
-                    'sponsor_name'      => '',
-                    'age'               => 0,
-                    'birthplace'        => '',
-                    'minister_name'     => '',
-                    'sponsors'          => '',
-                    'first_name'        => '',
-                    'last_name'         => '',
-                    'mother_name'       => '',
-                ]);
-            case 'funeral':
-                return array_merge($base, [
-                    'deceased_name' => $name,
-                    'burial_date'   => $date,
-                    'residence'     => $contactNumber,
-                    'marital_status' => '',
-                    'spouse_name'   => '',
-                    'death_date'    => '1900-01-01',
-                    'age_at_death'  => 0,
-                    'cause_of_death' => '',
-                    'sacraments_received' => '',
-                    'cemetery_name' => '',
-                    'minister_name' => '',
-                ]);
-            case 'wedding':
-                $dateObj = Carbon::parse($date);
-                return array_merge($base, [
-                    'year'      => $dateObj->year,
-                    'month_day' => $dateObj->format('m-d'),
-                    'groom_name'=> $second,
-                    'bride_name'=> $name,
-                    'groom_age' => 0,
-                    'groom_status' => '',
-                    'groom_father' => '',
-                    'groom_mother' => '',
-                    'groom_residence' => '',
-                    'bride_age' => 0,
-                    'bride_status' => '',
-                    'bride_father' => '',
-                    'bride_mother' => '',
-                    'bride_residence' => '',
-                    'wedding_date' => $date,
-                    'minister_name' => '',
-                    'witness_1' => '',
-                    'witness_2' => '',
-                ]);
-            default:
-                return [];
-        }
+        // Return the common default if it exists, otherwise fallback to empty string
+        return $commonDefaults[$column] ?? '';
     }
 }
