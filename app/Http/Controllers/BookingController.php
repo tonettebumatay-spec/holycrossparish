@@ -304,7 +304,9 @@ class BookingController extends Controller
     }
 
     /**
-     * Parse the 'details' string – flexible labels.
+     * Parse the 'details' string – flexible labels and unlabeled formats.
+     * For confirmation, it may receive: "Confirmand's Full Name: xxx\nEmail: xxx\nPhone: xxx"
+     * Or it may receive just values with no labels.
      */
     private function parseDetails(string $details): array
     {
@@ -320,32 +322,59 @@ class BookingController extends Controller
         }
 
         $lines = explode("\n", $details);
+        $values = [];
+
         foreach ($lines as $line) {
             $line = trim($line);
             if (empty($line)) continue;
 
-            // Purpose
-            if (preg_match('/^Purpose:\s*(.+)/i', $line, $matches)) {
-                $result['purpose'] = trim($matches[1]);
-                continue;
-            }
+            // Check if line contains a colon (key: value format)
+            if (strpos($line, ':') !== false) {
+                $parts = explode(':', $line, 2);
+                $key = trim($parts[0]);
+                $value = trim($parts[1] ?? '');
 
-            // Name (child, candidate, deceased, name)
-            if (preg_match('/^(Child|Candidate|Deceased|Name):\s*(.+)/i', $line, $matches)) {
-                $result['name'] = trim($matches[2]);
-                continue;
-            }
+                $lowerKey = strtolower($key);
 
-            // Second (father, sponsor, parent)
-            if (preg_match('/^(Father|Sponsor|Parent):\s*(.+)/i', $line, $matches)) {
-                $result['second'] = trim($matches[2]);
-                continue;
+                if (str_contains($lowerKey, 'purpose') || str_contains($lowerKey, 'service')) {
+                    $result['purpose'] = $value;
+                } elseif (str_contains($lowerKey, 'name') || str_contains($lowerKey, 'confirmand') || 
+                          str_contains($lowerKey, 'candidate') || str_contains($lowerKey, 'child') || 
+                          str_contains($lowerKey, 'deceased')) {
+                    $result['name'] = $value;
+                } elseif (str_contains($lowerKey, 'father') || str_contains($lowerKey, 'sponsor') || 
+                          str_contains($lowerKey, 'parent')) {
+                    $result['second'] = $value;
+                } elseif (str_contains($lowerKey, 'email') || str_contains($lowerKey, 'mail')) {
+                    $result['email'] = $value;
+                }
+            } else {
+                $values[] = $line;
             }
+        }
 
-            // Email
-            if (preg_match('/^Email:\s*(.+)/i', $line, $matches)) {
-                $result['email'] = trim($matches[1]);
-                continue;
+        // If we didn't find a name, try the first non-empty value
+        if (empty($result['name']) && !empty($values)) {
+            $result['name'] = array_shift($values);
+        }
+
+        // If we didn't find a second (father/sponsor), try the next value
+        if (empty($result['second']) && !empty($values)) {
+            $result['second'] = array_shift($values);
+        }
+
+        // If we still don't have a purpose, set a default
+        if (empty($result['purpose'])) {
+            $result['purpose'] = 'Book Confirmation';
+        }
+
+        // If we don't have email but there's a value that looks like email
+        if (empty($result['email']) && !empty($values)) {
+            foreach ($values as $val) {
+                if (filter_var($val, FILTER_VALIDATE_EMAIL)) {
+                    $result['email'] = $val;
+                    break;
+                }
             }
         }
 
@@ -354,7 +383,6 @@ class BookingController extends Controller
 
     /**
      * Map API fields to the correct database columns for each model.
-     * Provides defaults for NOT NULL columns.
      */
     private function mapApiFields(string $type, string $purpose, string $date, string $time, string $name, string $second, string $email, string $contactNumber = '')
     {
