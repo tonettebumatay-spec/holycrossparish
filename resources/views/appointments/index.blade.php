@@ -70,7 +70,11 @@
                                         </td>
                                         <td class="px-6 py-4 font-medium text-gray-900">{{ $app->name ?? 'N/A' }}</td>
                                         <td class="px-6 py-4">
-                                            {{ \Carbon\Carbon::parse($app->appointment_date)->format('M d, Y') }}
+                                            @if($app->appointment_date)
+                                                {{ \Carbon\Carbon::parse($app->appointment_date)->format('M d, Y') }}
+                                            @else
+                                                <span class="text-gray-400">N/A</span>
+                                            @endif
                                         </td>
                                         <td class="px-6 py-4">{{ $app->category ?? 'N/A' }}</td>
                                         <td class="px-6 py-4">
