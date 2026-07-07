@@ -16,11 +16,22 @@ class AppointmentController extends Controller
     public function index()
     {
         try {
-            // Helper function to extract time from remarks
+            // Helper to extract time from remarks
             $extractTime = function ($remarks) {
                 if (empty($remarks)) return null;
-                preg_match('/Time:\s*([^|]+)/i', $remarks, $matches);
-                return isset($matches[1]) ? trim($matches[1]) : null;
+
+                $patterns = [
+                    '/Time:\s*([^|\n]+)/i',
+                    '/\b(\d{1,2}:\d{2}\s*(?:AM|PM)?)\b/i',
+                    '/at\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)/i',
+                ];
+
+                foreach ($patterns as $pattern) {
+                    if (preg_match($pattern, $remarks, $matches)) {
+                        return trim($matches[1]);
+                    }
+                }
+                return null;
             };
 
             // Baptisms
@@ -30,6 +41,7 @@ class AppointmentController extends Controller
                 $item->appointment_date = $item->baptism_date ? Carbon::parse($item->baptism_date)->format('Y-m-d') : null;
                 $item->time = $extractTime($item->remarks);
                 $item->status = $item->status ?? 'pending';
+                $item->category = $item->category ?? 'Baptism';
                 return $item;
             });
 
@@ -40,6 +52,7 @@ class AppointmentController extends Controller
                 $item->appointment_date = $item->communion_date ? Carbon::parse($item->communion_date)->format('Y-m-d') : null;
                 $item->time = $extractTime($item->remarks);
                 $item->status = $item->status ?? 'pending';
+                $item->category = $item->category ?? 'Communion';
                 return $item;
             });
 
@@ -50,14 +63,16 @@ class AppointmentController extends Controller
                 $item->appointment_date = $item->confirmation_date ? Carbon::parse($item->confirmation_date)->format('Y-m-d') : null;
                 $item->time = $extractTime($item->remarks);
                 $item->status = $item->status ?? 'pending';
+                $item->category = $item->category ?? 'Confirmation';
                 return $item;
             });
 
-            // Weddings
+            // Weddings – handle year+month_day
             $weddings = Wedding::all()->map(function ($item) use ($extractTime) {
                 $item->type = 'Wedding';
                 $item->name = $item->groom_name . ' & ' . $item->bride_name;
                 $item->status = $item->status ?? 'pending';
+                $item->category = $item->category ?? 'Wedding';
 
                 $year = $item->year;
                 $monthDay = $item->month_day;
@@ -86,6 +101,7 @@ class AppointmentController extends Controller
                 $item->appointment_date = $item->burial_date ? Carbon::parse($item->burial_date)->format('Y-m-d') : null;
                 $item->time = $extractTime($item->remarks);
                 $item->status = $item->status ?? 'pending';
+                $item->category = $item->category ?? 'Funeral';
                 return $item;
             });
 
@@ -99,6 +115,8 @@ class AppointmentController extends Controller
                 ->sortByDesc('appointment_date')
                 ->values();
 
+            Log::info('AppointmentController total: ' . $allAppointments->count());
+
             return view('appointments.index', ['appointments' => $allAppointments]);
 
         } catch (\Exception $e) {
@@ -107,6 +125,9 @@ class AppointmentController extends Controller
         }
     }
 
+    /**
+     * Update appointment status (confirm/cancel)
+     */
     public function updateStatus(Request $request, $type, $id)
     {
         $modelMap = [
@@ -129,6 +150,9 @@ class AppointmentController extends Controller
         return back()->with('success', 'Appointment status updated.');
     }
 
+    /**
+     * Delete an appointment
+     */
     public function destroy($type, $id)
     {
         $modelMap = [
@@ -148,5 +172,13 @@ class AppointmentController extends Controller
         $record->delete();
 
         return back()->with('success', 'Appointment deleted successfully.');
+    }
+
+    /**
+     * Fallback store method (not used for Android – handled by BookingController).
+     */
+    public function store(Request $request)
+    {
+        return response()->json(['status' => 'error', 'message' => 'Use booking endpoints'], 400);
     }
 }
