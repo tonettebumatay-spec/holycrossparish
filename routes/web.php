@@ -63,8 +63,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // --- Appointments ---
+    // --- Appointments Management ---
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
+    Route::put('/appointments/{type}/{id}/status', [AppointmentController::class, 'updateStatus'])->name('appointments.update-status');
+    Route::delete('/appointments/{type}/{id}', [AppointmentController::class, 'destroy'])->name('appointments.destroy');
 
     // --- Bookings ---
     Route::get('/booking/create', [BookingController::class, 'create'])->name('booking.create');

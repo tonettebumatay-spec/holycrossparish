@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/test', function () {
     return response()->json(['status' => 'Server is reachable']);
 });
+
 Route::prefix('v1')->group(function () {
 
     // ============================================================
