@@ -99,7 +99,6 @@ class BookingController extends Controller
         switch ($serviceType) {
             case 'baptism':
                 $model = new Baptism();
-                $model->category = 'Baptism';
                 $model->first_name = $validated['user_name'];
                 $model->last_name = $validated['contact_number'];
                 $model->baptism_date = $appointmentDate;
@@ -108,7 +107,6 @@ class BookingController extends Controller
                 break;
             case 'communion':
                 $model = new Communion();
-                $model->category = 'Communion';
                 $model->candidate_name = $validated['user_name'];
                 $model->residence = $validated['contact_number'];
                 $model->communion_date = $appointmentDate;
@@ -117,16 +115,14 @@ class BookingController extends Controller
                 break;
             case 'confirmation':
                 $model = new Confirmation();
-                $model->category = 'Confirmation';
                 $model->candidate_name = $validated['user_name'];
                 $model->parents_residence = $validated['contact_number'];
                 $model->confirmation_date = $appointmentDate;
-                $model->sponsors = $details;
+                $model->remarks = $details;
                 $model->save();
                 break;
             case 'wedding':
                 $model = new Wedding();
-                $model->category = 'Wedding';
                 $date = date('Y-m-d', strtotime($appointmentDate));
                 $model->year = date('Y', strtotime($date));
                 $model->month_day = date('m-d', strtotime($date));
@@ -137,7 +133,6 @@ class BookingController extends Controller
                 break;
             case 'funeral':
                 $model = new Funeral();
-                $model->category = 'Funeral';
                 $model->deceased_name = $validated['user_name'];
                 $model->residence = $validated['contact_number'];
                 $model->burial_date = $appointmentDate;
@@ -181,7 +176,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Generic API store method – handles all sacrament types.
+     * Generic API store method – final version with all fixes.
      */
     private function storeSacrament(Request $request, string $type)
     {
@@ -297,13 +292,16 @@ class BookingController extends Controller
                         $mappedData[$column] = 0;
                     } elseif (strpos($column, 'date') !== false) {
                         $mappedData[$column] = '1900-01-01';
-                    } elseif (in_array($column, ['legitimacy', 'marital_status'])) {
-                        $mappedData[$column] = 'Unknown';
+                    } elseif (in_array($column, ['legitimacy', 'marital_status', 'status'])) {
+                        $mappedData[$column] = 'pending';
                     } else {
                         $mappedData[$column] = '';
                     }
                 }
             }
+
+            // 🔥 CRITICAL: Remove 'category' – it doesn't exist in confirmations table
+            unset($mappedData['category']);
 
             Log::info("API_BOOKING_FINAL_DATA_{$type}", $mappedData);
 
@@ -413,12 +411,11 @@ class BookingController extends Controller
 
     /**
      * Map API fields to the correct database columns for each model.
-     * Includes all columns from the $fillable arrays to avoid SQL errors.
+     * Note: 'category' is not included – it's removed before insertion.
      */
     private function mapApiFields(string $type, string $purpose, string $date, string $time, string $name, string $second, string $email, string $contactNumber = '')
     {
         $base = [
-            'category' => ucfirst($type),
             'remarks'  => "Purpose: $purpose | Time: $time | Email: $email | Contact: $contactNumber | Second: $second",
             'book_number' => 0,
             'page_number' => 0,
@@ -470,6 +467,9 @@ class BookingController extends Controller
                     'birthplace'        => '',
                     'minister_name'     => '',
                     'sponsors'          => '',
+                    'first_name'        => '',
+                    'last_name'         => '',
+                    'mother_name'       => '',
                 ]);
             case 'funeral':
                 return array_merge($base, [
