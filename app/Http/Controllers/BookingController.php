@@ -297,8 +297,8 @@ class BookingController extends Controller
                         $mappedData[$column] = 0;
                     } elseif (strpos($column, 'date') !== false) {
                         $mappedData[$column] = '1900-01-01';
-                    } elseif (in_array($column, ['legitimacy', 'marital_status', 'status'])) {
-                        $mappedData[$column] = 'pending';
+                    } elseif (in_array($column, ['legitimacy', 'marital_status'])) {
+                        $mappedData[$column] = 'Unknown';
                     } else {
                         $mappedData[$column] = '';
                     }
