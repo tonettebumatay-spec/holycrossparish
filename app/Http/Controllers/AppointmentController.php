@@ -2,12 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Baptism;
-use App\Models\Communion;
-use App\Models\Confirmation;
-use App\Models\Wedding;
-use App\Models\Funeral;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class AppointmentController extends Controller
@@ -18,109 +14,89 @@ class AppointmentController extends Controller
     public function index()
     {
         try {
-            Log::info('AppointmentController: Fetching all appointments from sacrament tables');
+            // Query each table and union them
+            $baptisms = DB::table('baptisms')
+                ->select(
+                    DB::raw("'Baptism' as type"),
+                    'id',
+                    DB::raw("CONCAT(first_name, ' ', last_name) as name"),
+                    'baptism_date as appointment_date',
+                    'category',
+                    'created_at',
+                    'remarks'
+                );
 
-            // --- FETCH FROM BAPTISMS ---
-            $baptisms = Baptism::select(
-                'id',
-                'first_name',
-                'last_name',
-                'baptism_date as appointment_date',
-                'category',
-                'created_at',
-                'remarks'
-            )->get()->map(function ($item) {
-                $item->type = 'Baptism';
-                $item->name = trim($item->first_name . ' ' . $item->last_name);
-                return $item;
-            });
+            $communions = DB::table('communions')
+                ->select(
+                    DB::raw("'Communion' as type"),
+                    'id',
+                    'candidate_name as name',
+                    'communion_date as appointment_date',
+                    'category',
+                    'created_at',
+                    'remarks'
+                );
 
-            // --- FETCH FROM COMMUNIONS ---
-            $communions = Communion::select(
-                'id',
-                'candidate_name as name',
-                'communion_date as appointment_date',
-                'category',
-                'created_at',
-                'remarks'
-            )->get()->map(function ($item) {
-                $item->type = 'Communion';
-                $item->name = $item->name;
-                return $item;
-            });
+            $confirmations = DB::table('confirmations')
+                ->select(
+                    DB::raw("'Confirmation' as type"),
+                    'id',
+                    'candidate_name as name',
+                    'confirmation_date as appointment_date',
+                    'category',
+                    'created_at',
+                    'remarks'
+                );
 
-            // --- FETCH FROM CONFIRMATIONS ---
-            $confirmations = Confirmation::select(
-                'id',
-                'candidate_name as name',
-                'confirmation_date as appointment_date',
-                'category',
-                'created_at',
-                'remarks'
-            )->get()->map(function ($item) {
-                $item->type = 'Confirmation';
-                $item->name = $item->name;
-                return $item;
-            });
+            $weddings = DB::table('weddings')
+                ->select(
+                    DB::raw("'Wedding' as type"),
+                    'id',
+                    DB::raw("CONCAT(groom_name, ' & ', bride_name) as name"),
+                    'wedding_date as appointment_date',
+                    'category',
+                    'created_at',
+                    'remarks'
+                );
 
-            // --- FETCH FROM WEDDINGS ---
-            $weddings = Wedding::select(
-                'id',
-                'groom_name as groom',
-                'bride_name as bride',
-                'wedding_date as appointment_date',
-                'category',
-                'created_at',
-                'remarks'
-            )->get()->map(function ($item) {
-                $item->type = 'Wedding';
-                $item->name = $item->groom . ' & ' . $item->bride;
-                return $item;
-            });
+            $funerals = DB::table('funerals')
+                ->select(
+                    DB::raw("'Funeral' as type"),
+                    'id',
+                    'deceased_name as name',
+                    'burial_date as appointment_date',
+                    'category',
+                    'created_at',
+                    'remarks'
+                );
 
-            // --- FETCH FROM FUNERALS ---
-            $funerals = Funeral::select(
-                'id',
-                'deceased_name as name',
-                'burial_date as appointment_date',
-                'category',
-                'created_at',
-                'remarks'
-            )->get()->map(function ($item) {
-                $item->type = 'Funeral';
-                $item->name = $item->name;
-                return $item;
-            });
+            // Union all queries and order by appointment date (newest first)
+            $appointments = $baptisms
+                ->unionAll($communions)
+                ->unionAll($confirmations)
+                ->unionAll($weddings)
+                ->unionAll($funerals)
+                ->orderBy('appointment_date', 'desc')
+                ->get();
 
-            // --- MERGE ALL COLLECTIONS ---
-            $allAppointments = collect()
-                ->merge($baptisms)
-                ->merge($communions)
-                ->merge($confirmations)
-                ->merge($weddings)
-                ->merge($funerals)
-                ->sortByDesc('appointment_date')
-                ->values();
+            // Log the count for debugging
+            Log::info('AppointmentController fetched ' . $appointments->count() . ' appointments from union query.');
 
-            Log::info('AppointmentController: Found ' . $allAppointments->count() . ' total appointments');
-
-            return view('appointments.index', ['appointments' => $allAppointments]);
+            return view('appointments.index', ['appointments' => $appointments]);
 
         } catch (\Exception $e) {
             Log::error('Appointment Index Error: ' . $e->getMessage());
-            
-            // Return empty collection on error
+
+            // On error, return empty collection so the page shows "No appointments"
             return view('appointments.index', ['appointments' => collect()]);
         }
     }
 
     /**
-     * Handle the POST request from the Android App (deprecated/fallback).
+     * Fallback store method (not used for Android bookings – handled by BookingController).
      */
     public function store(Request $request)
     {
-        Log::info('Appointment store called from Android:', $request->all());
-        
         return response()->json([
             'status' => 'error',
             'message' => 'Use the booking endpoints (/booking/*) instead'
