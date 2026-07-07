@@ -15,13 +15,11 @@ class AppointmentController extends Controller
     public function index()
     {
         try {
-            // -----------------------------------------------------------------
-            // 1. FETCH ALL RECORDS FROM EACH SACRAMENT TABLE
-            // -----------------------------------------------------------------
             $baptisms = Baptism::all()->map(function ($item) {
                 $item->type = 'Baptism';
                 $item->name = trim($item->first_name . ' ' . $item->last_name);
                 $item->appointment_date = $item->baptism_date;
+                $item->status = $item->status ?? 'pending';
                 return $item;
             });
 
@@ -29,6 +27,7 @@ class AppointmentController extends Controller
                 $item->type = 'Communion';
                 $item->name = $item->candidate_name;
                 $item->appointment_date = $item->communion_date;
+                $item->status = $item->status ?? 'pending';
                 return $item;
             });
 
@@ -36,14 +35,15 @@ class AppointmentController extends Controller
                 $item->type = 'Confirmation';
                 $item->name = $item->candidate_name;
                 $item->appointment_date = $item->confirmation_date;
+                $item->status = $item->status ?? 'pending';
                 return $item;
             });
 
             $weddings = Wedding::all()->map(function ($item) {
                 $item->type = 'Wedding';
                 $item->name = $item->groom_name . ' & ' . $item->bride_name;
-                // Build date from year and month_day
                 $item->appointment_date = $item->year . '-' . $item->month_day;
+                $item->status = $item->status ?? 'pending';
                 return $item;
             });
 
@@ -51,12 +51,10 @@ class AppointmentController extends Controller
                 $item->type = 'Funeral';
                 $item->name = $item->deceased_name;
                 $item->appointment_date = $item->burial_date;
+                $item->status = $item->status ?? 'pending';
                 return $item;
             });
 
-            // -----------------------------------------------------------------
-            // 2. MERGE ALL COLLECTIONS AND SORT
-            // -----------------------------------------------------------------
             $allAppointments = collect()
                 ->merge($baptisms)
                 ->merge($communions)
@@ -66,26 +64,54 @@ class AppointmentController extends Controller
                 ->sortByDesc('appointment_date')
                 ->values();
 
-            // Log the count for debugging
-            Log::info('AppointmentController found ' . $allAppointments->count() . ' total appointments.');
-
-            // -----------------------------------------------------------------
-            // 3. RETURN TO VIEW
-            // -----------------------------------------------------------------
             return view('appointments.index', ['appointments' => $allAppointments]);
 
         } catch (\Exception $e) {
-            // Log the full error
-            Log::error('AppointmentController error: ' . $e->getMessage());
-            Log::error($e->getTraceAsString());
-
-            // Return empty collection
+            Log::error('Appointment Index Error: ' . $e->getMessage());
             return view('appointments.index', ['appointments' => collect()]);
         }
     }
 
-    public function store(Request $request)
+    public function updateStatus(Request $request, $type, $id)
     {
-        return response()->json(['status' => 'error', 'message' => 'Use booking endpoints'], 400);
+        $modelMap = [
+            'baptism'     => Baptism::class,
+            'communion'   => Communion::class,
+            'confirmation'=> Confirmation::class,
+            'wedding'     => Wedding::class,
+            'funeral'     => Funeral::class,
+        ];
+
+        $model = $modelMap[$type] ?? null;
+        if (!$model) {
+            return back()->with('error', 'Invalid appointment type.');
+        }
+
+        $record = $model::findOrFail($id);
+        $record->status = $request->status;
+        $record->save();
+
+        return back()->with('success', 'Appointment status updated.');
+    }
+
+    public function destroy($type, $id)
+    {
+        $modelMap = [
+            'baptism'     => Baptism::class,
+            'communion'   => Communion::class,
+            'confirmation'=> Confirmation::class,
+            'wedding'     => Wedding::class,
+            'funeral'     => Funeral::class,
+        ];
+
+        $model = $modelMap[$type] ?? null;
+        if (!$model) {
+            return back()->with('error', 'Invalid appointment type.');
+        }
+
+        $record = $model::findOrFail($id);
+        $record->delete();
+
+        return back()->with('success', 'Appointment deleted successfully.');
     }
 }
