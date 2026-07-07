@@ -181,7 +181,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Generic API store method with flexible parsing of the 'details' field.
+     * Generic API store method – handles all sacrament types.
      */
     private function storeSacrament(Request $request, string $type)
     {
@@ -200,39 +200,76 @@ class BookingController extends Controller
             }
             $modelClass = $modelMap[$type];
 
-            $appointmentDate = $request->input('appointment_date') ?? $request->input('preferred_date') ?? '';
-            $contactNumber   = $request->input('contact_number') ?? $request->input('phone') ?? '';
+            // ----- EXTRACT FIELDS -----
+            $appointmentDate = $request->input('appointment_date') 
+                             ?? $request->input('preferred_date') 
+                             ?? $request->input('date') 
+                             ?? '';
+
+            $contactNumber   = $request->input('contact_number') 
+                             ?? $request->input('phone') 
+                             ?? $request->input('phone_number') 
+                             ?? '';
+
             $details         = $request->input('details') ?? '';
 
-            // ----- FLEXIBLE PARSING OF DETAILS -----
+            // Parse details
             $parsed = $this->parseDetails($details);
 
-            // Merge with direct inputs (if any)
-            $purpose   = $parsed['purpose'] ?? $request->input('purpose') ?? '';
-            $name      = $parsed['name'] ?? $request->input('child_name') ?? $request->input('candidate_name') ?? $request->input('deceased_name') ?? '';
-            $second    = $parsed['second'] ?? $request->input('father_name') ?? $request->input('sponsor_name') ?? '';
-            $email     = $parsed['email'] ?? $request->input('email') ?? '';
+            // ---- NAME ----
+            $name = $request->input('confirmand_name') 
+                  ?? $request->input('candidate_name') 
+                  ?? $request->input('child_name') 
+                  ?? $request->input('name') 
+                  ?? $request->input('deceased_name') 
+                  ?? $parsed['name'] 
+                  ?? '';
 
-            // Log the extracted data
+            // ---- SECOND (father/sponsor) ----
+            $second = $request->input('father_name') 
+                    ?? $request->input('sponsor_name') 
+                    ?? $request->input('parent_name') 
+                    ?? $parsed['second'] 
+                    ?? '';
+
+            if (empty($second) && $type === 'confirmation') {
+                $second = $contactNumber ?: 'N/A';
+            }
+
+            // ---- EMAIL ----
+            $email = $request->input('email') 
+                   ?? $request->input('email_address') 
+                   ?? $parsed['email'] 
+                   ?? '';
+
+            // ---- PURPOSE ----
+            $purpose = $request->input('purpose') 
+                     ?? $parsed['purpose'] 
+                     ?? 'Book ' . ucfirst($type);
+
             Log::info("API_BOOKING_PARSED_{$type}", compact('purpose', 'name', 'second', 'email', 'contactNumber', 'appointmentDate'));
 
             // ----- VALIDATION -----
+            $rules = [
+                'purpose'        => 'required|string|max:255',
+                'appointmentDate'=> 'required|date',
+                'name'           => 'required|string|max:255',
+                'email'          => 'required|email|max:255',
+                'contactNumber'  => 'nullable|string|max:20',
+            ];
+            if ($type !== 'confirmation') {
+                $rules['second'] = 'required|string|max:255';
+            }
+
             $validator = Validator::make(
                 compact('purpose', 'appointmentDate', 'name', 'second', 'email', 'contactNumber'),
-                [
-                    'purpose'        => 'required|string|max:255',
-                    'appointmentDate'=> 'required|date',
-                    'name'           => 'required|string|max:255',
-                    'second'         => 'required|string|max:255', // father/sponsor
-                    'email'          => 'required|email|max:255',
-                    'contactNumber'  => 'nullable|string|max:20',
-                ],
+                $rules,
                 [
                     'purpose.required'        => 'Purpose is required',
                     'appointmentDate.required'=> 'Appointment date is required',
                     'appointmentDate.date'    => 'Appointment date must be a valid date',
-                    'name.required'           => 'Name is required (child/candidate/deceased)',
-                    'second.required'         => 'Second name (father/sponsor) is required',
+                    'name.required'           => 'Name is required',
+                    'second.required'         => 'Father/Sponsor name is required',
                     'email.required'          => 'Email address is required',
                     'email.email'             => 'Email must be a valid email address',
                 ]
@@ -251,7 +288,7 @@ class BookingController extends Controller
             // ----- MAP TO MODEL COLUMNS -----
             $mappedData = $this->mapApiFields($type, $purpose, $appointmentDate, '', $name, $second, $email, $contactNumber);
 
-            // Auto-fill any missing fillable columns
+            // Auto-fill any missing fillable columns with safe defaults
             $model = new $modelClass();
             $fillable = $model->getFillable();
             foreach ($fillable as $column) {
@@ -304,9 +341,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Parse the 'details' string – flexible labels and unlabeled formats.
-     * For confirmation, it may receive: "Confirmand's Full Name: xxx\nEmail: xxx\nPhone: xxx"
-     * Or it may receive just values with no labels.
+     * Parse the 'details' string – handles both key:value and plain text.
      */
     private function parseDetails(string $details): array
     {
@@ -328,7 +363,6 @@ class BookingController extends Controller
             $line = trim($line);
             if (empty($line)) continue;
 
-            // Check if line contains a colon (key: value format)
             if (strpos($line, ':') !== false) {
                 $parts = explode(':', $line, 2);
                 $key = trim($parts[0]);
@@ -347,28 +381,21 @@ class BookingController extends Controller
                     $result['second'] = $value;
                 } elseif (str_contains($lowerKey, 'email') || str_contains($lowerKey, 'mail')) {
                     $result['email'] = $value;
+                } else {
+                    $values[] = $value;
                 }
             } else {
                 $values[] = $line;
             }
         }
 
-        // If we didn't find a name, try the first non-empty value
+        // Fill missing fields from plain values
         if (empty($result['name']) && !empty($values)) {
             $result['name'] = array_shift($values);
         }
-
-        // If we didn't find a second (father/sponsor), try the next value
         if (empty($result['second']) && !empty($values)) {
             $result['second'] = array_shift($values);
         }
-
-        // If we still don't have a purpose, set a default
-        if (empty($result['purpose'])) {
-            $result['purpose'] = 'Book Confirmation';
-        }
-
-        // If we don't have email but there's a value that looks like email
         if (empty($result['email']) && !empty($values)) {
             foreach ($values as $val) {
                 if (filter_var($val, FILTER_VALIDATE_EMAIL)) {
@@ -377,12 +404,16 @@ class BookingController extends Controller
                 }
             }
         }
+        if (empty($result['purpose'])) {
+            $result['purpose'] = 'Book Service';
+        }
 
         return $result;
     }
 
     /**
      * Map API fields to the correct database columns for each model.
+     * Includes all columns from the $fillable arrays to avoid SQL errors.
      */
     private function mapApiFields(string $type, string $purpose, string $date, string $time, string $name, string $second, string $email, string $contactNumber = '')
     {
