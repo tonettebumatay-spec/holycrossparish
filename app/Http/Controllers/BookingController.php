@@ -177,7 +177,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Generic API store method – with robust name extraction.
+     * Generic API store method – with robust fallbacks for name + time.
      */
     private function storeSacrament(Request $request, string $type)
     {
@@ -196,7 +196,7 @@ class BookingController extends Controller
             }
             $modelClass = $modelMap[$type];
 
-            // Extract fields from request
+            // ----- Extract fields -----
             $appointmentDate = $request->input('appointment_date') 
                              ?? $request->input('preferred_date') 
                              ?? $request->input('date') 
@@ -209,11 +209,31 @@ class BookingController extends Controller
 
             $details         = $request->input('details') ?? '';
 
-            // Parse details string
+            // ----- Extract TIME from direct fields or details -----
+            $time = $request->input('preferred_time') 
+                  ?? $request->input('time') 
+                  ?? $request->input('appointment_time') 
+                  ?? '';
+
+            if (empty($time) && !empty($details)) {
+                $patterns = [
+                    '/Time:\s*([^\n]+)/i',
+                    '/\b(\d{1,2}:\d{2}\s*(?:AM|PM)?)\b/i',
+                    '/at\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)/i',
+                ];
+                foreach ($patterns as $pattern) {
+                    if (preg_match($pattern, $details, $matches)) {
+                        $time = trim($matches[1]);
+                        break;
+                    }
+                }
+            }
+            $time = $time ?: 'Not specified';
+
+            // ----- Parse details for name, second, email, purpose -----
             $parsed = $this->parseDetails($details);
 
-            // ----- ROBUST NAME EXTRACTION -----
-            // Try direct inputs first, then parsed, then fallback to details or contact
+            // ----- EXTRACT NAME with maximum fallback -----
             $name = $request->input('candidate_name') 
                   ?? $request->input('confirmand_name') 
                   ?? $request->input('child_name') 
@@ -226,26 +246,33 @@ class BookingController extends Controller
                   ?? $request->input('user_name') 
                   ?? '';
 
-            // If still empty, try to extract from details using regex fallback
+            // Ultimate fallback: extract from details (first line without colon)
             if (empty($name) && !empty($details)) {
-                // Try to find a name pattern (e.g., "Name: John Doe" or just a standalone name)
-                preg_match('/Name:\s*([^\n]+)/i', $details, $nameMatch);
-                if (!empty($nameMatch[1])) {
-                    $name = trim($nameMatch[1]);
-                } else {
-                    // Take the first non-empty line that doesn't look like a label
-                    $lines = explode("\n", $details);
-                    foreach ($lines as $line) {
-                        $line = trim($line);
-                        if (!empty($line) && !str_contains($line, ':')) {
-                            $name = $line;
-                            break;
-                        }
+                $lines = explode("\n", $details);
+                foreach ($lines as $line) {
+                    $line = trim($line);
+                    if (empty($line) || strpos($line, ':') !== false) continue;
+                    if (preg_match('/^[a-zA-Z\s\.\-]{2,}$/', $line)) {
+                        $name = $line;
+                        break;
                     }
                 }
             }
+            // Fallback to email prefix
+            if (empty($name)) {
+                // email might not be defined yet, so get it
+                $email = $request->input('email') ?? $request->input('email_address') ?? $parsed['email'] ?? '';
+                if (!empty($email)) {
+                    $parts = explode('@', $email);
+                    $name = $parts[0] ?? '';
+                }
+            }
+            // Fallback to contact number
+            if (empty($name)) {
+                $name = $contactNumber ?: 'Unknown';
+            }
 
-            // Second name (father/sponsor)
+            // ----- SECOND (father/sponsor) -----
             $second = $request->input('father_name') 
                     ?? $request->input('sponsor_name') 
                     ?? $request->input('parent_name') 
@@ -256,18 +283,20 @@ class BookingController extends Controller
                 $second = $contactNumber ?: 'N/A';
             }
 
+            // ----- EMAIL -----
             $email = $request->input('email') 
                    ?? $request->input('email_address') 
                    ?? $parsed['email'] 
                    ?? '';
 
+            // ----- PURPOSE -----
             $purpose = $request->input('purpose') 
                      ?? $parsed['purpose'] 
                      ?? 'Book ' . ucfirst($type);
 
-            Log::info("API_BOOKING_PARSED_{$type}", compact('purpose', 'name', 'second', 'email', 'contactNumber', 'appointmentDate'));
+            Log::info("API_BOOKING_PARSED_{$type}", compact('purpose', 'name', 'second', 'email', 'contactNumber', 'appointmentDate', 'time'));
 
-            // ----- Validation -----
+            // ----- Validation (unchanged) -----
             $rules = [
                 'purpose'        => 'required|string|max:255',
                 'appointmentDate'=> 'required|date',
@@ -309,16 +338,15 @@ class BookingController extends Controller
 
             $mappedData = [];
             foreach ($fillable as $column) {
-                $mappedData[$column] = $this->getDefaultForColumn($type, $column, $purpose, $appointmentDate, $name, $second, $email, $contactNumber);
+                $mappedData[$column] = $this->getDefaultForColumn($type, $column, $purpose, $appointmentDate, $name, $second, $email, $contactNumber, $time);
             }
 
-            // ----- Filter out columns that don't exist in the actual table -----
+            // ----- Filter out columns that don't exist -----
             $table = $model->getTable();
             $actualColumns = DB::getSchemaBuilder()->getColumnListing($table);
             foreach ($mappedData as $column => $value) {
                 if (!in_array($column, $actualColumns)) {
                     unset($mappedData[$column]);
-                    Log::info("API_BOOKING_REMOVED_COLUMN_{$type}", ['column' => $column]);
                 }
             }
 
@@ -430,11 +458,13 @@ class BookingController extends Controller
 
     /**
      * Get a safe default value for each fillable column.
+     * This version includes the $time parameter.
      */
-    private function getDefaultForColumn(string $type, string $column, string $purpose, string $date, string $name, string $second, string $email, string $contactNumber)
+    private function getDefaultForColumn(string $type, string $column, string $purpose, string $date, string $name, string $second, string $email, string $contactNumber, string $time)
     {
+        // Common defaults for all tables
         $common = [
-            'remarks' => "Purpose: $purpose | Email: $email | Contact: $contactNumber | Second: $second",
+            'remarks' => "Purpose: $purpose | Time: $time | Email: $email | Contact: $contactNumber | Second: $second",
             'book_number' => 0,
             'page_number' => 0,
             'line_number' => 0,
@@ -494,6 +524,7 @@ class BookingController extends Controller
             'wedding_date' => $date,
         ];
 
+        // Type-specific overrides
         $overrides = [];
         switch ($type) {
             case 'wedding':
