@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\Schedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -10,7 +9,10 @@ use Illuminate\Support\Facades\Log;
 
 class ScheduleController extends Controller
 {
-    // Web methods (existing)
+    // ============================================================
+    // WEB METHODS (for the admin dashboard)
+    // ============================================================
+
     public function index()
     {
         $user = Auth::user();
@@ -66,22 +68,26 @@ class ScheduleController extends Controller
     }
 
     // ============================================================
-    // NEW: API endpoint for Android app (Events)
+    // API METHOD (for Android app – Events)
     // ============================================================
+
+    /**
+     * Return all pending schedules as a clean JSON list for the Android app.
+     */
     public function indexApi()
     {
         try {
-            // Fetch only active (pending) schedules – you can change to 'live' or all if needed
+            // Fetch only pending (active) schedules
             $schedules = Schedule::where('status', 'pending')
                 ->orderBy('date', 'asc')
                 ->orderBy('time', 'asc')
                 ->get();
 
-            // Transform to clean event format for the app
+            // Transform into a clean event format
             $events = $schedules->map(function ($schedule) {
                 return [
                     'id'          => $schedule->id,
-                    'title'       => 'Mass Schedule', // or use location/description
+                    'title'       => 'Mass Schedule', // You can customize this
                     'description' => $schedule->description ?? '',
                     'date'        => $schedule->date, // YYYY-MM-DD
                     'time'        => $schedule->time, // HH:MM:SS or H:i A
@@ -97,10 +103,12 @@ class ScheduleController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
+            // Log the full error for debugging
             Log::error('Schedule API Error: ' . $e->getMessage());
+            // Return a clean JSON error response (not HTML)
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Failed to fetch schedules'
+                'message' => 'Failed to fetch schedules: ' . $e->getMessage()
             ], 500);
         }
     }

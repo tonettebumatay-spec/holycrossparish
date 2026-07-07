@@ -4,7 +4,7 @@ use App\Http\Controllers\Api\SacramentApiController;
 use App\Http\Controllers\RecordController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\AppointmentController;
-use App\Http\Controllers\ScheduleController; // Add this
+use App\Http\Controllers\ScheduleController; // Import ScheduleController
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -35,7 +35,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/verify/{id}', [RecordController::class, 'verifyApi']);
     Route::get('/records/{category}/{id}', [RecordController::class, 'showApi']);
 
-    // 👇 NEW: Fetch schedules as events
+    // 👇 NEW: Fetch schedules as events (public, no token required)
     Route::get('/schedules', [ScheduleController::class, 'indexApi']);
 
     // ============================================================
@@ -43,15 +43,18 @@ Route::prefix('v1')->group(function () {
     // ============================================================
     Route::middleware('auth:sanctum')->group(function () {
 
+        // --- AUTHENTICATION (Logout, Profile) ---
         Route::post('/logout', [SacramentApiController::class, 'logoutMobileUser']);
         Route::get('/profile', [SacramentApiController::class, 'getUserProfile']);
 
+        // --- BOOKING ENDPOINTS (for each sacrament) ---
         Route::post('/booking/baptism', [BookingController::class, 'storeBaptism']);
         Route::post('/booking/wedding', [BookingController::class, 'storeWedding']);
         Route::post('/booking/communion', [BookingController::class, 'storeCommunion']);
         Route::post('/booking/confirmation', [BookingController::class, 'storeConfirmation']);
         Route::post('/booking/funeral', [BookingController::class, 'storeFuneral']);
 
+        // --- GENERIC APPOINTMENT ENDPOINT ---
         Route::post('/appointment', [AppointmentController::class, 'store']);
     });
 });

@@ -14,6 +14,8 @@ class Schedule extends Model
         'date',
         'time',
         'description',
+        'status', // This column exists in your migration
     ];
-}
 
+    // If you have additional columns, add them here.
+}
