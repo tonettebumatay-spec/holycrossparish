@@ -23,6 +23,9 @@ RUN a2enmod rewrite
 WORKDIR /var/www/html
 COPY . .
 
+# 🔥 FIX: Install symfony/mime to support file upload validation
+RUN composer require symfony/mime --no-interaction --no-scripts
+
 # Adjust Apache Document Root to /public
 RUN sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/apache2.conf
@@ -43,8 +46,7 @@ RUN printf "#!/bin/bash\nphp artisan migrate --force\napache2-foreground" > /usr
 # Expose the web port
 EXPOSE 80
 
-# Create an entrypoint script to run migrations, then start Apache
-# This ensures tables are created in your remote DB before the app starts
+# Final entrypoint (combines migration and Apache start)
 RUN printf "#!/bin/bash\necho 'Running database migrations...'\nphp artisan migrate --force\necho 'Starting Apache...'\napache2-foreground" > /usr/local/bin/entrypoint.sh \
     && chmod +x /usr/local/bin/entrypoint.sh
 
