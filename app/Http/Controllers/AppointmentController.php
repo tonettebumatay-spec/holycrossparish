@@ -34,10 +34,10 @@ class AppointmentController extends Controller
                 return null;
             };
 
-            // Baptisms
+            // ----- BAPTISMS -----
             $baptisms = Baptism::all()->map(function ($item) use ($extractTime) {
                 $item->type = 'Baptism';
-                $item->name = trim($item->first_name . ' ' . $item->last_name);
+                $item->name = trim(($item->first_name ?? '') . ' ' . ($item->last_name ?? ''));
                 $item->appointment_date = $item->baptism_date ? Carbon::parse($item->baptism_date)->format('Y-m-d') : null;
                 $item->time = $extractTime($item->remarks);
                 $item->status = $item->status ?? 'pending';
@@ -45,10 +45,10 @@ class AppointmentController extends Controller
                 return $item;
             });
 
-            // Communions
+            // ----- COMMUNIONS -----
             $communions = Communion::all()->map(function ($item) use ($extractTime) {
                 $item->type = 'Communion';
-                $item->name = $item->candidate_name;
+                $item->name = $item->candidate_name ?? 'N/A';
                 $item->appointment_date = $item->communion_date ? Carbon::parse($item->communion_date)->format('Y-m-d') : null;
                 $item->time = $extractTime($item->remarks);
                 $item->status = $item->status ?? 'pending';
@@ -56,10 +56,10 @@ class AppointmentController extends Controller
                 return $item;
             });
 
-            // Confirmations
+            // ----- CONFIRMATIONS -----
             $confirmations = Confirmation::all()->map(function ($item) use ($extractTime) {
                 $item->type = 'Confirmation';
-                $item->name = $item->candidate_name;
+                $item->name = $item->candidate_name ?? 'N/A';
                 $item->appointment_date = $item->confirmation_date ? Carbon::parse($item->confirmation_date)->format('Y-m-d') : null;
                 $item->time = $extractTime($item->remarks);
                 $item->status = $item->status ?? 'pending';
@@ -67,13 +67,14 @@ class AppointmentController extends Controller
                 return $item;
             });
 
-            // Weddings – handle year+month_day
+            // ----- WEDDINGS -----
             $weddings = Wedding::all()->map(function ($item) use ($extractTime) {
                 $item->type = 'Wedding';
-                $item->name = $item->groom_name . ' & ' . $item->bride_name;
+                $item->name = ($item->groom_name ?? '') . ' & ' . ($item->bride_name ?? '');
                 $item->status = $item->status ?? 'pending';
                 $item->category = $item->category ?? 'Wedding';
 
+                // Build date from year and month_day
                 $year = $item->year;
                 $monthDay = $item->month_day;
                 if ($year && $monthDay) {
@@ -94,10 +95,10 @@ class AppointmentController extends Controller
                 return $item;
             });
 
-            // Funerals
+            // ----- FUNERALS -----
             $funerals = Funeral::all()->map(function ($item) use ($extractTime) {
                 $item->type = 'Funeral';
-                $item->name = $item->deceased_name;
+                $item->name = $item->deceased_name ?? 'N/A';
                 $item->appointment_date = $item->burial_date ? Carbon::parse($item->burial_date)->format('Y-m-d') : null;
                 $item->time = $extractTime($item->remarks);
                 $item->status = $item->status ?? 'pending';
@@ -105,7 +106,7 @@ class AppointmentController extends Controller
                 return $item;
             });
 
-            // Merge and sort
+            // Merge all collections and sort by appointment_date (newest first)
             $allAppointments = collect()
                 ->merge($baptisms)
                 ->merge($communions)

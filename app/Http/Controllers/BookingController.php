@@ -10,7 +10,7 @@ use App\Models\Funeral;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class BookingController extends Controller
@@ -20,7 +20,6 @@ class BookingController extends Controller
      */
     public function create()
     {
-        // ... keep this method identical to your current one (it's unchanged) ...
         $serviceDateMap = [
             'baptism'     => [Baptism::class, 'baptism_date'],
             'communion'   => [Communion::class, 'communion_date'],
@@ -86,7 +85,6 @@ class BookingController extends Controller
      */
     public function store(Request $request)
     {
-        // ... keep this method identical to your current one (it's unchanged) ...
         $validated = $request->validate([
             'service_type' => ['required', 'string', 'in:baptism,wedding,communion,confirmation,funeral'],
             'user_name' => ['required', 'string', 'max:255'],
@@ -150,7 +148,7 @@ class BookingController extends Controller
     }
 
     // ============================================================
-    // API METHODS
+    // API METHODS (Called by Android app)
     // ============================================================
 
     public function storeBaptism(Request $request)
@@ -179,7 +177,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Generic API store method – uses actual table columns to avoid "column not found" errors.
+     * Generic API store method – with explicit column filtering.
      */
     private function storeSacrament(Request $request, string $type)
     {
@@ -198,7 +196,7 @@ class BookingController extends Controller
             }
             $modelClass = $modelMap[$type];
 
-            // ----- Extract fields (same as before) -----
+            // ----- Extract fields -----
             $appointmentDate = $request->input('appointment_date') 
                              ?? $request->input('preferred_date') 
                              ?? $request->input('date') 
@@ -242,7 +240,7 @@ class BookingController extends Controller
 
             Log::info("API_BOOKING_PARSED_{$type}", compact('purpose', 'name', 'second', 'email', 'contactNumber', 'appointmentDate'));
 
-            // ----- Validation (same as before) -----
+            // ----- Validation -----
             $rules = [
                 'purpose'        => 'required|string|max:255',
                 'appointmentDate'=> 'required|date',
@@ -278,21 +276,23 @@ class BookingController extends Controller
                 ], 422);
             }
 
-            // ----- Get the actual columns of the table -----
-            $table = (new $modelClass)->getTable();
-            $actualColumns = Schema::getColumnListing($table);
+            // ----- Build data from fillable columns -----
+            $model = new $modelClass();
+            $fillable = $model->getFillable();
 
-            // ----- Build data only for columns that exist -----
             $mappedData = [];
-
-            foreach ($actualColumns as $column) {
-                // Skip auto-increment primary key (id)
-                if ($column === 'id') {
-                    continue;
-                }
-
-                // Assign a value using the helper
+            foreach ($fillable as $column) {
                 $mappedData[$column] = $this->getDefaultForColumn($type, $column, $purpose, $appointmentDate, $name, $second, $email, $contactNumber);
+            }
+
+            // ----- FILTER OUT COLUMNS THAT DON'T EXIST IN THE ACTUAL TABLE -----
+            $table = $model->getTable();
+            $actualColumns = DB::getSchemaBuilder()->getColumnListing($table);
+            foreach ($mappedData as $column => $value) {
+                if (!in_array($column, $actualColumns)) {
+                    unset($mappedData[$column]);
+                    Log::info("API_BOOKING_REMOVED_COLUMN_{$type}", ['column' => $column]);
+                }
             }
 
             Log::info("API_BOOKING_FINAL_DATA_{$type}", $mappedData);
@@ -402,11 +402,11 @@ class BookingController extends Controller
     }
 
     /**
-     * Get a safe default value for any column, based on its name and type.
+     * Get a safe default value for each fillable column.
      */
     private function getDefaultForColumn(string $type, string $column, string $purpose, string $date, string $name, string $second, string $email, string $contactNumber)
     {
-        // Common defaults (used for most columns)
+        // Common defaults for all tables
         $common = [
             'remarks' => "Purpose: $purpose | Email: $email | Contact: $contactNumber | Second: $second",
             'book_number' => 0,
@@ -453,8 +453,6 @@ class BookingController extends Controller
             'candidate_name' => $name,
             'deceased_name' => $name,
             'father_name' => $second,
-            'groom_name' => $second,
-            'bride_name' => $name,
             'age' => 0,
             'age_at_death' => 0,
             'groom_age' => 0,
@@ -476,6 +474,8 @@ class BookingController extends Controller
             case 'wedding':
                 $dateObj = Carbon::parse($date);
                 $overrides = [
+                    'groom_name' => $second,
+                    'bride_name' => $name,
                     'year' => $dateObj->year,
                     'month_day' => $dateObj->format('m-d'),
                     'category' => 'Wedding',
@@ -483,21 +483,38 @@ class BookingController extends Controller
                 break;
             case 'baptism':
                 $overrides = [
+                    'first_name' => $name,
+                    'father_name' => $second,
+                    'baptism_date' => $date,
+                    'legitimacy' => 'Unknown',
+                    'birth_date' => '1900-01-01',
+                    'candidate_name' => $name,
                     'category' => 'Baptism',
                 ];
                 break;
             case 'communion':
                 $overrides = [
+                    'candidate_name' => $name,
+                    'communion_date' => $date,
+                    'baptism_date' => '1900-01-01',
                     'category' => 'Communion',
                 ];
                 break;
             case 'confirmation':
                 $overrides = [
+                    'candidate_name' => $name,
+                    'confirmation_date' => $date,
+                    'father_name' => $second,
+                    'parents_residence' => $contactNumber,
                     'category' => 'Confirmation',
                 ];
                 break;
             case 'funeral':
                 $overrides = [
+                    'deceased_name' => $name,
+                    'burial_date' => $date,
+                    'marital_status' => 'Unknown',
+                    'death_date' => '1900-01-01',
                     'category' => 'Funeral',
                 ];
                 break;
@@ -505,8 +522,6 @@ class BookingController extends Controller
                 break;
         }
 
-        // Merge and return
-        $merged = array_merge($common, $overrides);
-        return $merged[$column] ?? '';
+        return array_merge($common, $overrides)[$column] ?? '';
     }
 }
