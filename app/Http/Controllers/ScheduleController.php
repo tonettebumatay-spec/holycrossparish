@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Schedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ScheduleController extends Controller
 {
+    // Web methods (existing)
     public function index()
     {
         $user = Auth::user();
@@ -35,7 +37,6 @@ class ScheduleController extends Controller
             'description' => 'nullable|string|max:500',
         ]);
 
-        // INAYOS DITO: Tinanggal ang 'archived_at' para hindi mag-error kapag nag-save ng bagong schedule
         Schedule::create([
             'barangay' => $validated['location'],
             'date' => $validated['date'],
@@ -49,10 +50,8 @@ class ScheduleController extends Controller
 
     public function archiveStatus(Request $request, Schedule $schedule, string $archive_status)
     {
-        // Tinitiyak na 'done' o 'cancelled' lang ang tatanggapin (Inayos ang spelling para tugma sa whereIn ng index)
         abort_unless(in_array($archive_status, ['done', 'cancelled'], true), 404);
 
-        // INAYOS DITO: Tanging status na lang ang ia-update natin at tinanggal si archived_at para ligtas sa database
         $schedule->status = $archive_status;
         $schedule->save();
 
@@ -64,5 +63,45 @@ class ScheduleController extends Controller
         $schedule->delete();
 
         return redirect()->route('schedules.index')->with('success', 'Schedule deleted successfully!');
+    }
+
+    // ============================================================
+    // NEW: API endpoint for Android app (Events)
+    // ============================================================
+    public function indexApi()
+    {
+        try {
+            // Fetch only active (pending) schedules – you can change to 'live' or all if needed
+            $schedules = Schedule::where('status', 'pending')
+                ->orderBy('date', 'asc')
+                ->orderBy('time', 'asc')
+                ->get();
+
+            // Transform to clean event format for the app
+            $events = $schedules->map(function ($schedule) {
+                return [
+                    'id'          => $schedule->id,
+                    'title'       => 'Mass Schedule', // or use location/description
+                    'description' => $schedule->description ?? '',
+                    'date'        => $schedule->date, // YYYY-MM-DD
+                    'time'        => $schedule->time, // HH:MM:SS or H:i A
+                    'location'    => $schedule->barangay ?? 'Holy Cross Parish',
+                    'status'      => $schedule->status,
+                ];
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'data'   => $events,
+                'count'  => $events->count(),
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Schedule API Error: ' . $e->getMessage());
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Failed to fetch schedules'
+            ], 500);
+        }
     }
 }
