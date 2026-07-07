@@ -275,16 +275,34 @@ class BookingController extends Controller
                 ], 422);
             }
 
-            // ----- Build data from ALL fillable columns (including 'category') -----
+            // ----- Build data from ALL fillable columns -----
             $model = new $modelClass();
             $fillable = $model->getFillable();
 
             $mappedData = [];
 
             foreach ($fillable as $column) {
-                // Now we include 'category' – it gets a default from getDefaultForColumn
                 $mappedData[$column] = $this->getDefaultForColumn($type, $column, $purpose, $appointmentDate, $name, $second, $email, $contactNumber);
             }
+
+            // ----- REMOVE NON-EXISTENT COLUMNS FOR WEDDING -----
+            if ($type === 'wedding') {
+                $columnsToRemove = [
+                    'groom_age', 'groom_status', 'groom_father', 'groom_mother',
+                    'groom_parents', 'groom_parents_residence',
+                    'bride_age', 'bride_status', 'bride_father', 'bride_mother',
+                    'bride_parents', 'bride_parents_residence'
+                ];
+                foreach ($columnsToRemove as $col) {
+                    unset($mappedData[$col]);
+                }
+            }
+
+            // ----- REMOVE NON-EXISTENT COLUMNS FOR COMMUNION (if any) -----
+            // If you get errors for communion, add similar block here.
+
+            // ----- REMOVE NON-EXISTENT COLUMNS FOR CONFIRMATION (if any) -----
+            // If you get errors for confirmation, add similar block here.
 
             Log::info("API_BOOKING_FINAL_DATA_{$type}", $mappedData);
 
@@ -297,7 +315,6 @@ class BookingController extends Controller
                     'trace'   => $e->getTraceAsString(),
                     'mapped_data' => $mappedData
                 ]);
-                // Return the actual SQL error to the client
                 return response()->json([
                     'success' => false,
                     'message' => 'Database error: ' . $e->getMessage()
@@ -315,7 +332,6 @@ class BookingController extends Controller
                 'message' => $e->getMessage(),
                 'trace'   => $e->getTraceAsString()
             ]);
-            // Return the actual error to the client
             return response()->json([
                 'success' => false,
                 'message' => 'Server error: ' . $e->getMessage()
