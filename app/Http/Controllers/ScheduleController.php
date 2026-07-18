@@ -16,6 +16,7 @@ class ScheduleController extends Controller
 
         $liveSchedules = Schedule::query()
             ->where('status', 'pending')
+            ->where('date', '>=', now()->toDateString())
             ->orderBy('date', 'asc')
             ->get();
 
