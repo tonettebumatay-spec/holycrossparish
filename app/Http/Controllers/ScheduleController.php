@@ -69,6 +69,7 @@ class ScheduleController extends Controller
     {
         try {
             $schedules = Schedule::where('status', 'pending')
+                ->where('date', '>=', now()->toDateString())
                 ->orderBy('date', 'asc')
                 ->orderBy('time', 'asc')
                 ->get();
