@@ -6,6 +6,7 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ScheduleController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CertificateController;
 
 Route::get('/test', function () {
     return response()->json(['status' => 'Server is reachable']);
@@ -38,5 +39,6 @@ Route::prefix('v1')->group(function () {
         Route::post('/booking/funeral', [BookingController::class, 'storeFuneral']);
 
         Route::post('/appointment', [AppointmentController::class, 'store']);
+        Route::post('/certificates', [CertificateController::class, 'store']);
     });
 });

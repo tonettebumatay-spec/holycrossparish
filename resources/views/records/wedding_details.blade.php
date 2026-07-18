@@ -42,7 +42,7 @@
             </div>
 
             <div class="text-center mb-16">
-                <p class="text-sm font-bold text-gray-500 uppercase tracking-[0.4em] mt-4">WEDDING — BOOK {{ $bookNumber }}</p>
+                <p class="text-sm font-bold text-gray-500 uppercase tracking-[0.4em] mt-4">WEDDING — BOOK {{ $book_number }}</p>
             </div>
 
             <!-- Table matches the columns in the image_1caa94.png -->
