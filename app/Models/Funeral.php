@@ -28,6 +28,9 @@ class Funeral extends Model
         'cemetery_name',
         'minister_name',
         'remarks',
+        'status',
+        'cancellation_reason',
+        'is_locked',
     ];
 
     protected $casts = [

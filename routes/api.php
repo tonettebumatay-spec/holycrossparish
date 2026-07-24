@@ -6,6 +6,7 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ScheduleController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AppointmentAvailabilityController;
 use App\Http\Controllers\CertificateController;
 
 Route::get('/test', function () {
@@ -22,6 +23,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/sacraments', [RecordController::class, 'indexApi']);
     Route::get('/verify/{id}', [RecordController::class, 'verifyApi']);
     Route::get('/records/{category}/{id}', [RecordController::class, 'showApi']);
+    Route::get('/availability/{sacrament}', [AppointmentAvailabilityController::class, 'apiGetSlots']);
 
     // 👇 Schedules (Events) endpoint – public
     Route::get('/schedules', [ScheduleController::class, 'indexApi']);

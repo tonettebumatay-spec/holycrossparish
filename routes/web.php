@@ -8,6 +8,7 @@ use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ViewingController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Admin\AppointmentAvailabilityController;
 use Illuminate\Support\Facades\Route;
 
 // 1. Load Auth routes first so they are prioritized
@@ -23,6 +24,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Portal Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // --- Admin Availability Management (3.2) ---
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::resource('availability', AppointmentAvailabilityController::class)->except(['show', 'edit', 'update']);
+        Route::patch('availability/{id}/toggle', [AppointmentAvailabilityController::class, 'toggleActive'])->name('availability.toggle');
+    });
 
     // --- Records Management ---
     Route::get('/records', [RecordController::class, 'index'])->name('records.index');
@@ -66,6 +73,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // --- Appointments Management ---
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
     Route::put('/appointments/{type}/{id}/status', [AppointmentController::class, 'updateStatus'])->name('appointments.update-status');
+    Route::put('/appointments/{type}/{id}/cancel', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
     Route::delete('/appointments/{type}/{id}', [AppointmentController::class, 'destroy'])->name('appointments.destroy');
 
     // --- Bookings ---

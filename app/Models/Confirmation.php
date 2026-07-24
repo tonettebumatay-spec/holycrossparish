@@ -31,6 +31,9 @@ class Confirmation extends Model
         'year',
         'month_day',
         'remarks',
+        'status',
+        'cancellation_reason',
+        'is_locked',
     ];
 
     protected $casts = [

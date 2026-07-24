@@ -25,6 +25,44 @@
                 </div>
             @endif
 
+            <!-- 🔍 Search & Filter Bar -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
+                <form method="GET" action="{{ route('appointments.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                    <div>
+                        <input type="text" name="search" class="w-full text-sm border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500" placeholder="Search by name..." value="{{ request('search') }}">
+                    </div>
+
+                    <div>
+                        <select name="type" class="w-full text-sm border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500">
+                            <option value="">All Types</option>
+                            <option value="Baptism" {{ request('type') == 'Baptism' ? 'selected' : '' }}>Baptism</option>
+                            <option value="Communion" {{ request('type') == 'Communion' ? 'selected' : '' }}>Communion</option>
+                            <option value="Confirmation" {{ request('type') == 'Confirmation' ? 'selected' : '' }}>Confirmation</option>
+                            <option value="Wedding" {{ request('type') == 'Wedding' ? 'selected' : '' }}>Wedding</option>
+                            <option value="Funeral" {{ request('type') == 'Funeral' ? 'selected' : '' }}>Funeral</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <select name="status" class="w-full text-sm border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500">
+                            <option value="">All Status</option>
+                            <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                            <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Confirmed</option>
+                            <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                        </select>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="submit" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg text-sm transition">
+                            Filter
+                        </button>
+                        <a href="{{ route('appointments.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg text-sm transition text-center">
+                            Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+
             <!-- Main Card -->
             <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                 @if($appointments->isEmpty())
@@ -34,8 +72,8 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2v12a2 2 0 002 2z"></path>
                             </svg>
                         </div>
-                        <h2 class="text-2xl font-bold text-gray-700">No Appointments Yet</h2>
-                        <p class="text-gray-400 mt-2">Start by adding a new booking for the parish.</p>
+                        <h2 class="text-2xl font-bold text-gray-700">No Appointments Found</h2>
+                        <p class="text-gray-400 mt-2">Try adjusting your filter or search criteria.</p>
                     </div>
                 @else
                     <div class="overflow-x-auto">
@@ -48,8 +86,8 @@
                                     <th class="px-6 py-4">Date</th>
                                     <th class="px-6 py-4">Time</th>
                                     <th class="px-6 py-4">Category</th>
+                                    <th class="px-6 py-4">Date Submitted</th>
                                     <th class="px-6 py-4">Status</th>
-                                    <th class="px-6 py-4">Created</th>
                                     <th class="px-6 py-4 text-center">Actions</th>
                                 </tr>
                             </thead>
@@ -77,25 +115,30 @@
                                                 <span class="text-gray-400">N/A</span>
                                             @endif
                                         </td>
-                                        <td class="px-6 py-4">
-                                            {{ $app->time ?? 'N/A' }}
-                                        </td>
+                                        <td class="px-6 py-4">{{ $app->time ?? 'N/A' }}</td>
                                         <td class="px-6 py-4">{{ $app->category ?? 'N/A' }}</td>
+                                        <td class="px-6 py-4 font-medium text-gray-700">{{ $app->submitted_at }}</td>
+                                        
+                                        <!-- Step 5.5: Status & Cancellation Reason Tooltip Column -->
                                         <td class="px-6 py-4">
-                                            @php
-                                                $statusColor = match($app->status ?? 'pending') {
-                                                    'confirmed' => 'bg-green-100 text-green-800',
-                                                    'canceled'  => 'bg-red-100 text-red-800',
-                                                    default     => 'bg-yellow-100 text-yellow-800',
-                                                };
-                                            @endphp
-                                            <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase {{ $statusColor }}">
-                                                {{ $app->status ?? 'pending' }}
-                                            </span>
+                                            @if(($app->status ?? 'pending') === 'cancelled' || ($app->status ?? 'pending') === 'canceled')
+                                                <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase bg-red-100 text-red-800 cursor-help" 
+                                                      title="Reason: {{ $app->cancellation_reason ?? 'No reason provided' }}">
+                                                    Cancelled
+                                                </span>
+                                            @else
+                                                @php
+                                                    $statusColor = match($app->status ?? 'pending') {
+                                                        'confirmed' => 'bg-green-100 text-green-800',
+                                                        default     => 'bg-yellow-100 text-yellow-800',
+                                                    };
+                                                @endphp
+                                                <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase {{ $statusColor }}">
+                                                    {{ $app->status ?? 'pending' }}
+                                                </span>
+                                            @endif
                                         </td>
-                                        <td class="px-6 py-4 text-gray-400 text-sm">
-                                            {{ \Carbon\Carbon::parse($app->created_at)->diffForHumans() }}
-                                        </td>
+
                                         <td class="px-6 py-4">
                                             <div class="flex items-center justify-center space-x-2 flex-wrap gap-1">
                                                 @if(($app->status ?? 'pending') !== 'confirmed')
@@ -108,16 +151,16 @@
                                                         </button>
                                                     </form>
                                                 @endif
-                                                @if(($app->status ?? 'pending') !== 'canceled')
-                                                    <form action="{{ route('appointments.update-status', ['type' => strtolower($app->type), 'id' => $app->id]) }}" method="POST" class="inline">
-                                                        @csrf
-                                                        @method('PUT')
-                                                        <input type="hidden" name="status" value="canceled">
-                                                        <button type="submit" class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-full transition" onclick="return confirm('Cancel this appointment?')">
-                                                            Cancel
-                                                        </button>
-                                                    </form>
+
+                                                @if(($app->status ?? 'pending') !== 'cancelled' && ($app->status ?? 'pending') !== 'canceled' && !($app->is_locked ?? false))
+                                                    <button type="button" 
+                                                            class="cancel-btn px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-full transition"
+                                                            data-type="{{ strtolower($app->type) }}"
+                                                            data-id="{{ $app->id }}">
+                                                        Cancel
+                                                    </button>
                                                 @endif
+
                                                 <form action="{{ route('appointments.destroy', ['type' => strtolower($app->type), 'id' => $app->id]) }}" method="POST" class="inline">
                                                     @csrf
                                                     @method('DELETE')
@@ -138,5 +181,73 @@
                 @endif
             </div>
         </div>
+
+        <!-- Cancellation Modal -->
+        <div id="cancelModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full mx-4">
+                <div class="flex justify-between items-center pb-3 border-b mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">Cancel Appointment</h3>
+                    <button type="button" id="closeModalBtn" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
+                </div>
+
+                <form id="cancelForm" method="POST">
+                    @csrf
+                    @method('PUT')
+                    
+                    <input type="hidden" name="type" id="cancelType">
+                    <input type="hidden" name="id" id="cancelId">
+
+                    <div class="mb-4">
+                        <label for="cancelReason" class="block text-sm font-medium text-gray-700 mb-2">
+                            Cancellation Reason
+                        </label>
+                        <textarea name="reason" id="cancelReason" rows="3" required class="w-full text-sm border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" placeholder="State reason for cancellation..."></textarea>
+                    </div>
+
+                    <div class="flex justify-end gap-2">
+                        <button type="button" id="cancelModalCloseBtn" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-semibold rounded-lg transition">
+                            Close
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition">
+                            Confirm Cancellation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- JavaScript for Modal Population -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const modal = document.getElementById('cancelModal');
+                const cancelForm = document.getElementById('cancelForm');
+                const cancelTypeInput = document.getElementById('cancelType');
+                const cancelIdInput = document.getElementById('cancelId');
+                const closeModalBtn = document.getElementById('closeModalBtn');
+                const cancelModalCloseBtn = document.getElementById('cancelModalCloseBtn');
+
+                document.querySelectorAll('.cancel-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const type = this.dataset.type;
+                        const id = this.dataset.id;
+                        
+                        cancelTypeInput.value = type;
+                        cancelIdInput.value = id;
+                        cancelForm.action = `/appointments/${type}/${id}/cancel`;
+                        
+                        modal.classList.remove('hidden');
+                    });
+                });
+
+                function closeModal() {
+                    modal.classList.add('hidden');
+                    cancelForm.reset();
+                }
+
+                if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+                if (cancelModalCloseBtn) cancelModalCloseBtn.addEventListener('click', closeModal);
+            });
+        </script>
+
     </div>
 </x-app-layout>
