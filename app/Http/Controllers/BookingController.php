@@ -50,7 +50,6 @@ class BookingController extends Controller
         try {
             Log::info("API_BOOKING_REQUEST_{$type}", $request->all());
 
-            // ✅ Only require user_name and contact_number
             $validator = Validator::make($request->all(), [
                 'user_name'      => 'required|string|max:255',
                 'contact_number' => 'required|string|max:20',
@@ -65,18 +64,13 @@ class BookingController extends Controller
                 ], 422);
             }
 
-            // Extract data
             $userName = $request->input('user_name');
             $contactNumber = $request->input('contact_number');
             $details = $request->input('details') ?: '';
 
-            // Parse details for extra fields
             $parsed = $this->parseDetails($details);
-
-            // Build safe universal data array
             $data = $this->buildDataArray($type, $userName, $contactNumber, $parsed, $details);
 
-            // Create record
             $model = new $modelClass();
             $booking = $model->create($data);
 
@@ -100,20 +94,71 @@ class BookingController extends Controller
     }
 
     /**
-     * Universal safe data array to prevent database column errors
+     * Build data array using only columns that exist in each table.
      */
     private function buildDataArray(string $type, string $userName, string $contactNumber, array $parsed, string $details): array
     {
-        return [
-            'category'       => ucfirst($type),
-            'first_name'     => $parsed['child'] ?? $userName,
-            'last_name'      => 'N/A',
-            'residence'      => $contactNumber,
-            'contact_number' => $contactNumber,
-            'email'          => $parsed['email'] ?? 'N/A',
-            'status'         => 'Pending',
-            'remarks'        => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
+        $base = [
+            'remarks'  => $details,
+            'category' => ucfirst($type),
         ];
+
+        switch ($type) {
+            case 'baptism':
+                return array_merge($base, [
+                    'first_name'   => $userName,
+                    'last_name'    => '',  // or 'N/A' if your table allows
+                    'father_name'  => $parsed['father'] ?? '',
+                    'mother_name'  => $parsed['mother'] ?? '',
+                    'legitimacy'   => 'Unknown',
+                    'book_number'  => 0,
+                    'page_number'  => 0,
+                    'line_number'  => 0,
+                ]);
+
+            case 'communion':
+                return array_merge($base, [
+                    'candidate_name' => $userName,
+                    'residence'      => $contactNumber,
+                    'book_number'    => 0,
+                    'page_number'    => 0,
+                    'line_number'    => 0,
+                ]);
+
+            case 'confirmation':
+                return array_merge($base, [
+                    'candidate_name'    => $userName,
+                    'father_name'       => $parsed['father'] ?? '',
+                    'mother_name'       => $parsed['mother'] ?? '',
+                    'parents_residence' => $contactNumber,
+                    'book_number'       => 0,
+                    'page_number'       => 0,
+                    'line_number'       => 0,
+                ]);
+
+            case 'wedding':
+                return array_merge($base, [
+                    'groom_name'    => $parsed['groom'] ?? $userName,
+                    'bride_name'    => $parsed['bride'] ?? '',
+                    'book_number'   => 0,
+                    'page_number'   => 0,
+                    'line_number'   => 0,
+                    'year'          => '',
+                    'month_day'     => '',
+                ]);
+
+            case 'funeral':
+                return array_merge($base, [
+                    'deceased_name' => $userName,
+                    'residence'     => $contactNumber,
+                    'book_number'   => 0,
+                    'page_number'   => 0,
+                    'line_number'   => 0,
+                ]);
+
+            default:
+                return $base;
+        }
     }
 
     /**
@@ -137,9 +182,7 @@ class BookingController extends Controller
                 $key = strtolower(trim($parts[0]));
                 $value = trim($parts[1] ?? '');
 
-                if (str_contains($key, 'child') || str_contains($key, 'name') || str_contains($key, 'communicant')) {
-                    $result['child'] = $value;
-                } elseif (str_contains($key, 'father')) {
+                if (str_contains($key, 'father')) {
                     $result['father'] = $value;
                 } elseif (str_contains($key, 'mother')) {
                     $result['mother'] = $value;
@@ -151,6 +194,10 @@ class BookingController extends Controller
                     $result['age'] = intval($value);
                 } elseif (str_contains($key, 'email')) {
                     $result['email'] = $value;
+                } elseif (str_contains($key, 'child') || str_contains($key, 'name')) {
+                    if (!isset($result['child'])) {
+                        $result['child'] = $value;
+                    }
                 }
             }
         }
