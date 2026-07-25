@@ -10,6 +10,7 @@ use App\Models\Funeral;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Schema;
 
 class BookingController extends Controller
 {
@@ -43,13 +44,14 @@ class BookingController extends Controller
     }
 
     /**
-     * Core booking logic – no date/time required (admin will schedule)
+     * Core booking logic – safely inserts data, filtering out non-existent columns.
      */
     private function handleBooking(Request $request, string $type, string $modelClass)
     {
         try {
             Log::info("API_BOOKING_REQUEST_{$type}", $request->all());
 
+            // 1. Validate
             $validator = Validator::make($request->all(), [
                 'user_name'      => 'required|string|max:255',
                 'contact_number' => 'required|string|max:20',
@@ -69,14 +71,34 @@ class BookingController extends Controller
             $details = $request->input('details') ?: '';
 
             $parsed = $this->parseDetails($details);
-            $data = $this->buildDataArray($type, $userName, $contactNumber, $parsed, $details);
 
+            // 2. Build raw data array
+            $rawData = $this->buildDataArray($type, $userName, $contactNumber, $parsed, $details);
+
+            // 3. Filter: keep only columns that exist in the target table
             $model = new $modelClass();
-            $booking = $model->create($data);
+            $fillable = $model->getFillable();
+
+            $filteredData = [];
+            foreach ($fillable as $column) {
+                if (array_key_exists($column, $rawData)) {
+                    $filteredData[$column] = $rawData[$column];
+                }
+            }
+
+            // 4. Add status if the table has that column
+            if (in_array('status', $fillable)) {
+                $filteredData['status'] = 'pending';
+            }
+
+            Log::info("API_BOOKING_FINAL_DATA_{$type}", $filteredData);
+
+            // 5. Create record
+            $booking = $model->create($filteredData);
 
             return response()->json([
                 'success' => true,
-                'message' => ucfirst($type) . ' request submitted successfully!',
+                'message' => ucfirst($type) . ' request submitted successfully! The admin will schedule your appointment.',
                 'booking' => $booking,
             ], 201);
 
@@ -88,13 +110,14 @@ class BookingController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Database/Server error: ' . $e->getMessage(),
+                'message' => 'Server error: ' . $e->getMessage(),
             ], 500);
         }
     }
 
     /**
      * Build strict and safe data array matching each table schema.
+     * (Only includes columns that are likely present – they will be filtered later.)
      */
     private function buildDataArray(string $type, string $userName, string $contactNumber, array $parsed, string $details): array
     {
@@ -106,7 +129,7 @@ class BookingController extends Controller
                     'first_name'  => $userName,
                     'last_name'   => '',
                     'father_name' => $parsed['father'] ?? '',
-                    'mother_name' => $parsed['mother'] ?? '',
+                    // 'mother_name' => $parsed['mother'] ?? '', // ❌ removed – column doesn't exist in baptisms
                     'legitimacy'  => 'Unknown',
                     'remarks'     => $details,
                     'book_number' => 0,
@@ -137,7 +160,7 @@ class BookingController extends Controller
                     'age'               => $parsed['age'] ?? 0,
                     'birthplace'        => 'TBD',
                     'father_name'       => $parsed['father'] ?? '',
-                    'mother_name'       => $parsed['mother'] ?? '',
+                    // 'mother_name'       => $parsed['mother'] ?? '', // check if column exists
                     'parents_residence' => $contactNumber,
                     'sponsors'          => 'TBD',
                     'minister_name'     => 'TBD',
