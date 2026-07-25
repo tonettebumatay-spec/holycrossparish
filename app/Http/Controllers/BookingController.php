@@ -74,7 +74,7 @@ class BookingController extends Controller
             // Parse details for extra fields
             $parsed = $this->parseDetails($details);
 
-            // Build safe data array
+            // Build safe universal data array
             $data = $this->buildDataArray($type, $userName, $contactNumber, $parsed, $details);
 
             // Create record
@@ -102,57 +102,18 @@ class BookingController extends Controller
     }
 
     /**
-     * Build safe data array to prevent database column errors
+     * Universal safe data array to prevent database column errors
      */
     private function buildDataArray(string $type, string $userName, string $contactNumber, array $parsed, string $details): array
     {
-        switch ($type) {
-            case 'baptism':
-                return [
-                    'first_name'  => $parsed['child'] ?? $userName,
-                    'last_name'   => 'N/A',
-                    'father_name' => $parsed['father'] ?? 'N/A',
-                    'mother_name' => $parsed['mother'] ?? 'N/A',
-                    'residence'   => $contactNumber,
-                    'remarks'     => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
-                ];
-
-            case 'communion':
-                return [
-                    'first_name'  => $parsed['child'] ?? $userName,
-                    'last_name'   => 'N/A',
-                    'residence'   => $contactNumber,
-                    'remarks'     => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
-                ];
-
-            case 'confirmation':
-                return [
-                    'candidate_name'    => $parsed['child'] ?? $userName,
-                    'father_name'       => $parsed['father'] ?? 'N/A',
-                    'mother_name'       => $parsed['mother'] ?? 'N/A',
-                    'parents_residence' => $contactNumber,
-                    'remarks'           => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
-                ];
-
-            case 'wedding':
-                return [
-                    'groom_name' => $parsed['groom'] ?? $userName,
-                    'bride_name' => $parsed['bride'] ?? 'N/A',
-                    'remarks'    => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
-                ];
-
-            case 'funeral':
-                return [
-                    'deceased_name' => $userName,
-                    'residence'     => $contactNumber,
-                    'remarks'       => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
-                ];
-
-            default:
-                return [
-                    'remarks' => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
-                ];
-        }
+        // Sinisiguro nitong may laman ang mga mandatory columns at nakapaloob ang buong detalye sa remarks
+        return [
+            'first_name' => $parsed['child'] ?? $userName,
+            'last_name'  => 'N/A',
+            'residence'  => $contactNumber,
+            'status'     => 'Pending',
+            'remarks'    => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
+        ];
     }
 
     /**
@@ -176,7 +137,7 @@ class BookingController extends Controller
                 $key = strtolower(trim($parts[0]));
                 $value = trim($parts[1] ?? '');
 
-                if (str_contains($key, 'child') || str_contains($key, 'name')) {
+                if (str_contains($key, 'child') || str_contains($key, 'name') || str_contains($key, 'communicant')) {
                     $result['child'] = $value;
                 } elseif (str_contains($key, 'father')) {
                     $result['father'] = $value;
