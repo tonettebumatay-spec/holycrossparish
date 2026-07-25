@@ -106,10 +106,53 @@ class BookingController extends Controller
      */
     private function buildDataArray(string $type, string $userName, string $contactNumber, array $parsed, string $details): array
     {
-        // Nilalagay na lahat sa remarks para hindi maghanap ng ibang columns ang database table
-        return [
-            'remarks' => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
-        ];
+        switch ($type) {
+            case 'baptism':
+                return [
+                    'first_name'  => $parsed['child'] ?? $userName,
+                    'last_name'   => 'N/A',
+                    'father_name' => $parsed['father'] ?? 'N/A',
+                    'mother_name' => $parsed['mother'] ?? 'N/A',
+                    'residence'   => $contactNumber,
+                    'remarks'     => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
+                ];
+
+            case 'communion':
+                return [
+                    'first_name'  => $parsed['child'] ?? $userName,
+                    'last_name'   => 'N/A',
+                    'residence'   => $contactNumber,
+                    'remarks'     => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
+                ];
+
+            case 'confirmation':
+                return [
+                    'candidate_name'    => $parsed['child'] ?? $userName,
+                    'father_name'       => $parsed['father'] ?? 'N/A',
+                    'mother_name'       => $parsed['mother'] ?? 'N/A',
+                    'parents_residence' => $contactNumber,
+                    'remarks'           => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
+                ];
+
+            case 'wedding':
+                return [
+                    'groom_name' => $parsed['groom'] ?? $userName,
+                    'bride_name' => $parsed['bride'] ?? 'N/A',
+                    'remarks'    => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
+                ];
+
+            case 'funeral':
+                return [
+                    'deceased_name' => $userName,
+                    'residence'     => $contactNumber,
+                    'remarks'       => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
+                ];
+
+            default:
+                return [
+                    'remarks' => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
+                ];
+        }
     }
 
     /**
