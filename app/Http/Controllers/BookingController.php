@@ -103,7 +103,6 @@ class BookingController extends Controller
         switch ($type) {
             case 'baptism':
                 $data = [
-                    'category'    => 'Baptism',
                     'first_name'  => $userName,
                     'last_name'   => '',
                     'father_name' => $parsed['father'] ?? '',
@@ -118,7 +117,6 @@ class BookingController extends Controller
 
             case 'communion':
                 $data = [
-                    'category'       => 'Communion',
                     'candidate_name' => $userName,
                     'residence'      => $contactNumber,
                     'remarks'        => $details,
@@ -130,7 +128,6 @@ class BookingController extends Controller
 
             case 'confirmation':
                 $data = [
-                    'category'          => 'Confirmation',
                     'candidate_name'    => $userName,
                     'father_name'       => $parsed['father'] ?? '',
                     'mother_name'       => $parsed['mother'] ?? '',
@@ -144,7 +141,6 @@ class BookingController extends Controller
 
             case 'wedding':
                 $data = [
-                    'category'    => 'Wedding',
                     'groom_name'  => $parsed['groom'] ?? $userName,
                     'bride_name'  => $parsed['bride'] ?? '',
                     'remarks'     => $details,
@@ -158,7 +154,6 @@ class BookingController extends Controller
 
             case 'funeral':
                 $data = [
-                    'category'      => 'Funeral',
                     'deceased_name' => $userName,
                     'residence'     => $contactNumber,
                     'remarks'       => $details,
