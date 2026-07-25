@@ -62,7 +62,6 @@ class BookingController extends Controller
                     'success' => false,
                     'message' => 'Validation failed',
                     'errors'  => $validator->errors(),
-                    'received' => $request->all(),
                 ], 422);
             }
 
@@ -83,7 +82,7 @@ class BookingController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => ucfirst($type) . ' request submitted! We will contact you soon.',
+                'message' => ucfirst($type) . ' request submitted successfully!',
                 'booking' => $booking,
             ], 201);
 
@@ -91,7 +90,6 @@ class BookingController extends Controller
             Log::error("API_BOOKING_ERROR_{$type}", [
                 'message' => $e->getMessage(),
                 'trace'   => $e->getTraceAsString(),
-                'request' => $request->all(),
             ]);
 
             return response()->json([
@@ -106,7 +104,6 @@ class BookingController extends Controller
      */
     private function buildDataArray(string $type, string $userName, string $contactNumber, array $parsed, string $details): array
     {
-        // Sinisiguro nitong may laman ang mga mandatory columns at nakapaloob ang buong detalye sa remarks
         return [
             'first_name' => $parsed['child'] ?? $userName,
             'last_name'  => 'N/A',
