@@ -74,7 +74,7 @@ class BookingController extends Controller
             // Parse details for extra fields
             $parsed = $this->parseDetails($details);
 
-            // Build data array
+            // Build safe data array
             $data = $this->buildDataArray($type, $userName, $contactNumber, $parsed, $details);
 
             // Create record
@@ -102,64 +102,14 @@ class BookingController extends Controller
     }
 
     /**
-     * Build data array for the specific model
+     * Build safe data array to prevent database column errors
      */
     private function buildDataArray(string $type, string $userName, string $contactNumber, array $parsed, string $details): array
     {
-        $data = [];
-
-        switch ($type) {
-            case 'baptism':
-                $data = [
-                    'first_name'     => $parsed['child'] ?? $userName,
-                    'last_name'      => '',
-                    'father_name'    => $parsed['father'] ?? '',
-                    'mother_name'    => $parsed['mother'] ?? '',
-                    'remarks'        => $details,
-                ];
-                break;
-
-            case 'communion':
-                $data = [
-                    'first_name'     => $userName,
-                    'residence'      => $contactNumber,
-                    'remarks'        => $details,
-                ];
-                break;
-
-            case 'confirmation':
-                $data = [
-                    'candidate_name'    => $userName,
-                    'father_name'       => $parsed['father'] ?? '',
-                    'mother_name'       => $parsed['mother'] ?? '',
-                    'parents_residence' => $contactNumber,
-                    'remarks'           => $details,
-                ];
-                break;
-
-            case 'wedding':
-                $data = [
-                    'groom_name'    => $parsed['groom'] ?? $userName,
-                    'bride_name'    => $parsed['bride'] ?? '',
-                    'remarks'       => $details,
-                ];
-                break;
-
-            case 'funeral':
-                $data = [
-                    'deceased_name' => $userName,
-                    'residence'     => $contactNumber,
-                    'remarks'       => $details,
-                ];
-                break;
-
-            default:
-                $data = [
-                    'remarks'        => $details,
-                ];
-        }
-
-        return $data;
+        // Nilalagay na lahat sa remarks para hindi maghanap ng ibang columns ang database table
+        return [
+            'remarks' => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
+        ];
     }
 
     /**
