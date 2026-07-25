@@ -111,8 +111,8 @@ class BookingController extends Controller
         switch ($type) {
             case 'baptism':
                 $data = [
-                    'candidate_name' => $userName,
                     'first_name'     => $userName,
+                    'last_name'      => '',
                     'father_name'    => $parsed['father'] ?? '',
                     'mother_name'    => $parsed['mother'] ?? '',
                     'remarks'        => $details,
@@ -125,7 +125,7 @@ class BookingController extends Controller
 
             case 'communion':
                 $data = [
-                    'candidate_name' => $userName,
+                    'first_name'     => $userName,
                     'residence'      => $contactNumber,
                     'remarks'        => $details,
                     'category'       => 'Communion',
