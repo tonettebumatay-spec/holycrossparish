@@ -9,38 +9,76 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AppointmentAvailabilityController;
 use App\Http\Controllers\CertificateController;
 
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| All routes are prefixed with `/api/v1` – make sure your Android app's
+| base URL includes the `/api/v1` part.
+|
+*/
+
 Route::get('/test', function () {
-    return response()->json(['status' => 'Server is reachable']);
+    return response()->json([
+        'status' => 'Server is reachable',
+        'timestamp' => now()->toIso8601String(),
+    ]);
 });
 
 Route::prefix('v1')->group(function () {
 
-    // Public Auth
-    Route::post('/register', [SacramentApiController::class, 'registerMobileUser']);
-    Route::post('/login', [SacramentApiController::class, 'loginMobileUser']);
+    // ==================== PUBLIC ENDPOINTS ====================
+    Route::prefix('auth')->group(function () {
+        Route::post('/register', [SacramentApiController::class, 'registerMobileUser']);
+        Route::post('/login', [SacramentApiController::class, 'loginMobileUser']);
+    });
 
-    // Public Data
-    Route::get('/sacraments', [RecordController::class, 'indexApi']);
-    Route::get('/verify/{id}', [RecordController::class, 'verifyApi']);
-    Route::get('/records/{category}/{id}', [RecordController::class, 'showApi']);
-    Route::get('/availability/{sacrament}', [AppointmentAvailabilityController::class, 'apiGetSlots']);
-
-    // 👇 Schedules (Events) endpoint – public
+    // Public data endpoints (no authentication required)
     Route::get('/schedules', [ScheduleController::class, 'indexApi']);
+    Route::get('/events', [ScheduleController::class, 'eventsApi']);
 
-    // Protected (auth:sanctum)
+    // Optional – if Android ever needs to fetch all sacraments
+    // Route::get('/sacraments', [RecordController::class, 'indexApi']);
+
+    // ==================== PROTECTED ENDPOINTS (AUTHENTICATION REQUIRED) ====================
     Route::middleware('auth:sanctum')->group(function () {
 
+        // ---- Authentication & Profile ----
         Route::post('/logout', [SacramentApiController::class, 'logoutMobileUser']);
         Route::get('/profile', [SacramentApiController::class, 'getUserProfile']);
 
-        Route::post('/booking/baptism', [BookingController::class, 'storeBaptism']);
-        Route::post('/booking/wedding', [BookingController::class, 'storeWedding']);
-        Route::post('/booking/communion', [BookingController::class, 'storeCommunion']);
-        Route::post('/booking/confirmation', [BookingController::class, 'storeConfirmation']);
-        Route::post('/booking/funeral', [BookingController::class, 'storeFuneral']);
+        // ---- Appointments / Bookings ----
+        Route::get('/my-appointments', [AppointmentController::class, 'myAppointments']);
+        Route::get('/appointments', [AppointmentController::class, 'index']);
+        Route::get('/booked-slots', [AppointmentAvailabilityController::class, 'bookedSlots']);
 
+        // ---- Sacrament Booking (must be POST) ----
+        Route::post('/book-baptism', [BookingController::class, 'storeBaptism']);
+        Route::post('/book-communion', [BookingController::class, 'storeCommunion']);
+        Route::post('/book-confirmation', [BookingController::class, 'storeConfirmation']);
+        Route::post('/book-wedding', [BookingController::class, 'storeWedding']);
+        Route::post('/book-funeral', [BookingController::class, 'storeFuneral']);
+
+        // ---- Generic appointment & certificate (if used) ----
         Route::post('/appointment', [AppointmentController::class, 'store']);
         Route::post('/certificates', [CertificateController::class, 'store']);
     });
+
+    // ==================== DEBUG ROUTE (remove in production) ====================
+    // This will list all registered API routes – helpful for debugging
+    if (app()->environment('local')) {
+        Route::get('/routes', function () {
+            $routes = collect(Route::getRoutes())->filter(function ($route) {
+                return str_starts_with($route->uri(), 'api/v1');
+            })->map(function ($route) {
+                return [
+                    'method' => implode('|', $route->methods()),
+                    'uri'    => $route->uri(),
+                    'name'   => $route->getName(),
+                ];
+            });
+            return response()->json($routes);
+        });
+    }
 });
