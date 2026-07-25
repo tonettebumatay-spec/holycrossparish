@@ -94,71 +94,82 @@ class BookingController extends Controller
     }
 
     /**
-     * Build data array using only columns that exist in each table.
+     * Build strict and safe data array matching each table schema.
      */
     private function buildDataArray(string $type, string $userName, string $contactNumber, array $parsed, string $details): array
     {
-        $base = [
-            'remarks'  => $details,
-            'category' => ucfirst($type),
-        ];
+        $data = [];
 
         switch ($type) {
             case 'baptism':
-                return array_merge($base, [
-                    'first_name'   => $userName,
-                    'last_name'    => '',  // or 'N/A' if your table allows
-                    'father_name'  => $parsed['father'] ?? '',
-                    'mother_name'  => $parsed['mother'] ?? '',
-                    'legitimacy'   => 'Unknown',
-                    'book_number'  => 0,
-                    'page_number'  => 0,
-                    'line_number'  => 0,
-                ]);
+                $data = [
+                    'category'    => 'Baptism',
+                    'first_name'  => $userName,
+                    'last_name'   => '',
+                    'father_name' => $parsed['father'] ?? '',
+                    'mother_name' => $parsed['mother'] ?? '',
+                    'legitimacy'  => 'Unknown',
+                    'remarks'     => $details,
+                    'book_number' => 0,
+                    'page_number' => 0,
+                    'line_number' => 0,
+                ];
+                break;
 
             case 'communion':
-                return array_merge($base, [
+                $data = [
+                    'category'       => 'Communion',
                     'candidate_name' => $userName,
                     'residence'      => $contactNumber,
+                    'remarks'        => $details,
                     'book_number'    => 0,
                     'page_number'    => 0,
                     'line_number'    => 0,
-                ]);
+                ];
+                break;
 
             case 'confirmation':
-                return array_merge($base, [
+                $data = [
+                    'category'          => 'Confirmation',
                     'candidate_name'    => $userName,
                     'father_name'       => $parsed['father'] ?? '',
                     'mother_name'       => $parsed['mother'] ?? '',
                     'parents_residence' => $contactNumber,
+                    'remarks'           => $details,
                     'book_number'       => 0,
                     'page_number'       => 0,
                     'line_number'       => 0,
-                ]);
+                ];
+                break;
 
             case 'wedding':
-                return array_merge($base, [
-                    'groom_name'    => $parsed['groom'] ?? $userName,
-                    'bride_name'    => $parsed['bride'] ?? '',
-                    'book_number'   => 0,
-                    'page_number'   => 0,
-                    'line_number'   => 0,
-                    'year'          => '',
-                    'month_day'     => '',
-                ]);
+                $data = [
+                    'category'    => 'Wedding',
+                    'groom_name'  => $parsed['groom'] ?? $userName,
+                    'bride_name'  => $parsed['bride'] ?? '',
+                    'remarks'     => $details,
+                    'book_number' => 0,
+                    'page_number' => 0,
+                    'line_number' => 0,
+                    'year'        => '',
+                    'month_day'   => '',
+                ];
+                break;
 
             case 'funeral':
-                return array_merge($base, [
+                $data = [
+                    'category'      => 'Funeral',
                     'deceased_name' => $userName,
                     'residence'     => $contactNumber,
+                    'remarks'       => $details,
                     'book_number'   => 0,
                     'page_number'   => 0,
                     'line_number'   => 0,
-                ]);
-
-            default:
-                return $base;
+                ];
+                break;
         }
+
+        return $data;
     }
 
     /**
