@@ -11,11 +11,11 @@ use App\Http\Controllers\CertificateController;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes
+| API Routes - Version 1
 |--------------------------------------------------------------------------
 |
-| All routes are prefixed with `/api/v1` – make sure your Android app's
-| base URL includes the `/api/v1` part.
+| Base URL: /api/v1
+| All endpoints are prefixed with `/api/v1`
 |
 */
 
@@ -29,19 +29,22 @@ Route::get('/test', function () {
 Route::prefix('v1')->group(function () {
 
     // ==================== PUBLIC ENDPOINTS ====================
-    Route::prefix('auth')->group(function () {
-        Route::post('/register', [SacramentApiController::class, 'registerMobileUser']);
-        Route::post('/login', [SacramentApiController::class, 'loginMobileUser']);
-    });
+    // No authentication required
 
-    // Public data endpoints (no authentication required)
+    // Authentication (register & login)
+    Route::post('/register', [SacramentApiController::class, 'registerMobileUser']);
+    Route::post('/login', [SacramentApiController::class, 'loginMobileUser']);
+
+    // Public data (schedules/events)
     Route::get('/schedules', [ScheduleController::class, 'indexApi']);
     Route::get('/events', [ScheduleController::class, 'eventsApi']);
 
     // Optional – if Android ever needs to fetch all sacraments
     // Route::get('/sacraments', [RecordController::class, 'indexApi']);
 
-    // ==================== PROTECTED ENDPOINTS (AUTHENTICATION REQUIRED) ====================
+    // ==================== PROTECTED ENDPOINTS ====================
+    // All routes below require a valid Sanctum token (Bearer token)
+
     Route::middleware('auth:sanctum')->group(function () {
 
         // ---- Authentication & Profile ----
@@ -53,7 +56,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/appointments', [AppointmentController::class, 'index']);
         Route::get('/booked-slots', [AppointmentAvailabilityController::class, 'bookedSlots']);
 
-        // ---- Sacrament Booking (must be POST) ----
+        // ---- Sacrament Booking (POST) ----
+        // These endpoints accept user_name, contact_number, and details (optional).
+        // Date/time are NOT required – admin will schedule the appointment later.
         Route::post('/book-baptism', [BookingController::class, 'storeBaptism']);
         Route::post('/book-communion', [BookingController::class, 'storeCommunion']);
         Route::post('/book-confirmation', [BookingController::class, 'storeConfirmation']);
@@ -65,8 +70,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/certificates', [CertificateController::class, 'store']);
     });
 
-    // ==================== DEBUG ROUTE (remove in production) ====================
-    // This will list all registered API routes – helpful for debugging
+    // ==================== DEBUG ROUTE (local only) ====================
+    // Lists all registered API routes – helpful for debugging
     if (app()->environment('local')) {
         Route::get('/routes', function () {
             $routes = collect(Route::getRoutes())->filter(function ($route) {
