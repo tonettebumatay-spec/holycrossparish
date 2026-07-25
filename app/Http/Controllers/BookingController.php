@@ -117,22 +117,32 @@ class BookingController extends Controller
 
             case 'communion':
                 $data = [
-                    'candidate_name' => $userName,
-                    'residence'      => $contactNumber,
-                    'remarks'        => $details,
-                    'book_number'    => 0,
-                    'page_number'    => 0,
-                    'line_number'    => 0,
+                    'first_name'       => $userName,
+                    'last_name'        => '',
+                    'residence'        => $contactNumber,
+                    'communion_date'   => now()->toDateString(),
+                    'minister_name'    => 'TBD',
+                    'baptism_date'     => now()->toDateString(),
+                    'place_of_baptism' => 'TBD',
+                    'book_number'      => 0,
+                    'page_number'      => 0,
+                    'line_number'      => 0,
                 ];
                 break;
 
             case 'confirmation':
                 $data = [
-                    'candidate_name'    => $userName,
+                    'first_name'        => $userName,
+                    'last_name'         => '',
+                    'age'               => $parsed['age'] ?? 0,
+                    'birthplace'        => 'TBD',
                     'father_name'       => $parsed['father'] ?? '',
                     'mother_name'       => $parsed['mother'] ?? '',
                     'parents_residence' => $contactNumber,
-                    'remarks'           => $details,
+                    'sponsors'          => 'TBD',
+                    'minister_name'     => 'TBD',
+                    'year'              => '',
+                    'month_day'         => '',
                     'book_number'       => 0,
                     'page_number'       => 0,
                     'line_number'       => 0,
