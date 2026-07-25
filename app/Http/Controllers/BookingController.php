@@ -117,7 +117,6 @@ class BookingController extends Controller
 
     /**
      * Build strict and safe data array matching each table schema.
-     * (Only includes columns that are likely present – they will be filtered later.)
      */
     private function buildDataArray(string $type, string $userName, string $contactNumber, array $parsed, string $details): array
     {
@@ -126,41 +125,42 @@ class BookingController extends Controller
         switch ($type) {
             case 'baptism':
                 $data = [
-                    'first_name'  => $userName,
-                    'last_name'   => '',
-                    'father_name' => $parsed['father'] ?? '',
-                    // 'mother_name' => $parsed['mother'] ?? '', // ❌ removed – column doesn't exist in baptisms
-                    'legitimacy'  => 'Unknown',
-                    'remarks'     => $details,
-                    'book_number' => 0,
-                    'page_number' => 0,
-                    'line_number' => 0,
+                    'category'     => 'Baptism',
+                    'first_name'   => $userName,
+                    'last_name'    => '',
+                    'father_name'  => $parsed['father'] ?? '',
+                    'legitimacy'   => 'Unknown',
+                    'remarks'      => $details,
+                    'book_number'  => 0,
+                    'page_number'  => 0,
+                    'line_number'  => 0,
                 ];
                 break;
 
             case 'communion':
                 $data = [
-                    'first_name'       => $userName,
-                    'last_name'        => '',
-                    'residence'        => $contactNumber,
-                    'communion_date'   => now()->toDateString(),
-                    'minister_name'    => 'TBD',
-                    'baptism_date'     => now()->toDateString(),
-                    'place_of_baptism' => 'TBD',
-                    'book_number'      => 0,
-                    'page_number'      => 0,
-                    'line_number'      => 0,
+                    'category'           => 'Communion',
+                    'first_name'         => $userName,
+                    'last_name'          => '',
+                    'residence'          => $contactNumber,
+                    'communion_date'     => now()->toDateString(),
+                    'minister_name'      => 'TBD',
+                    'baptism_date'       => now()->toDateString(),
+                    'place_of_baptism'   => 'TBD',
+                    'book_number'        => 0,
+                    'page_number'        => 0,
+                    'line_number'        => 0,
                 ];
                 break;
 
             case 'confirmation':
                 $data = [
+                    'category'          => 'Confirmation',
                     'first_name'        => $userName,
                     'last_name'         => '',
                     'age'               => $parsed['age'] ?? 0,
                     'birthplace'        => 'TBD',
                     'father_name'       => $parsed['father'] ?? '',
-                    // 'mother_name'       => $parsed['mother'] ?? '', // check if column exists
                     'parents_residence' => $contactNumber,
                     'sponsors'          => 'TBD',
                     'minister_name'     => 'TBD',
@@ -174,19 +174,21 @@ class BookingController extends Controller
 
             case 'wedding':
                 $data = [
-                    'groom_name'  => $parsed['groom'] ?? $userName,
-                    'bride_name'  => $parsed['bride'] ?? '',
-                    'remarks'     => $details,
-                    'book_number' => 0,
-                    'page_number' => 0,
-                    'line_number' => 0,
-                    'year'        => '',
-                    'month_day'   => '',
+                    'category'     => 'Wedding',
+                    'groom_name'   => $parsed['groom'] ?? $userName,
+                    'bride_name'   => $parsed['bride'] ?? '',
+                    'remarks'      => $details,
+                    'book_number'  => 0,
+                    'page_number'  => 0,
+                    'line_number'  => 0,
+                    'year'         => '',
+                    'month_day'    => '',
                 ];
                 break;
 
             case 'funeral':
                 $data = [
+                    'category'      => 'Funeral',
                     'deceased_name' => $userName,
                     'residence'     => $contactNumber,
                     'remarks'       => $details,
