@@ -74,7 +74,7 @@ class BookingController extends Controller
             // Parse details for extra fields
             $parsed = $this->parseDetails($details);
 
-            // Build data array - NO date/time required
+            // Build data array
             $data = $this->buildDataArray($type, $userName, $contactNumber, $parsed, $details);
 
             // Create record
@@ -102,7 +102,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Build data array for the specific model - NO date/time required
+     * Build data array for the specific model
      */
     private function buildDataArray(string $type, string $userName, string $contactNumber, array $parsed, string $details): array
     {
@@ -111,15 +111,11 @@ class BookingController extends Controller
         switch ($type) {
             case 'baptism':
                 $data = [
-                    'first_name'     => $userName,
+                    'first_name'     => $parsed['child'] ?? $userName,
                     'last_name'      => '',
                     'father_name'    => $parsed['father'] ?? '',
                     'mother_name'    => $parsed['mother'] ?? '',
                     'remarks'        => $details,
-                    'category'       => 'Baptism',
-                    'book_number'    => 0,
-                    'page_number'    => 0,
-                    'line_number'    => 0,
                 ];
                 break;
 
@@ -128,10 +124,6 @@ class BookingController extends Controller
                     'first_name'     => $userName,
                     'residence'      => $contactNumber,
                     'remarks'        => $details,
-                    'category'       => 'Communion',
-                    'book_number'    => 0,
-                    'page_number'    => 0,
-                    'line_number'    => 0,
                 ];
                 break;
 
@@ -142,10 +134,6 @@ class BookingController extends Controller
                     'mother_name'       => $parsed['mother'] ?? '',
                     'parents_residence' => $contactNumber,
                     'remarks'           => $details,
-                    'category'          => 'Confirmation',
-                    'book_number'       => 0,
-                    'page_number'       => 0,
-                    'line_number'       => 0,
                 ];
                 break;
 
@@ -154,12 +142,6 @@ class BookingController extends Controller
                     'groom_name'    => $parsed['groom'] ?? $userName,
                     'bride_name'    => $parsed['bride'] ?? '',
                     'remarks'       => $details,
-                    'category'      => 'Wedding',
-                    'book_number'   => 0,
-                    'page_number'   => 0,
-                    'line_number'   => 0,
-                    'year'          => '',
-                    'month_day'     => '',
                 ];
                 break;
 
@@ -168,20 +150,12 @@ class BookingController extends Controller
                     'deceased_name' => $userName,
                     'residence'     => $contactNumber,
                     'remarks'       => $details,
-                    'category'      => 'Funeral',
-                    'book_number'   => 0,
-                    'page_number'   => 0,
-                    'line_number'   => 0,
                 ];
                 break;
 
             default:
                 $data = [
                     'remarks'        => $details,
-                    'category'       => ucfirst($type),
-                    'book_number'    => 0,
-                    'page_number'    => 0,
-                    'line_number'    => 0,
                 ];
         }
 
@@ -209,7 +183,9 @@ class BookingController extends Controller
                 $key = strtolower(trim($parts[0]));
                 $value = trim($parts[1] ?? '');
 
-                if (str_contains($key, 'father')) {
+                if (str_contains($key, 'child') || str_contains($key, 'name')) {
+                    $result['child'] = $value;
+                } elseif (str_contains($key, 'father')) {
                     $result['father'] = $value;
                 } elseif (str_contains($key, 'mother')) {
                     $result['mother'] = $value;
