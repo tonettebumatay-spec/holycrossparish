@@ -39,8 +39,13 @@ Route::prefix('v1')->group(function () {
     Route::get('/schedules', [ScheduleController::class, 'indexApi']);
     Route::get('/events', [ScheduleController::class, 'eventsApi']);
 
-    // Optional – if Android ever needs to fetch all sacraments
-    // Route::get('/sacraments', [RecordController::class, 'indexApi']);
+    // ---- Sacrament Booking (POST) - Moved to Public ----
+    // Inilipat dito para hindi na hingin ang Bearer token mula sa Android app
+    Route::post('/book-baptism', [BookingController::class, 'storeBaptism']);
+    Route::post('/book-communion', [BookingController::class, 'storeCommunion']);
+    Route::post('/book-confirmation', [BookingController::class, 'storeConfirmation']);
+    Route::post('/book-wedding', [BookingController::class, 'storeWedding']);
+    Route::post('/book-funeral', [BookingController::class, 'storeFuneral']);
 
     // ==================== PROTECTED ENDPOINTS ====================
     // All routes below require a valid Sanctum token (Bearer token)
@@ -55,15 +60,6 @@ Route::prefix('v1')->group(function () {
         Route::get('/my-appointments', [AppointmentController::class, 'myAppointments']);
         Route::get('/appointments', [AppointmentController::class, 'index']);
         Route::get('/booked-slots', [AppointmentAvailabilityController::class, 'bookedSlots']);
-
-        // ---- Sacrament Booking (POST) ----
-        // These endpoints accept user_name, contact_number, and details (optional).
-        // Date/time are NOT required – admin will schedule the appointment later.
-        Route::post('/book-baptism', [BookingController::class, 'storeBaptism']);
-        Route::post('/book-communion', [BookingController::class, 'storeCommunion']);
-        Route::post('/book-confirmation', [BookingController::class, 'storeConfirmation']);
-        Route::post('/book-wedding', [BookingController::class, 'storeWedding']);
-        Route::post('/book-funeral', [BookingController::class, 'storeFuneral']);
 
         // ---- Generic appointment & certificate (if used) ----
         Route::post('/appointment', [AppointmentController::class, 'store']);
