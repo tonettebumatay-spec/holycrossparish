@@ -88,7 +88,7 @@ class BookingController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Server error: ' . $e->getMessage(),
+                'message' => 'Database/Server error: ' . $e->getMessage(),
             ], 500);
         }
     }
