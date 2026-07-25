@@ -105,12 +105,14 @@ class BookingController extends Controller
     private function buildDataArray(string $type, string $userName, string $contactNumber, array $parsed, string $details): array
     {
         return [
-            'category'   => ucfirst($type), // Idinagdag para masolusyunan ang null constraint error sa database
-            'first_name' => $parsed['child'] ?? $userName,
-            'last_name'  => 'N/A',
-            'residence'  => $contactNumber,
-            'status'     => 'Pending',
-            'remarks'    => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
+            'category'       => ucfirst($type),
+            'first_name'     => $parsed['child'] ?? $userName,
+            'last_name'      => 'N/A',
+            'residence'      => $contactNumber,
+            'contact_number' => $contactNumber,
+            'email'          => $parsed['email'] ?? 'N/A',
+            'status'         => 'Pending',
+            'remarks'        => "User Name: {$userName} | Contact: {$contactNumber} | " . $details,
         ];
     }
 
