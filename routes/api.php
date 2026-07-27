@@ -5,9 +5,9 @@ use App\Http\Controllers\RecordController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ScheduleController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AppointmentAvailabilityController;
 use App\Http\Controllers\CertificateController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,14 +39,21 @@ Route::prefix('v1')->group(function () {
     Route::get('/schedules', [ScheduleController::class, 'indexApi']);
     Route::get('/events', [ScheduleController::class, 'eventsApi']);
 
-    // ---- Sacrament Booking (POST) - Moved to Public ----
-    // Inilipat dito para hindi na hingin ang Bearer token mula sa Android app
-    // Inside the v1 group
-Route::post('/book-baptism', [BookingController::class, 'storeBaptism']);
-Route::post('/book-communion', [BookingController::class, 'storeCommunion']);
-Route::post('/book-confirmation', [BookingController::class, 'storeConfirmation']);
-Route::post('/book-wedding', [BookingController::class, 'storeWedding']);
-Route::post('/book-funeral', [BookingController::class, 'storeFuneral']);
+    // ---- Sacrament Bookings (Public) ----
+    // ✅ Both aliases are provided for maximum Android compatibility
+    // Format 1: /book-{sacrament} (original Android app format)
+    Route::post('/book-baptism', [BookingController::class, 'storeBaptism']);
+    Route::post('/book-communion', [BookingController::class, 'storeCommunion']);
+    Route::post('/book-confirmation', [BookingController::class, 'storeConfirmation']);
+    Route::post('/book-wedding', [BookingController::class, 'storeWedding']);
+    Route::post('/book-funeral', [BookingController::class, 'storeFuneral']);
+
+    // Format 2: /booking/{sacrament} (standard RESTful format)
+    Route::post('/booking/baptism', [BookingController::class, 'storeBaptism']);
+    Route::post('/booking/communion', [BookingController::class, 'storeCommunion']);
+    Route::post('/booking/confirmation', [BookingController::class, 'storeConfirmation']);
+    Route::post('/booking/wedding', [BookingController::class, 'storeWedding']);
+    Route::post('/booking/funeral', [BookingController::class, 'storeFuneral']);
 
     // ==================== PROTECTED ENDPOINTS ====================
     // All routes below require a valid Sanctum token (Bearer token)
@@ -57,7 +64,7 @@ Route::post('/book-funeral', [BookingController::class, 'storeFuneral']);
         Route::post('/logout', [SacramentApiController::class, 'logoutMobileUser']);
         Route::get('/profile', [SacramentApiController::class, 'getUserProfile']);
 
-        // ---- Appointments / Bookings ----
+        // ---- Appointments / Bookings (for authenticated users) ----
         Route::get('/my-appointments', [AppointmentController::class, 'myAppointments']);
         Route::get('/appointments', [AppointmentController::class, 'index']);
         Route::get('/booked-slots', [AppointmentAvailabilityController::class, 'bookedSlots']);
@@ -65,6 +72,13 @@ Route::post('/book-funeral', [BookingController::class, 'storeFuneral']);
         // ---- Generic appointment & certificate (if used) ----
         Route::post('/appointment', [AppointmentController::class, 'store']);
         Route::post('/certificates', [CertificateController::class, 'store']);
+
+        // ---- Appointment Availability (Admin only – but we keep it here) ----
+        Route::get('/availability', [AppointmentAvailabilityController::class, 'index']);
+        Route::post('/availability', [AppointmentAvailabilityController::class, 'store']);
+        Route::put('/availability/{id}', [AppointmentAvailabilityController::class, 'update']);
+        Route::delete('/availability/{id}', [AppointmentAvailabilityController::class, 'destroy']);
+        Route::patch('/availability/{id}/toggle', [AppointmentAvailabilityController::class, 'toggleActive']);
     });
 
     // ==================== DEBUG ROUTE (local only) ====================
