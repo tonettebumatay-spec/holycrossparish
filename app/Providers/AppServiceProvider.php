@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\Gate;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,5 +24,11 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api', function ($job) {
             return Limit::perMinute(60)->by($job->user()?->id ?: $job->ip());
         });
+
+
+         Gate::define('manage-records', function ($user) {
+        return $user->is_admin ?? false;
+    });
+
     }
 }
