@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Appointment;
+use App\Models\Baptism;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -210,6 +211,57 @@ class SacramentApiController extends Controller
                 'success' => false,
                 'status'  => 'error',
                 'message' => 'Appointment booking failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Book a baptism appointment/record.
+     */
+    public function bookBaptism(Request $request)
+    {
+        try {
+            Log::info('BAPTISM_BOOKING_REQUEST', $request->all());
+
+            $validator = Validator::make($request->all(), [
+                'child_name'     => 'required|string|max:255',
+                'father_name'    => 'required|string|max:255',
+                'mother_name'    => 'required|string|max:255',
+                'email'          => 'required|email|max:255',
+                'contact_number' => 'required|string|max:50',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'status'  => 'error',
+                    'message' => 'Validation failed',
+                    'errors'  => $validator->errors()
+                ], 422);
+            }
+
+            $baptism = Baptism::create([
+                'candidate_name'     => $request->input('child_name'),
+                'father_name'        => $request->input('father_name'),
+                'mother_maiden_name' => $request->input('mother_name'),
+                'email'              => $request->input('email'),
+                'contact_number'     => $request->input('contact_number'),
+                'status'             => 'pending',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'status'  => 'success',
+                'message' => 'Baptism booking submitted successfully!',
+                'data'    => $baptism,
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('BAPTISM_BOOKING_ERROR', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'status'  => 'error',
+                'message' => 'Server error: ' . $e->getMessage()
             ], 500);
         }
     }

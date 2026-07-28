@@ -12,9 +12,12 @@ use App\Models\Funeral;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class RecordController extends Controller
 {
+    use AuthorizesRequests;
+
     /**
      * Display the list of record categories (Books) or dynamic listings.
      */
@@ -225,7 +228,7 @@ class RecordController extends Controller
             }
 
             // Duplicate Check logic for Baptisms
-            $exists = \App\Models\Baptism::where('first_name', $firstName)
+            $exists = Baptism::where('first_name', $firstName)
                 ->where('last_name', $lastName)
                 ->whereDate('birth_date', $request->birth_date)
                 ->exists();
