@@ -72,10 +72,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // --- Appointments Management ---
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
+
+    Route::put('/appointments/{type}/{id}/schedule', [AppointmentController::class, 'schedule'])
+    ->name('appointments.schedule');
+
     Route::put('/appointments/{type}/{id}/status', [AppointmentController::class, 'updateStatus'])->name('appointments.update-status');
     Route::put('/appointments/{type}/{id}/cancel', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
     Route::delete('/appointments/{type}/{id}', [AppointmentController::class, 'destroy'])->name('appointments.destroy');
-
     // --- Bookings ---
     Route::get('/booking/create', [BookingController::class, 'create'])->name('booking.create');
     Route::post('/booking', [BookingController::class, 'store'])->name('booking.store');

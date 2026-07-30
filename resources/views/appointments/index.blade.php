@@ -69,7 +69,7 @@
                     <div class="text-center py-20">
                         <div class="inline-flex p-6 bg-purple-50 rounded-full text-purple-600 mb-4">
                             <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2v12a2 2 0 002 2z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                             </svg>
                         </div>
                         <h2 class="text-2xl font-bold text-gray-700">No Appointments Found</h2>
@@ -89,7 +89,7 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
-                                @foreach($appointments as $index => $app)
+                                @foreach($appointments as $index =>$app)
                                     <tr class="hover:bg-gray-50 transition">
                                         <td class="px-6 py-4 font-medium text-gray-400">{{ $index + 1 }}</td>
                                         <td class="px-6 py-4">
@@ -117,8 +117,8 @@
                                             @else
                                                 @php
                                                     $statusColor = match($app->status ?? 'pending') {
-                                                        'confirmed' => 'bg-green-100 text-green-800',
-                                                        default     => 'bg-yellow-100 text-yellow-800',
+                                                        'confirmed', 'approved' => 'bg-green-100 text-green-800',
+                                                        default                 => 'bg-yellow-100 text-yellow-800',
                                                     };
                                                 @endphp
                                                 <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase {{ $statusColor }}">
@@ -130,15 +130,14 @@
                                         <!-- Actions Column -->
                                         <td class="px-6 py-4">
                                             <div class="flex items-center justify-center space-x-2 flex-wrap gap-1">
-                                                @if(($app->status ?? 'pending') !== 'confirmed')
-                                                    <form action="{{ route('appointments.update-status', ['type' => strtolower($app->type), 'id' => $app->id]) }}" method="POST" class="inline">
-                                                        @csrf
-                                                        @method('PUT')
-                                                        <input type="hidden" name="status" value="confirmed">
-                                                        <button type="submit" class="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-full transition" onclick="return confirm('Confirm this appointment?')">
-                                                            Confirm
-                                                        </button>
-                                                    </form>
+                                                @if(($app->status ?? 'pending') == 'pending')
+                                                    <button
+                                                        type="button"
+                                                        class="schedule-btn px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded-full transition"
+                                                        data-type="{{ strtolower($app->type) }}"
+                                                        data-id="{{ $app->id }}">
+                                                        Schedule
+                                                    </button>
                                                 @endif
 
                                                 @if(($app->status ?? 'pending') !== 'cancelled' && ($app->status ?? 'pending') !== 'canceled' && !($app->is_locked ?? false))
@@ -150,7 +149,7 @@
                                                     </button>
                                                 @endif
 
-                                                <form action="{{ route('appointments.destroy', ['type' => strtolower($app->type), 'id' => $app->id]) }}" method="POST" class="inline">
+                                                <form action="{{ route('appointments.destroy', ['type' => strtolower($app->type), 'id' =>$app->id]) }}" method="POST" class="inline">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded-full transition" onclick="return confirm('Delete this appointment permanently?')">
@@ -205,9 +204,57 @@
             </div>
         </div>
 
-        <!-- JavaScript for Modal Population -->
+        <!-- Schedule Modal -->
+        <div id="scheduleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+                <h2 class="text-xl font-bold mb-4">
+                    Set Appointment Schedule
+                </h2>
+
+                <form id="scheduleForm" method="POST">
+                    @csrf
+                    @method('PUT')
+
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                        <input
+                            type="date"
+                            name="appointment_date"
+                            class="w-full border rounded p-2 text-sm"
+                            required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                        <input
+                            type="time"
+                            name="appointment_time"
+                            class="w-full border rounded p-2 text-sm"
+                            required>
+                    </div>
+
+                    <div class="flex justify-end gap-2 mt-4">
+                        <button
+                            type="button"
+                            id="closeSchedule"
+                            class="px-4 py-2 bg-gray-400 text-white rounded text-sm">
+                            Cancel
+                        </button>
+
+                        <button
+                            type="submit"
+                            class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">
+                            Save Schedule
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- JavaScript for Modals -->
         <script>
             document.addEventListener('DOMContentLoaded', function() {
+                // Cancel Modal Logic
                 const modal = document.getElementById('cancelModal');
                 const cancelForm = document.getElementById('cancelForm');
                 const cancelTypeInput = document.getElementById('cancelType');
@@ -235,6 +282,27 @@
 
                 if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
                 if (cancelModalCloseBtn) cancelModalCloseBtn.addEventListener('click', closeModal);
+
+                // Schedule Modal Logic
+                const scheduleModal = document.getElementById('scheduleModal');
+                const scheduleForm = document.getElementById('scheduleForm');
+
+                document.querySelectorAll('.schedule-btn').forEach(btn => {
+                    btn.addEventListener('click', function(){
+                        let type = this.dataset.type;
+                        let id = this.dataset.id;
+
+                        scheduleForm.action = `/appointments/${type}/${id}/schedule`;
+                        scheduleModal.classList.remove('hidden');
+                    });
+                });
+
+                const closeScheduleBtn = document.getElementById('closeSchedule');
+                if (closeScheduleBtn) {
+                    closeScheduleBtn.onclick = function(){
+                        scheduleModal.classList.add('hidden');
+                    };
+                }
             });
         </script>
 

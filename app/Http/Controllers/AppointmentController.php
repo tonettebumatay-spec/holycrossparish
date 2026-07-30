@@ -237,6 +237,37 @@ class AppointmentController extends Controller
     }
 
     /**
+     * Set appointment schedule (date and time) and approve it.
+     */
+    public function schedule(Request $request, $type, $id)
+    {
+        $request->validate([
+            'appointment_date' => 'required|date',
+            'appointment_time' => 'required',
+        ]);
+
+        $modelMap = [
+            'baptism' => Baptism::class,
+            'communion' => Communion::class,
+            'confirmation' => Confirmation::class,
+            'wedding' => Wedding::class,
+            'funeral' => Funeral::class,
+        ];
+
+        $model = $modelMap[$type] ?? abort(404);
+
+        $record = $model::findOrFail($id);
+
+        $record->appointment_date = $request->appointment_date;
+        $record->appointment_time = $request->appointment_time;
+        $record->status = 'approved';
+
+        $record->save();
+
+        return back()->with('success', 'Appointment schedule has been set.');
+    }
+
+    /**
      * Delete an appointment
      */
     public function destroy($type, $id)
