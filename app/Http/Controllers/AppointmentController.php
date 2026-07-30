@@ -66,7 +66,7 @@ class AppointmentController extends Controller
                     $item->time = $extractTime($item->remarks);
                     $item->status = $item->status ?? 'pending';
                     $item->category = $item->category ?? 'Baptism';
-                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d h:i A') : 'N/A';
+                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d H:i A') : 'N/A';
                     $item->cancellation_reason = $item->cancellation_reason ?? null;
                     $item->is_locked = $item->is_locked ?? false;
                     return $item;
@@ -92,7 +92,7 @@ class AppointmentController extends Controller
                     $item->time = $extractTime($item->remarks);
                     $item->status = $item->status ?? 'pending';
                     $item->category = $item->category ?? 'Communion';
-                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d h:i A') : 'N/A';
+                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d H:i A') : 'N/A';
                     $item->cancellation_reason = $item->cancellation_reason ?? null;
                     $item->is_locked = $item->is_locked ?? false;
                     return $item;
@@ -118,7 +118,7 @@ class AppointmentController extends Controller
                     $item->time = $extractTime($item->remarks);
                     $item->status = $item->status ?? 'pending';
                     $item->category = $item->category ?? 'Confirmation';
-                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d h:i A') : 'N/A';
+                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d H:i A') : 'N/A';
                     $item->cancellation_reason = $item->cancellation_reason ?? null;
                     $item->is_locked = $item->is_locked ?? false;
                     return $item;
@@ -166,7 +166,7 @@ class AppointmentController extends Controller
                     }
                     $item->appointment_date = $date;
                     $item->time = $extractTime($item->remarks);
-                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d h:i A') : 'N/A';
+                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d H:i A') : 'N/A';
                     $item->cancellation_reason = $item->cancellation_reason ?? null;
                     $item->is_locked = $item->is_locked ?? false;
                     return $item;
@@ -192,7 +192,7 @@ class AppointmentController extends Controller
                     $item->time = $extractTime($item->remarks);
                     $item->status = $item->status ?? 'pending';
                     $item->category = $item->category ?? 'Funeral';
-                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d h:i A') : 'N/A';
+                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d H:i A') : 'N/A';
                     $item->cancellation_reason = $item->cancellation_reason ?? null;
                     $item->is_locked = $item->is_locked ?? false;
                     return $item;
