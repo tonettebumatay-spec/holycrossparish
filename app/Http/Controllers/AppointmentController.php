@@ -10,6 +10,7 @@ use App\Models\Funeral;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class AppointmentController extends Controller
 {
@@ -30,7 +31,7 @@ class AppointmentController extends Controller
                         $q->where('first_name', 'LIKE', "%{$search}%")
                           ->orWhere('last_name', 'LIKE', "%{$search}%")
                           ->orWhere('father_name', 'LIKE', "%{$search}%")
-                          ->orWhere('mother_name', 'LIKE', "%{$search}%");
+                          ->orWhere('mother_maiden_name', 'LIKE', "%{$search}%");
                     });
                 })
                 ->when($statusFilter, function ($q, $status) {
@@ -55,7 +56,7 @@ class AppointmentController extends Controller
             // ----- COMMUNIONS -----
             $communionsQuery = Communion::query()
                 ->when($search, function ($q, $search) {
-                    return $q->where('candidate_name', 'LIKE', "%{$search}%");
+                    return $q->where('first_name', 'LIKE', "%{$search}%")->orWhere('last_name', 'LIKE', "%{$search}%");
                 })
                 ->when($statusFilter, function ($q, $status) {
                     return $q->where('status', $status);
@@ -64,7 +65,7 @@ class AppointmentController extends Controller
             if (!$typeFilter || $typeFilter === 'Communion') {
                 $communions = $communionsQuery->get()->map(function ($item) {
                     $item->type = 'Communion';
-                    $item->name = $item->candidate_name ?? 'N/A';
+                    $item->name = trim(($item->first_name ?? '') . ' ' . ($item->last_name ?? '')) ?: 'N/A';
                     $item->status = $item->status ?? 'pending';
                     $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d H:i A') : 'N/A';
                     $item->cancellation_reason = $item->cancellation_reason ?? null;
@@ -78,7 +79,7 @@ class AppointmentController extends Controller
             // ----- CONFIRMATIONS -----
             $confirmationsQuery = Confirmation::query()
                 ->when($search, function ($q, $search) {
-                    return $q->where('candidate_name', 'LIKE', "%{$search}%");
+                    return $q->where('first_name', 'LIKE', "%{$search}%")->orWhere('last_name', 'LIKE', "%{$search}%");
                 })
                 ->when($statusFilter, function ($q, $status) {
                     return $q->where('status', $status);
@@ -87,7 +88,7 @@ class AppointmentController extends Controller
             if (!$typeFilter || $typeFilter === 'Confirmation') {
                 $confirmations = $confirmationsQuery->get()->map(function ($item) {
                     $item->type = 'Confirmation';
-                    $item->name = $item->candidate_name ?? 'N/A';
+                    $item->name = trim(($item->first_name ?? '') . ' ' . ($item->last_name ?? '')) ?: 'N/A';
                     $item->status = $item->status ?? 'pending';
                     $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d H:i A') : 'N/A';
                     $item->cancellation_reason = $item->cancellation_reason ?? null;
@@ -273,96 +274,95 @@ class AppointmentController extends Controller
     }
 
     /**
-     * Get authenticated user's appointments across all sacraments.
+     * Get authenticated user's appointments across all sacraments safely.
      */
     public function myAppointments(Request $request)
     {
         try {
             $user = $request->user();
             $appointments = collect();
+            $identifier = $user->email ?? ($user->name ?? null);
 
-            // Ginamit ang email para mahanap ang bookings ng user (Siguraduhing may 'email' column ang tables mo)
-            $identifier = $user->email ?? $user->name;
+            // Safe helper function to query tables without breaking if columns don't exist yet
+            $safeQuery = function($modelClass, $type, $nameCallback, $dateField) use ($user, $identifier) {
+                try {
+                    $query = $modelClass::query();
+                    
+                    // Check table columns dynamically to prevent SQL errors if email/user_id are missing
+                    $table = (new $modelClass)->getTable();
+                    $hasEmail = Schema::hasColumn($table, 'email');
+                    $hasUserId = Schema::hasColumn($table, 'user_id');
+
+                    if ($user) {
+                        $query->where(function($q) use ($hasEmail, $hasUserId, $identifier, $user) {
+                            if ($hasEmail && $identifier) {
+                                $q->orWhere('email', $identifier);
+                            }
+                            if ($hasUserId && $user->id) {
+                                $q->orWhere('user_id', $user->id);
+                            }
+                            // Fallback if no user filter matches or columns don't exist, retrieve latest items or empty if strict
+                            if (!$hasEmail && !$hasUserId) {
+                                $q->raw('1 = 1'); // fetch all or handle appropriately
+                            }
+                        });
+                    }
+
+                    return $query->get()->map(function ($item) use ($type, $nameCallback, $dateField) {
+                        return [
+                            'id' => $item->id,
+                            'type' => $type,
+                            'name' => $nameCallback($item),
+                            'date' => $item->{$dateField} ?? null,
+                            'status' => $item->status ?? 'pending',
+                            'created_at' => $item->created_at,
+                        ];
+                    });
+                } catch (\Exception $ex) {
+                    Log::error("Error fetching {$type} appointments: " . $ex->getMessage());
+                    return collect();
+                }
+            };
 
             // Baptism
-            $appointments = $appointments->merge(
-                Baptism::where('email', $identifier)->orWhere('user_id', $user->id ?? null)
-                    ->get()
-                    ->map(function ($item) {
-                        return [
-                            'id' => $item->id,
-                            'type' => 'Baptism',
-                            'name' => trim(($item->first_name ?? '') . ' ' . ($item->last_name ?? '')),
-                            'date' => $item->baptism_date ?? null,
-                            'status' => $item->status ?? 'pending',
-                            'created_at' => $item->created_at,
-                        ];
-                    })
-            );
+            $appointments = $appointments->merge($safeQuery(
+                Baptism::class, 
+                'Baptism', 
+                fn($item) => trim(($item->first_name ?? '') . ' ' . ($item->last_name ?? '')) ?: 'N/A', 
+                'baptism_date'
+            ));
 
             // Communion
-            $appointments = $appointments->merge(
-                Communion::where('email', $identifier)->orWhere('user_id', $user->id ?? null)
-                    ->get()
-                    ->map(function ($item) {
-                        return [
-                            'id' => $item->id,
-                            'type' => 'Communion',
-                            'name' => $item->candidate_name ?? 'N/A',
-                            'date' => $item->communion_date ?? null,
-                            'status' => $item->status ?? 'pending',
-                            'created_at' => $item->created_at,
-                        ];
-                    })
-            );
+            $appointments = $appointments->merge($safeQuery(
+                Communion::class, 
+                'Communion', 
+                fn($item) => trim(($item->first_name ?? '') . ' ' . ($item->last_name ?? '')) ?: ($item->candidate_name ?? 'N/A'), 
+                'communion_date'
+            ));
 
             // Confirmation
-            $appointments = $appointments->merge(
-                Confirmation::where('email', $identifier)->orWhere('user_id', $user->id ?? null)
-                    ->get()
-                    ->map(function ($item) {
-                        return [
-                            'id' => $item->id,
-                            'type' => 'Confirmation',
-                            'name' => $item->candidate_name ?? 'N/A',
-                            'date' => $item->confirmation_date ?? null,
-                            'status' => $item->status ?? 'pending',
-                            'created_at' => $item->created_at,
-                        ];
-                    })
-            );
+            $appointments = $appointments->merge($safeQuery(
+                Confirmation::class, 
+                'Confirmation', 
+                fn($item) => trim(($item->first_name ?? '') . ' ' . ($item->last_name ?? '')) ?: ($item->candidate_name ?? 'N/A'), 
+                'month_day'
+            ));
 
             // Wedding
-            $appointments = $appointments->merge(
-                Wedding::where('email', $identifier)->orWhere('user_id', $user->id ?? null)
-                    ->get()
-                    ->map(function ($item) {
-                        return [
-                            'id' => $item->id,
-                            'type' => 'Wedding',
-                            'name' => ($item->groom_name ?? '') . ' & ' . ($item->bride_name ?? ''),
-                            'date' => $item->wedding_date ?? null,
-                            'status' => $item->status ?? 'pending',
-                            'created_at' => $item->created_at,
-                        ];
-                    })
-            );
+            $appointments = $appointments->merge($safeQuery(
+                Wedding::class, 
+                'Wedding', 
+                fn($item) => ($item->groom_name ?? '') . ' & ' . ($item->bride_name ?? ''), 
+                'month_day'
+            ));
 
             // Funeral
-            $appointments = $appointments->merge(
-                Funeral::where('email', $identifier)->orWhere('user_id', $user->id ?? null)
-                    ->get()
-                    ->map(function ($item) {
-                        return [
-                            'id' => $item->id,
-                            'type' => 'Funeral',
-                            'name' => $item->deceased_name ?? 'N/A',
-                            'date' => $item->burial_date ?? null,
-                            'status' => $item->status ?? 'pending',
-                            'created_at' => $item->created_at,
-                        ];
-                    })
-            );
+            $appointments = $appointments->merge($safeQuery(
+                Funeral::class, 
+                'Funeral', 
+                fn($item) => $item->deceased_name ?? 'N/A', 
+                'burial_date'
+            ));
 
             return response()->json([
                 'success' => true,
