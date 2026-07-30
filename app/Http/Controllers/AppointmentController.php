@@ -293,17 +293,14 @@ class AppointmentController extends Controller
                     $hasEmail = Schema::hasColumn($table, 'email');
                     $hasUserId = Schema::hasColumn($table, 'user_id');
 
-                    if ($user) {
-                        $query->where(function($q) use ($hasEmail, $hasUserId, $identifier, $user) {
+                    if ($user && ($hasEmail || $hasUserId)) {
+                        $query->where(function ($q) use ($hasEmail, $hasUserId, $identifier, $user) {
                             if ($hasEmail && $identifier) {
                                 $q->orWhere('email', $identifier);
                             }
-                            if ($hasUserId && $user->id) {
+
+                            if ($hasUserId) {
                                 $q->orWhere('user_id', $user->id);
-                            }
-                            // Fallback if no user filter matches or columns don't exist, retrieve latest items or empty if strict
-                            if (!$hasEmail && !$hasUserId) {
-                                $q->raw('1 = 1'); // fetch all or handle appropriately
                             }
                         });
                     }
