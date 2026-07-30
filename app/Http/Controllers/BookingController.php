@@ -130,7 +130,7 @@ class BookingController extends Controller
                     'last_name'    => '',
                     'father_name'  => $parsed['father'] ?? '',
                     'mother_name'  => $parsed['mother'] ?? '',
-                    'birth_date'   => now()->toDateString(), // Nilagyan ng default date para iwas not-null error
+                    'birth_date'   => now()->toDateString(),
                     'legitimacy'   => 'Unknown',
                     'remarks'      => $details,
                     'book_number'  => 0,
@@ -144,6 +144,8 @@ class BookingController extends Controller
                     'category'           => 'Communion',
                     'first_name'         => $userName,
                     'last_name'          => '',
+                    'age'                => $parsed['age'] ?? 0,
+                    'father_name'        => $parsed['father'] ?? '',
                     'residence'          => $contactNumber,
                     'communion_date'     => now()->toDateString(),
                     'minister_name'      => 'TBD',
