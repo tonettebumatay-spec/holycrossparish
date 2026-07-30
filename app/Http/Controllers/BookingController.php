@@ -129,6 +129,8 @@ class BookingController extends Controller
                     'first_name'   => $userName,
                     'last_name'    => '',
                     'father_name'  => $parsed['father'] ?? '',
+                    'mother_name'  => $parsed['mother'] ?? '',
+                    'birth_date'   => now()->toDateString(), // Nilagyan ng default date para iwas not-null error
                     'legitimacy'   => 'Unknown',
                     'remarks'      => $details,
                     'book_number'  => 0,

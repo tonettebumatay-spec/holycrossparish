@@ -6888,7 +6888,7 @@
             },
             "time": "2026-05-23T16:22:37+00:00",
             "type": "library",
-            "installation-source": "source",
+            "installation-source": "dist",
             "autoload": {
                 "psr-4": {
                     "Symfony\\Component\\Mime\\": ""

@@ -6,7 +6,9 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
+    'App\\Http\\Controllers\\Admin\\AppointmentAvailabilityController' => $baseDir . '/app/Http/Controllers/Admin/AppointmentAvailabilityController.php',
     'App\\Http\\Controllers\\Api\\SacramentApiController' => $baseDir . '/app/Http/Controllers/Api/SacramentApiController.php',
+    'App\\Http\\Controllers\\AppointmentAvailabilityController' => $baseDir . '/app/Http/Controllers/AppointmentAvailabilityController.php',
     'App\\Http\\Controllers\\AppointmentController' => $baseDir . '/app/Http/Controllers/AppointmentController.php',
     'App\\Http\\Controllers\\Auth\\AuthenticatedSessionController' => $baseDir . '/app/Http/Controllers/Auth/AuthenticatedSessionController.php',
     'App\\Http\\Controllers\\Auth\\ConfirmablePasswordController' => $baseDir . '/app/Http/Controllers/Auth/ConfirmablePasswordController.php',
@@ -29,6 +31,7 @@ return array(
     'App\\Http\\Requests\\Auth\\LoginRequest' => $baseDir . '/app/Http/Requests/Auth/LoginRequest.php',
     'App\\Http\\Requests\\ProfileUpdateRequest' => $baseDir . '/app/Http/Requests/ProfileUpdateRequest.php',
     'App\\Models\\Appointment' => $baseDir . '/app/Models/Appointment.php',
+    'App\\Models\\AppointmentAvailability' => $baseDir . '/app/Models/AppointmentAvailability.php',
     'App\\Models\\Baptism' => $baseDir . '/app/Models/Baptism.php',
     'App\\Models\\Certificate' => $baseDir . '/app/Models/Certificate.php',
     'App\\Models\\Communion' => $baseDir . '/app/Models/Communion.php',
