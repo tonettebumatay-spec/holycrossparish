@@ -266,31 +266,31 @@ class AppointmentController extends Controller
     /**
      * Cancel an appointment with a reason.
      */
-   public function cancel(Request $request, $type, $id)
-{
-    $modelMap = [
-        'baptism' => Baptism::class,
-        'communion' => Communion::class,
-        'confirmation' => Confirmation::class,
-        'wedding' => Wedding::class,
-        'funeral' => Funeral::class,
-    ];
+    public function cancel(Request $request, $type, $id)
+    {
+        $modelMap = [
+            'baptism' => Baptism::class,
+            'communion' => Communion::class,
+            'confirmation' => Confirmation::class,
+            'wedding' => Wedding::class,
+            'funeral' => Funeral::class,
+        ];
 
-    $model = $modelMap[$type] ?? abort(404);
-    $record = $model::findOrFail($id);
+        $model = $modelMap[$type] ?? abort(404);
+        $record = $model::findOrFail($id);
 
-    // Prevent cancellation if already cancelled or locked
-    if ($record->status === 'cancelled' || $record->is_locked) {
-        return back()->with('error', 'Appointment cannot be cancelled.');
+        // Prevent cancellation if already cancelled or locked
+        if ($record->status === 'cancelled' || $record->is_locked) {
+            return back()->with('error', 'Appointment cannot be cancelled.');
+        }
+
+        $record->status = 'cancelled';
+        $record->cancellation_reason = $request->input('reason');
+        $record->is_locked = true;
+        $record->save();
+
+        return back()->with('success', 'Appointment cancelled successfully.');
     }
-
-    $record->status = 'cancelled';
-    $record->cancellation_reason = $request->input('reason');
-    $record->is_locked = true;
-    $record->save();
-
-    return back()->with('success', 'Appointment cancelled successfully.');
-}
 
     /**
      * Delete an appointment
@@ -328,5 +328,114 @@ class AppointmentController extends Controller
     public function store(Request $request)
     {
         return response()->json(['status' => 'error', 'message' => 'Use booking endpoints'], 400);
+    }
+
+    /**
+     * Get authenticated user's appointments across all sacraments.
+     */
+    public function myAppointments(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            $appointments = collect();
+
+            // Baptism
+            $appointments = $appointments->merge(
+                Baptism::where('first_name', $user->name)
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'type' => 'Baptism',
+                            'name' => trim($item->first_name . ' ' . $item->last_name),
+                            'date' => $item->baptism_date,
+                            'status' => $item->status ?? 'pending',
+                            'created_at' => $item->created_at,
+                        ];
+                    })
+            );
+
+            // Communion
+            $appointments = $appointments->merge(
+                Communion::where('first_name', $user->name)
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'type' => 'Communion',
+                            'name' => trim($item->first_name . ' ' . $item->last_name),
+                            'date' => $item->communion_date,
+                            'status' => $item->status ?? 'pending',
+                            'created_at' => $item->created_at,
+                        ];
+                    })
+            );
+
+            // Confirmation
+            $appointments = $appointments->merge(
+                Confirmation::where('first_name', $user->name)
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'type' => 'Confirmation',
+                            'name' => trim($item->first_name . ' ' . $item->last_name),
+                            'date' => null,
+                            'status' => $item->status ?? 'pending',
+                            'created_at' => $item->created_at,
+                        ];
+                    })
+            );
+
+            // Wedding
+            $appointments = $appointments->merge(
+                Wedding::where('groom_name', $user->name)
+                    ->orWhere('bride_name', $user->name)
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'type' => 'Wedding',
+                            'name' => $item->groom_name . ' & ' . $item->bride_name,
+                            'date' => null,
+                            'status' => $item->status ?? 'pending',
+                            'created_at' => $item->created_at,
+                        ];
+                    })
+            );
+
+            // Funeral
+            $appointments = $appointments->merge(
+                Funeral::where('deceased_name', $user->name)
+                    ->get()
+                    ->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'type' => 'Funeral',
+                            'name' => $item->deceased_name,
+                            'date' => $item->burial_date,
+                            'status' => $item->status ?? 'pending',
+                            'created_at' => $item->created_at,
+                        ];
+                    })
+            );
+
+            return response()->json([
+                'success' => true,
+                'appointments' => $appointments->sortByDesc('created_at')->values(),
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('MY_APPOINTMENTS_ERROR', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 }
