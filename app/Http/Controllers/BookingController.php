@@ -130,12 +130,13 @@ class BookingController extends Controller
                     'last_name'    => '',
                     'father_name'  => $parsed['father'] ?? '',
                     'mother_name'  => $parsed['mother'] ?? '',
-                    'birth_date'   => now()->toDateString(),
                     'legitimacy'   => 'Unknown',
                     'remarks'      => $details,
                     'book_number'  => 0,
                     'page_number'  => 0,
                     'line_number'  => 0,
+                    'birth_date'   => '1900-01-01',
+                    'baptism_date' => now()->toDateString(),
                 ];
                 break;
 
