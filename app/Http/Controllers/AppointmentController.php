@@ -263,11 +263,7 @@ class AppointmentController extends Controller
 
         $record = $model::findOrFail($id);
 
-        // Prevent deletion if locked (optional)
-        if ($record->is_locked) {
-            return back()->with('error', 'Locked appointments cannot be deleted.');
-        }
-
+        // Tinanggal na ang is_locked check para mabura kahit cancelled o naka-lock pa
         $record->delete();
 
         return back()->with('success', 'Appointment deleted successfully.');
