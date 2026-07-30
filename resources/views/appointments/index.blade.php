@@ -83,9 +83,6 @@
                                     <th class="px-6 py-4">#</th>
                                     <th class="px-6 py-4">Type</th>
                                     <th class="px-6 py-4">Name</th>
-                                    <th class="px-6 py-4">Date</th>
-                                    <th class="px-6 py-4">Time</th>
-                                    <th class="px-6 py-4">Category</th>
                                     <th class="px-6 py-4">Date Submitted</th>
                                     <th class="px-6 py-4">Status</th>
                                     <th class="px-6 py-4 text-center">Actions</th>
@@ -108,22 +105,13 @@
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 font-medium text-gray-900">{{ $app->name ?? 'N/A' }}</td>
-                                        <td class="px-6 py-4">
-                                            @if($app->appointment_date)
-                                                {{ \Carbon\Carbon::parse($app->appointment_date)->format('M d, Y') }}
-                                            @else
-                                                <span class="text-gray-400">N/A</span>
-                                            @endif
-                                        </td>
-                                        <td class="px-6 py-4">{{ $app->time ?? 'N/A' }}</td>
-                                        <td class="px-6 py-4">{{ $app->category ?? 'N/A' }}</td>
                                         <td class="px-6 py-4 font-medium text-gray-700">{{ $app->submitted_at }}</td>
                                         
-                                        <!-- Step 5.5: Status & Cancellation Reason Tooltip Column -->
+                                        <!-- Status Column -->
                                         <td class="px-6 py-4">
                                             @if(($app->status ?? 'pending') === 'cancelled' || ($app->status ?? 'pending') === 'canceled')
                                                 <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase bg-red-100 text-red-800 cursor-help" 
-                                                      title="Reason: {{ $app->cancellation_reason ?? 'No reason provided' }}">
+                                                    title="Reason: {{ $app->cancellation_reason ?? 'No reason provided' }}">
                                                     Cancelled
                                                 </span>
                                             @else
@@ -139,6 +127,7 @@
                                             @endif
                                         </td>
 
+                                        <!-- Actions Column -->
                                         <td class="px-6 py-4">
                                             <div class="flex items-center justify-center space-x-2 flex-wrap gap-1">
                                                 @if(($app->status ?? 'pending') !== 'confirmed')
