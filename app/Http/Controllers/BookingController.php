@@ -139,7 +139,7 @@ class BookingController extends Controller
                     'mother_maiden_name'   => $parsed['mother'] ?? '',
                     'mother_birthplace'    => '',
                     'residence'            => $contactNumber,
-                    'baptism_date'         => now()->toDateString(),
+                    'baptism_date'         => null, // Admin ang magtatakda ng petsa
                     'minister_name'        => 'TBD',
                     'godfather'            => '',
                     'godmother'            => '',
@@ -154,30 +154,30 @@ class BookingController extends Controller
                     'line_number'        => 0,
                     'first_name'         => $userName,
                     'last_name'          => '',
-                    'communion_date'     => now()->toDateString(),
+                    'communion_date'     => null, // Admin ang magtatakda ng petsa
                     'residence'          => $contactNumber,
                     'minister_name'      => 'TBD',
-                    'baptism_date'       => now()->toDateString(),
+                    'baptism_date'       => null, 
                     'place_of_baptism'   => 'Unknown',
                 ];
                 break;
 
             case 'confirmation':
                 $data = [
-                    'book_number'        => 0,
-                    'page_number'        => 0,
-                    'line_number'        => 0,
-                    'year'               => '',
-                    'month_day'          => '',
-                    'first_name'         => $userName,
-                    'last_name'          => '',
-                    'age'                => $parsed['age'] ?? 0,
-                    'birthplace'         => 'Unknown',
-                    'father_name'        => $parsed['father'] ?? '',
-                    'mother_name'        => $parsed['mother'] ?? '',
-                    'parents_residence'  => $contactNumber,
-                    'sponsors'           => 'TBD',
-                    'minister_name'      => 'TBD',
+                    'book_number'       => 0,
+                    'page_number'       => 0,
+                    'line_number'       => 0,
+                    'year'              => '',
+                    'month_day'         => null, // Admin ang magtatakda ng petsa
+                    'first_name'        => $userName,
+                    'last_name'         => '',
+                    'age'               => $parsed['age'] ?? 0,
+                    'birthplace'        => 'Unknown',
+                    'father_name'       => $parsed['father'] ?? '',
+                    'mother_name'       => $parsed['mother'] ?? '',
+                    'parents_residence' => $contactNumber,
+                    'sponsors'          => 'TBD',
+                    'minister_name'     => 'TBD',
                 ];
                 break;
 
@@ -188,7 +188,7 @@ class BookingController extends Controller
                     'page_number'               => 0,
                     'line_number'               => 0,
                     'year'                      => '',
-                    'month_day'                 => '',
+                    'month_day'                 => null, // Admin ang magtatakda ng araw ng kasal
 
                     'groom_name'                => $parsed['groom'] ?? $userName,
                     'groom_age'                 => 0,
@@ -208,14 +208,14 @@ class BookingController extends Controller
 
             case 'funeral':
                 $data = [
-                    'category'        => 'Funeral',
-                    'book_number'     => 0,
-                    'page_number'     => 0,
-                    'line_number'     => 0,
-                    'deceased_name'   => $userName,
-                    'residence'       => $contactNumber,
-                    'minister_name'   => 'TBD',
-                    'remarks'         => $details,
+                    'category'      => 'Funeral',
+                    'book_number'   => 0,
+                    'page_number'   => 0,
+                    'line_number'   => 0,
+                    'deceased_name' => $userName,
+                    'residence'     => $contactNumber,
+                    'minister_name' => 'TBD',
+                    'remarks'       => $details,
                 ];
                 break;
         }
