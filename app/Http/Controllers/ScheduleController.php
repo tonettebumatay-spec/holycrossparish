@@ -6,6 +6,7 @@ use App\Models\Schedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class ScheduleController extends Controller
 {
@@ -37,6 +38,16 @@ class ScheduleController extends Controller
             'description' => 'nullable|string|max:500',
         ]);
 
+        // I-check kung ang napiling petsa ay lumipas na (past date)
+        $selectedDate = Carbon::parse($validated['date'])->startOfDay();
+        $today = Carbon::today();
+
+        if ($selectedDate->lt($today)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Hindi na maaaring i-post ang schedule para sa mga nakalipas na petsa!');
+        }
+
         Schedule::create([
             'barangay' => $validated['location'],
             'date' => $validated['date'],
@@ -45,7 +56,7 @@ class ScheduleController extends Controller
             'status' => 'pending',
         ]);
 
-        return redirect()->route('schedules.index')->with('success', 'Schedule posted successfully!');
+        return redirect()->route('schedules.index')->with('success', 'SCHEDULE POSTED SUCCESSFULLY!');
     }
 
     public function archiveStatus(Request $request, Schedule $schedule, string $archive_status)
