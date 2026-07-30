@@ -23,5 +23,8 @@ class Confirmation extends Model
         'parents_residence',
         'sponsors',
         'minister_name',
+        'status',
+        'user_id',
+        'email',
     ];
 }

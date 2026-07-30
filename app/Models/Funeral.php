@@ -26,5 +26,8 @@ class Funeral extends Model
         'cemetery_name',
         'minister_name',
         'remarks',
+        'status',
+        'user_id',
+        'email',
     ];
 }

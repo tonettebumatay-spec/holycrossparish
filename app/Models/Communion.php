@@ -19,5 +19,8 @@ class Communion extends Model
         'minister_name',
         'baptism_date',
         'place_of_baptism',
+        'status',
+        'user_id',
+        'email',
     ];
 }
