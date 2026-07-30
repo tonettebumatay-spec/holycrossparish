@@ -11,13 +11,9 @@ use App\Models\Wedding;
 use App\Models\Funeral;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class RecordController extends Controller
 {
-    use AuthorizesRequests;
-
     /**
      * Display the list of record categories (Books) or dynamic listings.
      */
@@ -28,7 +24,7 @@ class RecordController extends Controller
 
         if ($category && $book_number !== null) {
             $title = strtoupper($category) . ' BOOK ' . $book_number;
-            $records = collect();
+            $records = collect(); 
 
             switch (strtolower($category)) {
                 case 'baptism':     $records = Baptism::where('book_number', $book_number)->get(); break;
@@ -48,7 +44,7 @@ class RecordController extends Controller
                 'category' => $category,
                 'bookNumber' => $book_number,
                 'title' => $title,
-                'records' => $records,
+                'records' => $records, 
             ]);
         }
 
@@ -74,8 +70,6 @@ class RecordController extends Controller
      */
     public function create(Request $request)
     {
-        $this->authorize('manage-records');
-
         $category = $request->query('category', 'Baptism');
         $book_number = $request->query('book_number', 1);
 
@@ -99,74 +93,32 @@ class RecordController extends Controller
 
     public function edit($id, Request $request)
     {
-        $this->authorize('manage-records');
-
         $category = $request->query('category', 'baptism');
         $book_number = $request->query('book_number', 1);
         $record = $this->resolveModel($category)->findOrFail($id);
-
+        
         return view('records.edit', compact('record', 'category', 'book_number'));
     }
 
-    /**
-     * Update a record – with column filtering to prevent SQL errors.
-     */
     public function update(Request $request, $id)
     {
-        $this->authorize('manage-records');
-
         $category = strtolower($request->category ?? '');
-        $request->validate([
-            'category' => 'required|string',
-            'book_number' => 'required|integer',
-        ]);
-
+        $request->validate(['category' => 'required|string', 'book_number' => 'required|integer']);
+        
         $record = $this->resolveModel($category)->findOrFail($id);
-        $tableName = $record->getTable();
-
-        // ✅ Filter only valid columns from the request
-        $dbColumns = Schema::getColumnListing($tableName);
-        $updateData = array_intersect_key(
-            $request->except(['_token', '_method', 'category']),
-            array_flip($dbColumns)
-        );
-
-        // Remove empty values (optional)
-        $updateData = array_filter($updateData, function ($value) {
-            return $value !== null && $value !== '';
-        });
-
-        $record->update($updateData);
-
-        return redirect()->route('records.index', [
-            'category' => $category,
-            'book_number' => $request->book_number
-        ])->with('success', 'Record successfully updated!');
+        $record->update($request->except(['_token', '_method', 'category']));
+        
+        return redirect()->route('records.index', ['category' => $category, 'book_number' => $request->book_number])
+                         ->with('success', 'Record successfully updated!');
     }
 
-    /**
-     * Delete a record.
-     */
     public function destroy($id, Request $request)
     {
-        $this->authorize('manage-records');
-
         $category = strtolower($request->query('category', 'baptism'));
-        $book_number = $request->query('book_number', 1);
-
-        try {
-            $this->resolveModel($category)->findOrFail($id)->delete();
-            return redirect()->route('records.index', [
-                'category' => $category,
-                'book_number' => $book_number
-            ])->with('success', 'Record deleted successfully!');
-        } catch (\Exception $e) {
-            Log::error('Record deletion failed: ' . $e->getMessage());
-            return redirect()->route('records.index', [
-                'category' => $category,
-                'book_number' => $book_number
-            ])->with('error', 'Failed to delete record: ' . $e->getMessage());
-        }
+        $this->resolveModel($category)->findOrFail($id)->delete();
+        
+        return redirect()->route('records.index', ['category' => $category, 'book_number' => $request->query('book_number', 1)])
+                         ->with('success', 'Record deleted!');
     }
 
     /**
@@ -174,10 +126,8 @@ class RecordController extends Controller
      */
     public function store(Request $request)
     {
-        $this->authorize('manage-records');
-
         $category = strtolower($request->category ?? '');
-
+        
         // 1) Define base validation rules required by EVERY single book
         $rules = [
             'category' => 'required|string',
@@ -195,7 +145,7 @@ class RecordController extends Controller
             $rules['father_name'] = 'required|string';
             $rules['mother_name'] = 'required|string';
             $rules['minister_name'] = 'required|string';
-            $rules['legitimacy'] = 'required|string|in:Legitimate,Natural';
+            $rules['legitimacy'] = 'required|string|in:Legitimate,Natural'; 
             $rules['residence'] = 'nullable|string';
         } else {
             $rules['legitimacy'] = 'nullable|string';
@@ -213,9 +163,8 @@ class RecordController extends Controller
             $candidateName = trim((string) $request->input('candidate_name'));
             $parts = preg_split('/\s+/', $candidateName);
 
-            // ✅ Improved: first is first name, rest is last name (handles middle names)
-            $firstName = array_shift($parts);
-            $lastName = implode(' ', $parts); // handles middle names
+            $firstName = $parts[0] ?? null;
+            $lastName = count($parts) ? $parts[count($parts) - 1] : null;
 
             if (!$firstName || !$lastName) {
                 $request->validate([
@@ -228,7 +177,7 @@ class RecordController extends Controller
             }
 
             // Duplicate Check logic for Baptisms
-            $exists = Baptism::where('first_name', $firstName)
+            $exists = \App\Models\Baptism::where('first_name', $firstName)
                 ->where('last_name', $lastName)
                 ->whereDate('birth_date', $request->birth_date)
                 ->exists();
@@ -252,7 +201,7 @@ class RecordController extends Controller
             ]);
         }
 
-        // 4) Cross-book structural data normalization
+        // 4) Cross-book structural data normalization 
         if ($category === 'confirmation' && $request->has('sponsor_name')) {
             $request->merge(['sponsors' => $request->input('sponsor_name')]);
         }
@@ -268,10 +217,8 @@ class RecordController extends Controller
         // Save the cleaned dataset securely utilizing Eloquent model definitions
         $model->fill($saveData)->save();
 
-        return redirect()->route('records.index', [
-            'category' => $category,
-            'book_number' => $request->book_number
-        ])->with('success', 'Record successfully saved!');
+        return redirect()->route('records.index', ['category' => $category, 'book_number' => $request->book_number])
+                         ->with('success', 'Record successfully saved!');
     }
 
     /**
