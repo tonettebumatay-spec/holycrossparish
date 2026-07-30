@@ -15,7 +15,6 @@ class AppointmentController extends Controller
 {
     /**
      * Display a listing of all appointments from all sacrament tables.
-     * Supports search, status filter, and type filter.
      */
     public function index(Request $request)
     {
@@ -160,8 +159,6 @@ class AppointmentController extends Controller
                 ->sortByDesc('created_at')
                 ->values();
 
-            Log::info('AppointmentController total: ' . $allAppointments->count());
-
             return view('appointments.index', [
                 'appointments' => $allAppointments,
                 'search'       => $search,
@@ -284,16 +281,19 @@ class AppointmentController extends Controller
             $user = $request->user();
             $appointments = collect();
 
+            // Ginamit ang email para mahanap ang bookings ng user (Siguraduhing may 'email' column ang tables mo)
+            $identifier = $user->email ?? $user->name;
+
             // Baptism
             $appointments = $appointments->merge(
-                Baptism::where('first_name', $user->name)
+                Baptism::where('email', $identifier)->orWhere('user_id', $user->id ?? null)
                     ->get()
                     ->map(function ($item) {
                         return [
                             'id' => $item->id,
                             'type' => 'Baptism',
-                            'name' => trim($item->first_name . ' ' . $item->last_name),
-                            'date' => $item->baptism_date,
+                            'name' => trim(($item->first_name ?? '') . ' ' . ($item->last_name ?? '')),
+                            'date' => $item->baptism_date ?? null,
                             'status' => $item->status ?? 'pending',
                             'created_at' => $item->created_at,
                         ];
@@ -302,14 +302,14 @@ class AppointmentController extends Controller
 
             // Communion
             $appointments = $appointments->merge(
-                Communion::where('first_name', $user->name)
+                Communion::where('email', $identifier)->orWhere('user_id', $user->id ?? null)
                     ->get()
                     ->map(function ($item) {
                         return [
                             'id' => $item->id,
                             'type' => 'Communion',
-                            'name' => trim($item->first_name . ' ' . $item->last_name),
-                            'date' => $item->communion_date,
+                            'name' => $item->candidate_name ?? 'N/A',
+                            'date' => $item->communion_date ?? null,
                             'status' => $item->status ?? 'pending',
                             'created_at' => $item->created_at,
                         ];
@@ -318,14 +318,14 @@ class AppointmentController extends Controller
 
             // Confirmation
             $appointments = $appointments->merge(
-                Confirmation::where('first_name', $user->name)
+                Confirmation::where('email', $identifier)->orWhere('user_id', $user->id ?? null)
                     ->get()
                     ->map(function ($item) {
                         return [
                             'id' => $item->id,
                             'type' => 'Confirmation',
-                            'name' => trim($item->first_name . ' ' . $item->last_name),
-                            'date' => null,
+                            'name' => $item->candidate_name ?? 'N/A',
+                            'date' => $item->confirmation_date ?? null,
                             'status' => $item->status ?? 'pending',
                             'created_at' => $item->created_at,
                         ];
@@ -334,15 +334,14 @@ class AppointmentController extends Controller
 
             // Wedding
             $appointments = $appointments->merge(
-                Wedding::where('groom_name', $user->name)
-                    ->orWhere('bride_name', $user->name)
+                Wedding::where('email', $identifier)->orWhere('user_id', $user->id ?? null)
                     ->get()
                     ->map(function ($item) {
                         return [
                             'id' => $item->id,
                             'type' => 'Wedding',
-                            'name' => $item->groom_name . ' & ' . $item->bride_name,
-                            'date' => null,
+                            'name' => ($item->groom_name ?? '') . ' & ' . ($item->bride_name ?? ''),
+                            'date' => $item->wedding_date ?? null,
                             'status' => $item->status ?? 'pending',
                             'created_at' => $item->created_at,
                         ];
@@ -351,14 +350,14 @@ class AppointmentController extends Controller
 
             // Funeral
             $appointments = $appointments->merge(
-                Funeral::where('deceased_name', $user->name)
+                Funeral::where('email', $identifier)->orWhere('user_id', $user->id ?? null)
                     ->get()
                     ->map(function ($item) {
                         return [
                             'id' => $item->id,
                             'type' => 'Funeral',
-                            'name' => $item->deceased_name,
-                            'date' => $item->burial_date,
+                            'name' => $item->deceased_name ?? 'N/A',
+                            'date' => $item->burial_date ?? null,
                             'status' => $item->status ?? 'pending',
                             'created_at' => $item->created_at,
                         ];
@@ -371,14 +370,11 @@ class AppointmentController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('MY_APPOINTMENTS_ERROR', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
+            Log::error('MY_APPOINTMENTS_ERROR: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Server error: ' . $e->getMessage(),
             ], 500);
         }
     }
