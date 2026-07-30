@@ -10,13 +10,24 @@ class Wedding extends Model
 
     protected $fillable = [
         'category',
-        'groom_name',
-        'bride_name',
-        'remarks',
         'book_number',
         'page_number',
         'line_number',
         'year',
         'month_day',
+
+        'groom_name',
+        'groom_age',
+        'groom_status',
+        'groom_residence',
+        'groom_parents',
+        'groom_parents_residence',
+
+        'bride_name',
+        'bride_age',
+        'bride_status',
+        'bride_residence',
+        'bride_parents',
+        'bride_parents_residence',
     ];
 }

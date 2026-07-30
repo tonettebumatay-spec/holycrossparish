@@ -9,14 +9,19 @@ class Confirmation extends Model
     protected $table = 'confirmations';
 
     protected $fillable = [
-        'category',
-        'candidate_name',
-        'father_name',
-        'mother_name',
-        'parents_residence',
-        'remarks',
         'book_number',
         'page_number',
         'line_number',
+        'year',
+        'month_day',
+        'first_name',
+        'last_name',
+        'age',
+        'birthplace',
+        'father_name',
+        'mother_name',
+        'parents_residence',
+        'sponsors',
+        'minister_name',
     ];
 }

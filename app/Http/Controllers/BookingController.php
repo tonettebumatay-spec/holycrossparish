@@ -149,64 +149,73 @@ class BookingController extends Controller
 
             case 'communion':
                 $data = [
-                    'category'           => 'Communion',
-                    'first_name'         => $userName,
-                    'last_name'          => '',
-                    'age'                => $parsed['age'] ?? 0,
-                    'father_name'        => $parsed['father'] ?? '',
-                    'residence'          => $contactNumber,
-                    'communion_date'     => now()->toDateString(),
-                    'minister_name'      => 'TBD',
-                    'baptism_date'       => now()->toDateString(),
-                    'place_of_baptism'   => 'TBD',
                     'book_number'        => 0,
                     'page_number'        => 0,
                     'line_number'        => 0,
+                    'first_name'         => $userName,
+                    'last_name'          => '',
+                    'communion_date'     => now()->toDateString(),
+                    'residence'          => $contactNumber,
+                    'minister_name'      => 'TBD',
+                    'baptism_date'       => now()->toDateString(),
+                    'place_of_baptism'   => 'Unknown',
                 ];
                 break;
 
             case 'confirmation':
                 $data = [
-                    'category'          => 'Confirmation',
-                    'first_name'        => $userName,
-                    'last_name'         => '',
-                    'age'               => $parsed['age'] ?? 0,
-                    'birthplace'        => 'TBD',
-                    'father_name'       => $parsed['father'] ?? '',
-                    'parents_residence' => $contactNumber,
-                    'sponsors'          => 'TBD',
-                    'minister_name'     => 'TBD',
-                    'year'              => '',
-                    'month_day'         => '',
-                    'book_number'       => 0,
-                    'page_number'       => 0,
-                    'line_number'       => 0,
+                    'book_number'        => 0,
+                    'page_number'        => 0,
+                    'line_number'        => 0,
+                    'year'               => '',
+                    'month_day'          => '',
+                    'first_name'         => $userName,
+                    'last_name'          => '',
+                    'age'                => $parsed['age'] ?? 0,
+                    'birthplace'         => 'Unknown',
+                    'father_name'        => $parsed['father'] ?? '',
+                    'mother_name'        => $parsed['mother'] ?? '',
+                    'parents_residence'  => $contactNumber,
+                    'sponsors'           => 'TBD',
+                    'minister_name'      => 'TBD',
                 ];
                 break;
 
             case 'wedding':
                 $data = [
-                    'category'     => 'Wedding',
-                    'groom_name'   => $parsed['groom'] ?? $userName,
-                    'bride_name'   => $parsed['bride'] ?? '',
-                    'remarks'      => $details,
-                    'book_number'  => 0,
-                    'page_number'  => 0,
-                    'line_number'  => 0,
-                    'year'         => '',
-                    'month_day'    => '',
+                    'category'                  => 'Wedding',
+                    'book_number'               => 0,
+                    'page_number'               => 0,
+                    'line_number'               => 0,
+                    'year'                      => '',
+                    'month_day'                 => '',
+
+                    'groom_name'                => $parsed['groom'] ?? $userName,
+                    'groom_age'                 => 0,
+                    'groom_status'              => 'Single',
+                    'groom_residence'           => $contactNumber,
+                    'groom_parents'             => '',
+                    'groom_parents_residence'   => '',
+
+                    'bride_name'                => $parsed['bride'] ?? '',
+                    'bride_age'                 => 0,
+                    'bride_status'              => 'Single',
+                    'bride_residence'           => '',
+                    'bride_parents'             => '',
+                    'bride_parents_residence'   => '',
                 ];
                 break;
 
             case 'funeral':
                 $data = [
-                    'category'      => 'Funeral',
-                    'deceased_name' => $userName,
-                    'residence'     => $contactNumber,
-                    'remarks'       => $details,
-                    'book_number'   => 0,
-                    'page_number'   => 0,
-                    'line_number'   => 0,
+                    'category'        => 'Funeral',
+                    'book_number'     => 0,
+                    'page_number'     => 0,
+                    'line_number'     => 0,
+                    'deceased_name'   => $userName,
+                    'residence'       => $contactNumber,
+                    'minister_name'   => 'TBD',
+                    'remarks'         => $details,
                 ];
                 break;
         }
