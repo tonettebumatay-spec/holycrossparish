@@ -125,18 +125,25 @@ class BookingController extends Controller
         switch ($type) {
             case 'baptism':
                 $data = [
-                    'category'     => 'Baptism',
-                    'first_name'   => $userName,
-                    'last_name'    => '',
-                    'father_name'  => $parsed['father'] ?? '',
-                    'mother_name'  => $parsed['mother'] ?? '',
-                    'legitimacy'   => 'Unknown',
-                    'remarks'      => $details,
-                    'book_number'  => 0,
-                    'page_number'  => 0,
-                    'line_number'  => 0,
-                    'birth_date'   => '1900-01-01',
-                    'baptism_date' => now()->toDateString(),
+                    'category'             => 'Baptism',
+                    'book_number'          => 0,
+                    'page_number'          => 0,
+                    'line_number'          => 0,
+                    'first_name'           => $userName,
+                    'last_name'            => '',
+                    'legitimacy'           => 'Unknown',
+                    'birth_date'           => '1900-01-01',
+                    'birth_place'          => 'Unknown',
+                    'father_name'          => $parsed['father'] ?? '',
+                    'father_birthplace'    => '',
+                    'mother_maiden_name'   => $parsed['mother'] ?? '',
+                    'mother_birthplace'    => '',
+                    'residence'            => $contactNumber,
+                    'baptism_date'         => now()->toDateString(),
+                    'minister_name'        => 'TBD',
+                    'godfather'            => '',
+                    'godmother'            => '',
+                    'remarks'              => $details,
                 ];
                 break;
 
@@ -241,9 +248,7 @@ class BookingController extends Controller
                 } elseif (str_contains($key, 'email')) {
                     $result['email'] = $value;
                 } elseif (str_contains($key, 'child') || str_contains($key, 'name')) {
-                    if (!isset($result['child'])) {
-                        $result['child'] = $value;
-                    }
+                    $result['child'] = $value;
                 }
             }
         }
