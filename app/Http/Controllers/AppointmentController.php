@@ -20,7 +20,6 @@ class AppointmentController extends Controller
     public function index(Request $request)
     {
         try {
-            // Get filter inputs from the request
             $search = $request->input('search');
             $statusFilter = $request->input('status');
             $typeFilter = $request->input('type');
@@ -152,7 +151,6 @@ class AppointmentController extends Controller
                 $funerals = collect();
             }
 
-            // Merge all collections and sort by created_at (newest first)
             $allAppointments = collect()
                 ->merge($baptisms)
                 ->merge($communions)
@@ -164,7 +162,6 @@ class AppointmentController extends Controller
 
             Log::info('AppointmentController total: ' . $allAppointments->count());
 
-            // Pass filter values back to the view for retaining form values
             return view('appointments.index', [
                 'appointments' => $allAppointments,
                 'search'       => $search,
@@ -203,7 +200,6 @@ class AppointmentController extends Controller
 
         $record = $model::findOrFail($id);
 
-        // Prevent updating if locked
         if ($record->is_locked) {
             return back()->with('error', 'This appointment is locked and cannot be modified.');
         }
@@ -230,7 +226,6 @@ class AppointmentController extends Controller
         $model = $modelMap[$type] ?? abort(404);
         $record = $model::findOrFail($id);
 
-        // Prevent cancellation if already cancelled or locked
         if ($record->status === 'cancelled' || $record->is_locked) {
             return back()->with('error', 'Appointment cannot be cancelled.');
         }
@@ -263,14 +258,17 @@ class AppointmentController extends Controller
 
         $record = $model::findOrFail($id);
 
-        // Tinanggal na ang is_locked check para mabura kahit cancelled o naka-lock pa
+        if ($record->is_locked) {
+            return back()->with('error', 'Locked appointments cannot be deleted.');
+        }
+
         $record->delete();
 
         return back()->with('success', 'Appointment deleted successfully.');
     }
 
     /**
-     * Fallback store method (not used for Android – handled by BookingController).
+     * Fallback store method
      */
     public function store(Request $request)
     {
@@ -284,7 +282,6 @@ class AppointmentController extends Controller
     {
         try {
             $user = $request->user();
-
             $appointments = collect();
 
             // Baptism
