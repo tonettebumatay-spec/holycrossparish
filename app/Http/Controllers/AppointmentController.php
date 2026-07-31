@@ -314,18 +314,43 @@ class AppointmentController extends Controller
             $appointments = collect();
             $identifier = $user->email ?? ($user->name ?? null);
 
-            // Safe helper function to query tables without breaking if columns don't exist yet
-            $safeQuery = function($modelClass, $type, $nameCallback, $dateField) use ($user, $identifier) {
+            /*
+            |--------------------------------------------------------------------------
+            | Helper
+            |--------------------------------------------------------------------------
+            | Gets appointments while checking if email/user_id columns exist.
+            | Also returns the scheduled date/time for the Android app.
+            */
+            $safeQuery = function (
+                $modelClass,
+                $type,
+                $nameCallback,
+                $originalDateField
+            ) use ($user, $identifier) {
+
                 try {
                     $query = $modelClass::query();
-                    
-                    // Check table columns dynamically to prevent SQL errors if email/user_id are missing
-                    $table = (new $modelClass)->getTable();
+
+                    $modelInstance = new $modelClass;
+                    $table = $modelInstance->getTable();
+
+                    // Check available columns
                     $hasEmail = Schema::hasColumn($table, 'email');
                     $hasUserId = Schema::hasColumn($table, 'user_id');
+                    $hasAppointmentDate = Schema::hasColumn($table, 'appointment_date');
+                    $hasAppointmentTime = Schema::hasColumn($table, 'appointment_time');
+                    $hasStatus = Schema::hasColumn($table, 'status');
+                    $hasCancellationReason = Schema::hasColumn($table, 'cancellation_reason');
+                    $hasIsLocked = Schema::hasColumn($table, 'is_locked');
 
+                    // Filter appointments belonging to the logged-in user
                     if ($user && ($hasEmail || $hasUserId)) {
-                        $query->where(function ($q) use ($hasEmail, $hasUserId, $identifier, $user) {
+                        $query->where(function ($q) use (
+                            $hasEmail,
+                            $hasUserId,
+                            $identifier,
+                            $user
+                        ) {
                             if ($hasEmail && $identifier) {
                                 $q->orWhere('email', $identifier);
                             }
@@ -336,73 +361,313 @@ class AppointmentController extends Controller
                         });
                     }
 
-                    return $query->get()->map(function ($item) use ($type, $nameCallback, $dateField) {
+                    return $query->get()->map(function ($item) use (
+                        $type,
+                        $nameCallback,
+                        $originalDateField,
+                        $hasAppointmentDate,
+                        $hasAppointmentTime,
+                        $hasCancellationReason,
+                        $hasIsLocked
+                    ) {
+
+                        // Original sacrament date
+                        $originalDate = null;
+
+                        if (
+                            $originalDateField &&
+                            Schema::hasColumn($item->getTable(), $originalDateField)
+                        ) {
+                            $originalDate = $item->{$originalDateField} ?? null;
+                        }
+
+                        // Admin scheduled date
+                        $appointmentDate = $hasAppointmentDate
+                            ? ($item->appointment_date ?? null)
+                            : null;
+
+                        // Admin scheduled time
+                        $appointmentTime = $hasAppointmentTime
+                            ? ($item->appointment_time ?? null)
+                            : null;
+
+                        // Determine if appointment has been scheduled
+                        $isScheduled = !empty($appointmentDate);
+
+                        // Normalize status
+                        $status = $item->status ?? 'pending';
+
                         return [
                             'id' => $item->id,
+
                             'type' => $type,
+
                             'name' => $nameCallback($item),
-                            'date' => $item->{$dateField} ?? null,
-                            'status' => $item->status ?? 'pending',
+
+                            // Original requested date
+                            'date' => $originalDate,
+
+                            // Date used by Android Booking model
+                            'appointment_date' => $appointmentDate ?? $originalDate,
+
+                            // Time set by admin
+                            'appointment_time' => $appointmentTime,
+
+                            // Fields expected by Android
+                            'scheduled_date' => $appointmentDate,
+
+                            'scheduled_time' => $appointmentTime,
+
+                            'is_scheduled' => $isScheduled,
+
+                            'status' => $status,
+
+                            'cancellation_reason' => $hasCancellationReason
+                                ? ($item->cancellation_reason ?? null)
+                                : null,
+
+                            'is_locked' => $hasIsLocked
+                                ? (bool) ($item->is_locked ?? false)
+                                : false,
+
+                            'submitted_at' => $item->created_at
+                                ? $item->created_at->format('Y-m-d H:i:s')
+                                : null,
+
                             'created_at' => $item->created_at,
                         ];
                     });
+
                 } catch (\Exception $ex) {
-                    Log::error("Error fetching {$type} appointments: " . $ex->getMessage());
+
+                    Log::error(
+                        "Error fetching {$type} appointments: " .
+                        $ex->getMessage()
+                    );
+
                     return collect();
                 }
             };
 
-            // Baptism
-            $appointments = $appointments->merge($safeQuery(
-                Baptism::class, 
-                'Baptism', 
-                fn($item) => trim(($item->first_name ?? '') . ' ' . ($item->last_name ?? '')) ?: 'N/A', 
-                'baptism_date'
-            ));
+            /*
+            |--------------------------------------------------------------------------
+            | Baptism
+            |--------------------------------------------------------------------------
+            */
+            $appointments = $appointments->merge(
+                $safeQuery(
+                    Baptism::class,
+                    'Baptism',
+                    fn($item) =>
+                        trim(
+                            ($item->first_name ?? '') .
+                            ' ' .
+                            ($item->last_name ?? '')
+                        ) ?: 'N/A',
+                    'baptism_date'
+                )
+            );
 
-            // Communion
-            $appointments = $appointments->merge($safeQuery(
-                Communion::class, 
-                'Communion', 
-                fn($item) => trim(($item->first_name ?? '') . ' ' . ($item->last_name ?? '')) ?: ($item->candidate_name ?? 'N/A'), 
-                'communion_date'
-            ));
+            /*
+            |--------------------------------------------------------------------------
+            | Communion
+            |--------------------------------------------------------------------------
+            */
+            $appointments = $appointments->merge(
+                $safeQuery(
+                    Communion::class,
+                    'Communion',
+                    fn($item) =>
+                        trim(
+                            ($item->first_name ?? '') .
+                            ' ' .
+                            ($item->last_name ?? '')
+                        ) ?: ($item->candidate_name ?? 'N/A'),
+                    'communion_date'
+                )
+            );
 
-            // Confirmation
-            $appointments = $appointments->merge($safeQuery(
-                Confirmation::class, 
-                'Confirmation', 
-                fn($item) => trim(($item->first_name ?? '') . ' ' . ($item->last_name ?? '')) ?: ($item->candidate_name ?? 'N/A'), 
-                'month_day'
-            ));
+            /*
+            |--------------------------------------------------------------------------
+            | Confirmation
+            |--------------------------------------------------------------------------
+            */
+            $appointments = $appointments->merge(
+                $safeQuery(
+                    Confirmation::class,
+                    'Confirmation',
+                    fn($item) =>
+                        trim(
+                            ($item->first_name ?? '') .
+                            ' ' .
+                            ($item->last_name ?? '')
+                        ) ?: ($item->candidate_name ?? 'N/A'),
+                    'month_day'
+                )
+            );
 
-            // Wedding
-            $appointments = $appointments->merge($safeQuery(
-                Wedding::class, 
-                'Wedding', 
-                fn($item) => ($item->groom_name ?? '') . ' & ' . ($item->bride_name ?? ''), 
-                'month_day'
-            ));
+            /*
+            |--------------------------------------------------------------------------
+            | Wedding
+            |--------------------------------------------------------------------------
+            */
+            $appointments = $appointments->merge(
+                $safeQuery(
+                    Wedding::class,
+                    'Wedding',
+                    fn($item) =>
+                        trim(
+                            ($item->groom_name ?? '') .
+                            ' & ' .
+                            ($item->bride_name ?? '')
+                        ),
+                    'month_day'
+                )
+            );
 
-            // Funeral
-            $appointments = $appointments->merge($safeQuery(
-                Funeral::class, 
-                'Funeral', 
-                fn($item) => $item->deceased_name ?? 'N/A', 
-                'burial_date'
-            ));
+            /*
+            |--------------------------------------------------------------------------
+            | Funeral
+            |--------------------------------------------------------------------------
+            */
+            $appointments = $appointments->merge(
+                $safeQuery(
+                    Funeral::class,
+                    'Funeral',
+                    fn($item) =>
+                        $item->deceased_name ?? 'N/A',
+                    'burial_date'
+                )
+            );
 
+            /*
+            |--------------------------------------------------------------------------
+            | Return API response
+            |--------------------------------------------------------------------------
+            */
             return response()->json([
                 'success' => true,
-                'appointments' => $appointments->sortByDesc('created_at')->values(),
+
+                'appointments' => $appointments
+                    ->sortByDesc('created_at')
+                    ->values(),
             ]);
 
         } catch (\Exception $e) {
-            Log::error('MY_APPOINTMENTS_ERROR: ' . $e->getMessage());
+
+            Log::error(
+                'MY_APPOINTMENTS_ERROR: ' .
+                $e->getMessage()
+            );
 
             return response()->json([
                 'success' => false,
                 'message' => 'Server error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Kunin ang mga NA-APPROVE / CONFIRMED na appointments lang (May petsa at oras na).
+     */
+    public function getConfirmedAppointments(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            $fetchConfirmed = function ($modelClass, $type, $nameCallback) use ($user) {
+                try {
+                    $query = $modelClass::query()
+                        ->where('user_id', $user->id)
+                        ->where('status', 'approved')
+                        ->whereNotNull('appointment_date')
+                        ->whereNotNull('appointment_time');
+
+                    return $query->get()->map(function ($item) use ($type, $nameCallback) {
+                        return [
+                            'id' => $item->id,
+                            'type' => $type,
+                            'name' => $nameCallback($item),
+                            'scheduled_date' => $item->appointment_date,
+                            'scheduled_time' => $item->appointment_time,
+                            'admin_notes' => $item->admin_notes ?? $item->remarks ?? null,
+                            'updated_at' => $item->updated_at
+                                ? $item->updated_at->toDateTimeString()
+                                : null,
+                        ];
+                    });
+
+                } catch (\Exception $ex) {
+                    Log::error(
+                        "Error fetching confirmed {$type}: " . $ex->getMessage()
+                    );
+
+                    return collect();
+                }
+            };
+
+            $confirmed = collect()
+                ->merge($fetchConfirmed(
+                    Baptism::class,
+                    'Baptism',
+                    fn($item) =>
+                        trim(
+                            ($item->first_name ?? '') . ' ' .
+                            ($item->last_name ?? '')
+                        ) ?: 'N/A'
+                ))
+                ->merge($fetchConfirmed(
+                    Communion::class,
+                    'Communion',
+                    fn($item) =>
+                        trim(
+                            ($item->first_name ?? '') . ' ' .
+                            ($item->last_name ?? '')
+                        ) ?: ($item->candidate_name ?? 'N/A')
+                ))
+                ->merge($fetchConfirmed(
+                    Confirmation::class,
+                    'Confirmation',
+                    fn($item) =>
+                        trim(
+                            ($item->first_name ?? '') . ' ' .
+                            ($item->last_name ?? '')
+                        ) ?: ($item->candidate_name ?? 'N/A')
+                ))
+                ->merge($fetchConfirmed(
+                    Wedding::class,
+                    'Wedding',
+                    fn($item) =>
+                        trim(
+                            ($item->groom_name ?? '') . ' & ' .
+                            ($item->bride_name ?? '')
+                        )
+                ))
+                ->merge($fetchConfirmed(
+                    Funeral::class,
+                    'Funeral',
+                    fn($item) =>
+                        $item->deceased_name ?? 'N/A'
+                ))
+                ->sortByDesc('updated_at')
+                ->values();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $confirmed,
+                'count' => $confirmed->count(),
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error(
+                'CONFIRMED_APPOINTMENTS_ERROR: ' .
+                $e->getMessage()
+            );
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch confirmed appointments: ' .
+                    $e->getMessage(),
             ], 500);
         }
     }

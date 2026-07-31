@@ -69,6 +69,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/appointments', [AppointmentController::class, 'index']);
         Route::get('/booked-slots', [AppointmentAvailabilityController::class, 'bookedSlots']);
 
+        // Get scheduled/approved appointments for the logged-in user
+        Route::get('/my-confirmed-appointments', [AppointmentController::class, 'getConfirmedAppointments']);
+
         // ---- Generic appointment & certificate (if used) ----
         Route::post('/appointment', [AppointmentController::class, 'store']);
         Route::post('/certificates', [CertificateController::class, 'store']);
