@@ -66,6 +66,8 @@ class BookingController extends Controller
                 ], 422);
             }
 
+            $user = $request->user();
+
             $userName = $request->input('user_name');
             $contactNumber = $request->input('contact_number');
             $details = $request->input('details') ?: '';
@@ -73,10 +75,25 @@ class BookingController extends Controller
             $parsed = $this->parseDetails($details);
 
             // 2. Build raw data array
-            $rawData = $this->buildDataArray($type, $userName, $contactNumber, $parsed, $details);
+            $rawData = $this->buildDataArray(
+                $type,
+                $userName,
+                $contactNumber,
+                $parsed,
+                $details
+            );
+
+            // Add logged-in user's information
+            if ($user) {
+                $rawData['user_id'] = $user->id;
+                $rawData['email'] = $user->email;
+            } elseif (isset($parsed['email'])) {
+                $rawData['email'] = $parsed['email'];
+            }
 
             // 3. Filter: keep only columns that exist in the target table
             $model = new $modelClass();
+            $table = $model->getTable();
             $fillable = $model->getFillable();
 
             $filteredData = [];
@@ -86,9 +103,19 @@ class BookingController extends Controller
                 }
             }
 
+            // Siguraduhing masama ang user_id at email kung meron sa database table
+            if (Schema::hasColumn($table, 'user_id') && isset($rawData['user_id'])) {
+                $filteredData['user_id'] = $rawData['user_id'];
+            }
+            if (Schema::hasColumn($table, 'email') && isset($rawData['email'])) {
+                $filteredData['email'] = $rawData['email'];
+            }
+
             // 4. Add status if the table has that column
-            if (in_array('status', $fillable)) {
-                $filteredData['status'] = 'pending';
+            if (in_array('status', $fillable) || Schema::hasColumn($table, 'status')) {
+                if (!isset($filteredData['status'])) {
+                    $filteredData['status'] = 'pending';
+                }
             }
 
             Log::info("API_BOOKING_FINAL_DATA_{$type}", $filteredData);
