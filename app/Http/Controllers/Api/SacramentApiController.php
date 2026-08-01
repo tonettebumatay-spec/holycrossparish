@@ -154,13 +154,27 @@ class SacramentApiController extends Controller
 
     /**
      * Get authenticated user profile.
+     * ✅ Returns user data in 'data' key (Android expects this)
      */
     public function getUserProfile(Request $request)
     {
+        $user = $request->user();
+        
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not authenticated',
+            ], 401);
+        }
+
         return response()->json([
             'success' => true,
-            'status'  => 'success',
-            'user'    => $request->user()
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone_number' => $user->phone_number,
+            ],
         ], 200);
     }
 
@@ -217,6 +231,7 @@ class SacramentApiController extends Controller
 
     /**
      * Book a baptism appointment/record.
+     * ✅ Now attaches authenticated user if available
      */
     public function bookBaptism(Request $request)
     {
@@ -240,14 +255,25 @@ class SacramentApiController extends Controller
                 ], 422);
             }
 
-            $baptism = Baptism::create([
+            // ✅ Get authenticated user
+            $user = $request->user();
+
+            $baptismData = [
                 'candidate_name'     => $request->input('child_name'),
                 'father_name'        => $request->input('father_name'),
                 'mother_maiden_name' => $request->input('mother_name'),
                 'email'              => $request->input('email'),
                 'contact_number'     => $request->input('contact_number'),
                 'status'             => 'pending',
-            ]);
+            ];
+
+            // ✅ Attach user_id if authenticated
+            if ($user) {
+                $baptismData['user_id'] = $user->id;
+                $baptismData['email'] = $user->email ?? $request->input('email');
+            }
+
+            $baptism = Baptism::create($baptismData);
 
             return response()->json([
                 'success' => true,
