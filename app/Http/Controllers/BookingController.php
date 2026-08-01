@@ -66,6 +66,14 @@ class BookingController extends Controller
                 ], 422);
             }
 
+            Log::info('AUTH HEADER', [
+                'authorization' => $request->header('Authorization'),
+            ]);
+
+            Log::info('AUTH USER', [
+                'user' => $request->user(),
+            ]);
+
             $user = $request->user();
 
             $userName = $request->input('user_name');
