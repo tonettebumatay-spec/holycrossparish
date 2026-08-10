@@ -29,5 +29,7 @@ class Baptism extends Model
         'godmother',
         'remarks',
         'status',
+        'appointment_date',
+        'appointment_time',
     ];
 }

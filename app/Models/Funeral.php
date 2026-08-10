@@ -27,5 +27,7 @@ class Funeral extends Model
         'minister_name',
         'remarks',
         'status',
+        'appointment_date',
+        'appointment_time',
     ];
 }

@@ -20,5 +20,7 @@ class Communion extends Model
         'baptism_date',
         'place_of_baptism',
         'status',
+        'appointment_date',
+        'appointment_time',
     ];
 }

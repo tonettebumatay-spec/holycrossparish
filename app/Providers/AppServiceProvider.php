@@ -17,18 +17,18 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Force HTTPS (already there)
-        URL::forceScheme('https');
+        // Force HTTPS only in production
+        if (app()->environment('production')) {
+            URL::forceScheme('https');
+        }
 
         // Define the 'api' rate limiter used by throttle:api middleware
         RateLimiter::for('api', function ($job) {
             return Limit::perMinute(60)->by($job->user()?->id ?: $job->ip());
         });
 
-
-         Gate::define('manage-records', function ($user) {
-        return $user->is_admin ?? false;
-    });
-
+        Gate::define('manage-records', function ($user) {
+            return $user->is_admin ?? false;
+        });
     }
 }

@@ -13,13 +13,12 @@ return new class extends Migration
             'communions',
             'confirmations',
             'weddings',
-            'funerals',
+            'funerals'
         ];
 
         foreach ($tables as $tableName) {
             Schema::table($tableName, function (Blueprint $table) {
-                $table->date('appointment_date')->nullable();
-                $table->time('appointment_time')->nullable();
+                $table->string('status')->default('pending');
             });
         }
     }
@@ -31,15 +30,12 @@ return new class extends Migration
             'communions',
             'confirmations',
             'weddings',
-            'funerals',
+            'funerals'
         ];
 
         foreach ($tables as $tableName) {
             Schema::table($tableName, function (Blueprint $table) {
-                $table->dropColumn([
-                    'appointment_date',
-                    'appointment_time',
-                ]);
+                $table->dropColumn('status');
             });
         }
     }

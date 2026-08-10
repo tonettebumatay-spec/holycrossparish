@@ -24,5 +24,7 @@ class Confirmation extends Model
         'sponsors',
         'minister_name',
         'status',
+        'appointment_date',
+        'appointment_time',
     ];
 }

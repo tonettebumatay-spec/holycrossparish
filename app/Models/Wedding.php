@@ -28,5 +28,7 @@ class Wedding extends Model
         'bride_parents',
         'bride_parents_residence',
         'status',
+        'appointment_date',
+        'appointment_time',
     ];
 }
