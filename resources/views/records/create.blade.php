@@ -501,7 +501,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 mb-1.5">Age at Death</label>
-                            <input type="number" name="age" placeholder="Years Old" class="text-sm w-full bg-white border border-gray-300 rounded px-3 py-2.5 text-gray-800 focus:outline-none focus:border-gray-500 transition-all">
+                           <input type="number" name="age" placeholder="Years Old" class="text-sm w-full bg-white border border-gray-300 rounded px-3 py-2.5 text-gray-800 focus:outline-none focus:border-gray-500 transition-all">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 mb-1.5">Civil Status</label>
@@ -555,10 +555,11 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-600 mb-1.5">Received Sacraments?</label>
-                            <select name="sacrament_before_death" class="text-sm w-full bg-white border border-gray-300 rounded px-3 py-2.5 text-gray-800 focus:outline-none focus:border-gray-500 transition-all">
-                                <option value="0">Not able to receive Sacraments</option>
-                                <option value="1">Received Sacraments before death</option>
-                            </select>
+
+<select name="sacraments_received" class="text-sm w-full bg-white border border-gray-300 rounded px-3 py-2.5 text-gray-800 focus:outline-none focus:border-gray-500 transition-all">
+    <option value="0">Not able to receive Sacraments</option>
+    <option value="1">Received Sacraments before death</option>
+</select>
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-xs font-semibold text-gray-600 mb-1.5">Remarks</label>

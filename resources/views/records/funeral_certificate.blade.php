@@ -225,10 +225,10 @@
                                     <input type="text" name="cause_of_death" value="{{ $record->cause_of_death ?? '_______________________________________________________________________________________________--' }}" 
                                            class="font-semibold border-b border-gray-400 inline-block w-[180px] text-center bg-transparent px-1">
                                     .
-                                    <select name="sacrament_before_death" class="border-b border-gray-400 bg-transparent font-semibold text-xs ml-1">
-                                        <option value="1" {{ $record->sacrament_before_death ? 'selected' : '' }}>Received Sacraments</option>
-                                        <option value="0" {{ !$record->sacrament_before_death ? 'selected' : '' }}>Not able to receive Sacraments</option>
-                                    </select>
+                                   <select name="sacraments_received" class="border-b border-gray-400 bg-transparent font-semibold text-xs ml-1">
+    <option value="1" {{ $record->sacraments_received ? 'selected' : '' }}>Received Sacraments</option>
+    <option value="0" {{ !$record->sacraments_received ? 'selected' : '' }}>Not able to receive Sacraments</option>
+</select>
                                 </p>
                                 
                                 <p>
