@@ -17,32 +17,38 @@ class DashboardController extends Controller
     {
         try {
             // Calculate total appointments from all sacrament tables
-            $appointmentCount = Baptism::count() + 
-                                Communion::count() + 
-                                Confirmation::count() + 
-                                Wedding::count() + 
-                                Funeral::count();
-
-            // If you also have a separate `Appointment` model for other purposes,
-            // you can add it as well:
-            // $appointmentCount += Appointment::count();
+            $appointmentCount = Baptism::count()
+                + Communion::count()
+                + Confirmation::count()
+                + Wedding::count()
+                + Funeral::count();
 
             $data = [
                 'bookCount' => 5,
-                'sacramentalRecordCount' => $appointmentCount, // same as appointments total
-                'massScheduleCount' => DB::table('schedules')->count() ?? 0,
+
+                'sacramentalRecordCount' => $appointmentCount,
+
+                // Count only active/pending schedules
+                // whose date is today or in the future
+                'massScheduleCount' => DB::table('schedules')
+                    ->where('status', 'pending')
+                    ->whereDate('date', '>=', now()->toDateString())
+                    ->count(),
+
                 'pendingCertificatesCount' => DB::table('certificates')->count() ?? 0,
-                'appointmentCount' => $appointmentCount, // now includes Android bookings
+
+                'appointmentCount' => $appointmentCount,
+
                 'inventoryCount' => DB::table('inventories')->count() ?? 0,
+
                 'onlineViewingCount' => DB::table('viewings')->count() ?? 0,
             ];
 
             return view('dashboard', $data);
 
         } catch (\Exception $e) {
-            // If any table is missing, log the error and return 0 values
             Log::error('Dashboard Error: ' . $e->getMessage());
-            
+
             return view('dashboard', [
                 'bookCount' => 0,
                 'sacramentalRecordCount' => 0,
