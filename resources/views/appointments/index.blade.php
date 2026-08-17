@@ -89,118 +89,77 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
-                              @foreach($appointments as $index => $app)
-    <tr class="hover:bg-gray-50 transition">
+                                @foreach($appointments as $index =>$app)
+                                    <tr class="hover:bg-gray-50 transition">
+                                        <td class="px-6 py-4 font-medium text-gray-400">{{ $index + 1 }}</td>
+                                        <td class="px-6 py-4">
+                                            <span class="inline-flex px-2 py-1 rounded-full text-xs font-bold uppercase
+                                                @if($app->type == 'Baptism') bg-blue-100 text-blue-800
+                                                @elseif($app->type == 'Communion') bg-green-100 text-green-800
+                                                @elseif($app->type == 'Confirmation') bg-purple-100 text-purple-800
+                                                @elseif($app->type == 'Wedding') bg-pink-100 text-pink-800
+                                                @elseif($app->type == 'Funeral') bg-gray-100 text-gray-800
+                                                @else bg-gray-100 text-gray-800
+                                                @endif">
+                                                {{ $app->type }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 font-medium text-gray-900">{{ $app->name ?? 'N/A' }}</td>
+                                        <td class="px-6 py-4 font-medium text-gray-700">{{ $app->submitted_at }}</td>
+                                        
+                                        <!-- Status Column -->
+                                        <td class="px-6 py-4">
+                                            @if(($app->status ?? 'pending') === 'cancelled' || ($app->status ?? 'pending') === 'canceled')
+                                                <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase bg-red-100 text-red-800 cursor-help" 
+                                                    title="Reason: {{ $app->cancellation_reason ?? 'No reason provided' }}">
+                                                    Cancelled
+                                                </span>
+                                            @else
+                                                @php
+                                                    $statusColor = match($app->status ?? 'pending') {
+                                                        'confirmed', 'approved' => 'bg-green-100 text-green-800',
+                                                        default                 => 'bg-yellow-100 text-yellow-800',
+                                                    };
+                                                @endphp
+                                                <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase {{ $statusColor }}">
+                                                    {{ $app->status ?? 'pending' }}
+                                                </span>
+                                            @endif
+                                        </td>
 
-        <td class="px-6 py-4 font-medium text-gray-400">
-            {{ $index + 1 }}
-        </td>
+                                        <!-- Actions Column -->
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center justify-center space-x-2 flex-wrap gap-1">
+                                                @if(($app->status ?? 'pending') == 'pending')
+                                                    <button
+                                                        type="button"
+                                                        class="schedule-btn px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded-full transition"
+                                                        data-type="{{ strtolower($app->type) }}"
+                                                        data-id="{{ $app->id }}">
+                                                        Schedule
+                                                    </button>
+                                                @endif
 
-        <td class="px-6 py-4">
-            <span class="inline-flex px-2 py-1 rounded-full text-xs font-bold uppercase
-                @if($app->service_type == 'Baptism')
-                    bg-blue-100 text-blue-800
-                @elseif($app->service_type == 'Communion')
-                    bg-green-100 text-green-800
-                @elseif($app->service_type == 'Confirmation')
-                    bg-purple-100 text-purple-800
-                @elseif($app->service_type == 'Wedding')
-                    bg-pink-100 text-pink-800
-                @elseif($app->service_type == 'Funeral')
-                    bg-gray-100 text-gray-800
-                @else
-                    bg-gray-100 text-gray-800
-                @endif
-            ">
-                {{ $app->service_type }}
-            </span>
-        </td>
+                                                @if(($app->status ?? 'pending') !== 'cancelled' && ($app->status ?? 'pending') !== 'canceled' && !($app->is_locked ?? false))
+                                                    <button type="button" 
+                                                            class="cancel-btn px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-full transition"
+                                                            data-type="{{ strtolower($app->type) }}"
+                                                            data-id="{{ $app->id }}">
+                                                        Cancel
+                                                    </button>
+                                                @endif
 
-        <td class="px-6 py-4 font-medium text-gray-900">
-            {{ $app->user_name ?? 'N/A' }}
-        </td>
-
-        <td class="px-6 py-4 font-medium text-gray-700">
-            {{ $app->created_at ? \Carbon\Carbon::parse($app->created_at)->format('M d, Y h:i A') : 'N/A' }}
-        </td>
-
-        <!-- Status -->
-        <td class="px-6 py-4">
-            @if(($app->status ?? 'pending') === 'cancelled' || ($app->status ?? 'pending') === 'canceled')
-
-                <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase bg-red-100 text-red-800">
-                    Cancelled
-                </span>
-
-            @else
-
-                @php
-                    $statusColor = match($app->status ?? 'pending') {
-                        'confirmed', 'approved' => 'bg-green-100 text-green-800',
-                        'rejected' => 'bg-red-100 text-red-800',
-                        default => 'bg-yellow-100 text-yellow-800',
-                    };
-                @endphp
-
-                <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase {{ $statusColor }}">
-                    {{ $app->status ?? 'pending' }}
-                </span>
-
-            @endif
-        </td>
-
-        <!-- Actions -->
-        <td class="px-6 py-4">
-            <div class="flex items-center justify-center space-x-2 flex-wrap gap-1">
-
-                @if(($app->status ?? 'pending') == 'pending')
-                    <button
-                        type="button"
-                        class="schedule-btn px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded-full transition"
-                        data-type="{{ strtolower($app->service_type) }}"
-                        data-id="{{ $app->id }}">
-                        Schedule
-                    </button>
-                @endif
-
-                @if(
-                    ($app->status ?? 'pending') !== 'cancelled' &&
-                    ($app->status ?? 'pending') !== 'canceled'
-                )
-                    <button
-                        type="button"
-                        class="cancel-btn px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-full transition"
-                        data-type="{{ strtolower($app->service_type) }}"
-                        data-id="{{ $app->id }}">
-                        Cancel
-                    </button>
-                @endif
-
-                <form
-                    action="{{ route('appointments.destroy', [
-                        'type' => strtolower($app->service_type),
-                        'id' => $app->id
-                    ]) }}"
-                    method="POST"
-                    class="inline"
-                >
-                    @csrf
-                    @method('DELETE')
-
-                    <button
-                        type="submit"
-                        class="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded-full transition"
-                        onclick="return confirm('Delete this appointment permanently?')"
-                    >
-                        Delete
-                    </button>
-                </form>
-
-            </div>
-        </td>
-
-    </tr>
-@endforeach
+                                                <form action="{{ route('appointments.destroy', ['type' => strtolower($app->type), 'id' =>$app->id]) }}" method="POST" class="inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded-full transition" onclick="return confirm('Delete this appointment permanently?')">
+                                                        Delete
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
                             </tbody>
                         </table>
                     </div>
