@@ -35,10 +35,12 @@ Route::prefix('v1')->group(function () {
     Route::post('/register', [SacramentApiController::class, 'registerMobileUser']);
     Route::post('/login', [SacramentApiController::class, 'loginMobileUser']);
 
-    // Public data (schedules/events)
+   // Public data (schedules/events)
     Route::get('/schedules', [ScheduleController::class, 'indexApi']);
     Route::get('/events', [ScheduleController::class, 'eventsApi']);
 
+// Public availability for Android booking
+    Route::get('/availability/{sacrament}', [AppointmentAvailabilityController::class, 'apiGetSlots']);
     // ---- Sacrament Bookings (Public) ----
     // ✅ Both aliases are provided for maximum Android compatibility
     // Format 1: /book-{sacrament} (original Android app format)

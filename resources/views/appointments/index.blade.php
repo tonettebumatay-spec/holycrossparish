@@ -89,7 +89,7 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
-                                @foreach($appointments as $index =>$app)
+                                @foreach($appointments as $index => $app)
                                     <tr class="hover:bg-gray-50 transition">
                                         <td class="px-6 py-4 font-medium text-gray-400">{{ $index + 1 }}</td>
                                         <td class="px-6 py-4">
@@ -135,7 +135,9 @@
                                                         type="button"
                                                         class="schedule-btn px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded-full transition"
                                                         data-type="{{ strtolower($app->type) }}"
-                                                        data-id="{{ $app->id }}">
+                                                        data-id="{{ $app->id }}"
+                                                        data-date="{{ $app->appointment_date ?? '' }}"
+                                                        data-time="{{ $app->appointment_time ?? '' }}">
                                                         Schedule
                                                     </button>
                                                 @endif
@@ -149,7 +151,7 @@
                                                     </button>
                                                 @endif
 
-                                                <form action="{{ route('appointments.destroy', ['type' => strtolower($app->type), 'id' =>$app->id]) }}" method="POST" class="inline">
+                                                <form action="{{ route('appointments.destroy', ['type' => strtolower($app->type), 'id' => $app->id]) }}" method="POST" class="inline">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded-full transition" onclick="return confirm('Delete this appointment permanently?')">
@@ -286,13 +288,21 @@
                 // Schedule Modal Logic
                 const scheduleModal = document.getElementById('scheduleModal');
                 const scheduleForm = document.getElementById('scheduleForm');
+                const appointmentDateInput = scheduleForm.querySelector('input[name="appointment_date"]');
+                const appointmentTimeInput = scheduleForm.querySelector('input[name="appointment_time"]');
 
                 document.querySelectorAll('.schedule-btn').forEach(btn => {
                     btn.addEventListener('click', function(){
                         let type = this.dataset.type;
                         let id = this.dataset.id;
+                        let date = this.dataset.date;
+                        let time = this.dataset.time;
 
                         scheduleForm.action = `/appointments/${type}/${id}/schedule`;
+                        
+                        if(appointmentDateInput) appointmentDateInput.value = date;
+                        if(appointmentTimeInput) appointmentTimeInput.value = time;
+
                         scheduleModal.classList.remove('hidden');
                     });
                 });
