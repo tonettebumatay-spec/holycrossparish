@@ -16,6 +16,49 @@
 
     <!-- Alpine.js CDN (Essential for the button to work) -->
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- ========================================== -->
+    <!-- FLATPICKR CSS (Para sa Calendar Design)    -->
+    <!-- ========================================== -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- Flatpickr Dark Theme -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+
+    <!-- Custom CSS para sa Cyan/Teal na bilog (Katulad ng screenshot mo) -->
+    <style>
+        /* Palitan ang kulay ng selected date */
+        .flatpickr-day.selected, 
+        .flatpickr-day.startRange, 
+        .flatpickr-day.endRange, 
+        .flatpickr-day.selected.inRange, 
+        .flatpickr-day.startRange.inRange, 
+        .flatpickr-day.endRange.inRange, 
+        .flatpickr-day.selected:focus, 
+        .flatpickr-day.startRange:focus, 
+        .flatpickr-day.endRange:focus, 
+        .flatpickr-day.selected:hover, 
+        .flatpickr-day.startRange:hover, 
+        .flatpickr-day.endRange:hover {
+            background: #4FD1C5 !important; /* Cyan/Teal color */
+            border-color: #4FD1C5 !important;
+            color: #1A202C !important; /* Dark text */
+            font-weight: bold;
+        }
+
+        /* Palitan ang kulay ng header (September 2026) */
+        .flatpickr-months .flatpickr-month {
+            background: #2D3748 !important;
+        }
+        
+        /* Palitan ang kulay ng arrows at month text */
+        .flatpickr-months .flatpickr-prev-month, 
+        .flatpickr-months .flatpickr-next-month,
+        .flatpickr-current-month .flatpickr-monthDropdown-months,
+        .flatpickr-current-month input.cur-year {
+            color: #ffffff !important;
+            fill: #ffffff !important;
+        }
+    </style>
 </head>
 <body class="font-sans antialiased bg-[#f3f4f6]">
     <div class="min-h-screen">
@@ -45,7 +88,34 @@
             {{ $slot }}
         </main>
     </div>
+
+    <!-- ========================================== -->
+    <!-- FLATPICKR JS (Para gumana ang Calendar)    -->
+    <!-- ========================================== -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // I-initialize ang Datepicker sa lahat ng input na may class na "flatpickr-date"
+            // Siguraduhin na ang input sa modal mo ay may class="flatpickr-date"
+            flatpickr(".flatpickr-date", {
+                dateFormat: "Y-m-d", // Format na ise-save sa database (e.g., 2026-09-09)
+                defaultDate: "today",
+                theme: "dark", // Gamitin ang dark theme
+                allowInput: false, // Bawal i-type manually para iwas error
+            });
+
+            // Optional: Para sa Time input kung gusto mo rin palitan
+            // Siguraduhin na ang input sa modal mo ay may class="flatpickr-time"
+            flatpickr(".flatpickr-time", {
+                enableTime: true,
+                noCalendar: true,
+                dateFormat: "h:i K", // Format: 09:00 AM
+                time_24hr: false,
+                theme: "dark",
+                allowInput: false,
+            });
+        });
+    </script>
 </body>
 </html>
-
-
