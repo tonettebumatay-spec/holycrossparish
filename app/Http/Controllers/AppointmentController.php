@@ -44,7 +44,7 @@ class AppointmentController extends Controller
                     $item->name = trim(($item->first_name ?? '') . ' ' . ($item->last_name ?? ''));
                     if (empty($item->name)) $item->name = 'N/A';
                     $item->status = $item->status ?? 'pending';
-                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d H:i A') : 'N/A';
+                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d h:i A') : 'N/A';
                     $item->cancellation_reason = $item->cancellation_reason ?? null;
                     $item->is_locked = $item->is_locked ?? false;
                     return $item;
@@ -67,7 +67,7 @@ class AppointmentController extends Controller
                     $item->type = 'Communion';
                     $item->name = trim(($item->first_name ?? '') . ' ' . ($item->last_name ?? '')) ?: 'N/A';
                     $item->status = $item->status ?? 'pending';
-                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d H:i A') : 'N/A';
+                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d h:i A') : 'N/A';
                     $item->cancellation_reason = $item->cancellation_reason ?? null;
                     $item->is_locked = $item->is_locked ?? false;
                     return $item;
@@ -90,7 +90,7 @@ class AppointmentController extends Controller
                     $item->type = 'Confirmation';
                     $item->name = trim(($item->first_name ?? '') . ' ' . ($item->last_name ?? '')) ?: 'N/A';
                     $item->status = $item->status ?? 'pending';
-                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d H:i A') : 'N/A';
+                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d h:i A') : 'N/A';
                     $item->cancellation_reason = $item->cancellation_reason ?? null;
                     $item->is_locked = $item->is_locked ?? false;
                     return $item;
@@ -119,7 +119,7 @@ class AppointmentController extends Controller
                     $item->name = ($groom ?: '') . ($groom && $bride ? ' & ' : '') . ($bride ?: '');
                     if (empty($item->name)) $item->name = 'N/A';
                     $item->status = $item->status ?? 'pending';
-                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d H:i A') : 'N/A';
+                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d h:i A') : 'N/A';
                     $item->cancellation_reason = $item->cancellation_reason ?? null;
                     $item->is_locked = $item->is_locked ?? false;
                     return $item;
@@ -142,7 +142,7 @@ class AppointmentController extends Controller
                     $item->type = 'Funeral';
                     $item->name = $item->deceased_name ?? 'N/A';
                     $item->status = $item->status ?? 'pending';
-                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d H:i A') : 'N/A';
+                    $item->submitted_at = $item->created_at ? $item->created_at->format('Y-m-d h:i A') : 'N/A';
                     $item->cancellation_reason = $item->cancellation_reason ?? null;
                     $item->is_locked = $item->is_locked ?? false;
                     return $item;

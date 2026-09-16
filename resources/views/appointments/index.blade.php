@@ -220,18 +220,24 @@
                     <div class="mb-3">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
                         <input
-                            type="date"
+                            type="text"
+                            id="schedule_date"
                             name="appointment_date"
-                            class="w-full border rounded p-2 text-sm"
+                            class="w-full border rounded p-2 text-sm bg-white"
+                            placeholder="Select Date.."
+                            readonly
                             required>
                     </div>
 
                     <div class="mb-3">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
                         <input
-                            type="time"
+                            type="text"
+                            id="schedule_time"
                             name="appointment_time"
-                            class="w-full border rounded p-2 text-sm"
+                            class="w-full border rounded p-2 text-sm bg-white"
+                            placeholder="Select Time.."
+                            readonly
                             required>
                     </div>
 
@@ -285,11 +291,56 @@
                 if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
                 if (cancelModalCloseBtn) cancelModalCloseBtn.addEventListener('click', closeModal);
 
-                // Schedule Modal Logic
+                // ==========================================
+                // SCHEDULE MODAL LOGIC
+                // ==========================================
                 const scheduleModal = document.getElementById('scheduleModal');
                 const scheduleForm = document.getElementById('scheduleForm');
-                const appointmentDateInput = scheduleForm.querySelector('input[name="appointment_date"]');
-                const appointmentTimeInput = scheduleForm.querySelector('input[name="appointment_time"]');
+                const scheduleDateInput = document.getElementById('schedule_date');
+                const scheduleTimeInput = document.getElementById('schedule_time');
+
+                // Initialize Flatpickr for Date
+                const datePicker = flatpickr(scheduleDateInput, {
+                    dateFormat: "Y-m-d",
+                    theme: "dark",
+                    allowInput: false,
+                });
+
+                // Initialize Flatpickr for Time (12-hour display with AM/PM)
+                // NOTE: We display 12-hour in the UI for user-friendliness, but
+                // convert to 24-hour before submitting to match the DB time column.
+                const timePicker = flatpickr(scheduleTimeInput, {
+                    enableTime: true,
+                    noCalendar: true,
+                    dateFormat: "h:i K",     // 12-hour display (e.g., "1:00 PM")
+                    time_24hr: false,
+                    theme: "dark",
+                    allowInput: false,
+                });
+
+                // Helper: Convert 24-hour "HH:MM" to 12-hour "h:MM AM/PM"
+                function to12Hour(time24) {
+                    if (!time24) return '';
+                    let [hours, minutes] = time24.split(':').map(Number);
+                    let period = hours >= 12 ? 'PM' : 'AM';
+                    let hours12 = hours % 12;
+                    if (hours12 === 0) hours12 = 12;
+                    return hours12 + ':' + String(minutes).padStart(2, '0') + ' ' + period;
+                }
+
+                // Helper: Convert 12-hour "h:MM AM/PM" to 24-hour "HH:MM"
+                function to24Hour(time12) {
+                    if (!time12) return '';
+                    // Match "h:MM AM" or "hh:MM PM" etc.
+                    let match = time12.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+                    if (!match) return time12; // fallback
+                    let hours = parseInt(match[1], 10);
+                    let minutes = match[2];
+                    let period = match[3].toUpperCase();
+                    if (period === 'AM' && hours === 12) hours = 0;
+                    if (period === 'PM' && hours !== 12) hours += 12;
+                    return String(hours).padStart(2, '0') + ':' + minutes;
+                }
 
                 document.querySelectorAll('.schedule-btn').forEach(btn => {
                     btn.addEventListener('click', function(){
@@ -300,11 +351,38 @@
 
                         scheduleForm.action = `/appointments/${type}/${id}/schedule`;
                         
-                        if(appointmentDateInput) appointmentDateInput.value = date;
-                        if(appointmentTimeInput) appointmentTimeInput.value = time;
+                        // Set date
+                        if(date) {
+                            datePicker.setDate(date, true);
+                        } else {
+                            datePicker.clear();
+                        }
 
+                        // Set time: DB is 24-hour ("13:00:00"), display as 12-hour ("1:00 PM")
+                        if(time) {
+                            let time24 = time.substring(0, 5); // "13:00"
+                            let time12 = to12Hour(time24);      // "1:00 PM"
+                            timePicker.setDate(time12, true);
+                        } else {
+                            timePicker.clear();
+                        }
+
+                        // Show modal
                         scheduleModal.classList.remove('hidden');
+
+                        // Open calendar after modal appears
+                        setTimeout(function() {
+                            datePicker.open();
+                        }, 100);
                     });
+                });
+
+                // Before form submits, convert the 12-hour display value back to 24-hour
+                // so Laravel/DB receives "13:00" instead of "1:00 PM".
+                scheduleForm.addEventListener('submit', function() {
+                    let current = scheduleTimeInput.value;      // "1:00 PM"
+                    let converted = to24Hour(current);          // "13:00"
+                    scheduleTimeInput.value = converted;
                 });
 
                 const closeScheduleBtn = document.getElementById('closeSchedule');
