@@ -49,20 +49,39 @@ class AppointmentAvailabilityController extends Controller
             ->get();
 
         $data = $slots->map(function ($slot) use ($tableName) {
-            $dateStr = is_string($slot->available_date)
-                ? $slot->available_date
-                : $slot->available_date->toDateString();
+            // Safely convert available_date to string (handles both Carbon and string)
+            if ($slot->available_date instanceof \DateTimeInterface) {
+                $dateStr = $slot->available_date->format('Y-m-d');
+            } else {
+                $dateStr = (string) $slot->available_date;
+            }
 
-            // Count how many bookings already exist for this date + start_time
-            // NOTE: appointment_time in sacrament tables is stored as "HH:MM:SS"
-            // while $slot->start_time may be "HH:MM". We normalize both to "HH:MM".
-            $slotStartTime = is_object($slot->start_time)
-                ? $slot->start_time->format('H:i')
-                : substr($slot->start_time, 0, 5);
+            // Safely format start_time (handles both Carbon and string, with null checks)
+            if ($slot->start_time instanceof \DateTimeInterface) {
+                $slotStartTime = $slot->start_time->format('H:i');
+            } elseif (is_string($slot->start_time) && strlen($slot->start_time) >= 5) {
+                $slotStartTime = substr($slot->start_time, 0, 5);
+            } else {
+                $slotStartTime = '00:00';
+            }
 
+            // Safely format end_time (handles both Carbon and string, with null checks)
+            if ($slot->end_time instanceof \DateTimeInterface) {
+                $slotEndTime = $slot->end_time->format('H:i');
+            } elseif (is_string($slot->end_time) && strlen($slot->end_time) >= 5) {
+                $slotEndTime = substr($slot->end_time, 0, 5);
+            } else {
+                $slotEndTime = '23:59';
+            }
+
+            // Count existing bookings for this date + start_time.
+            // PostgreSQL-compatible: no LEFT() function. Match both "HH:MM" and "HH:MM:SS" formats.
             $bookedCount = DB::table($tableName)
                 ->where('appointment_date', $dateStr)
-                ->whereRaw('LEFT(appointment_time, 5) = ?', [$slotStartTime])
+                ->where(function ($q) use ($slotStartTime) {
+                    $q->where('appointment_time', $slotStartTime)
+                      ->orWhere('appointment_time', $slotStartTime . ':00');
+                })
                 ->where(function ($query) {
                     $query->where('status', '!=', 'cancelled')
                           ->orWhereNull('status');
@@ -74,9 +93,7 @@ class AppointmentAvailabilityController extends Controller
             return [
                 'available_date'   => $dateStr,
                 'start_time'       => $slotStartTime,
-                'end_time'         => is_object($slot->end_time)
-                                        ? $slot->end_time->format('H:i')
-                                        : substr($slot->end_time, 0, 5),
+                'end_time'         => $slotEndTime,
                 'max_slots'        => $slot->max_slots,
                 'booked_count'     => $bookedCount,
                 'remaining_slots'  => $remainingSlots,
