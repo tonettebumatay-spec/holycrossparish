@@ -83,6 +83,7 @@
                                     <th class="px-6 py-4">#</th>
                                     <th class="px-6 py-4">Type</th>
                                     <th class="px-6 py-4">Name</th>
+                                    <th class="px-6 py-4">Scheduled</th>
                                     <th class="px-6 py-4">Date Submitted</th>
                                     <th class="px-6 py-4">Status</th>
                                     <th class="px-6 py-4 text-center">Actions</th>
@@ -105,6 +106,33 @@
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 font-medium text-gray-900">{{ $app->name ?? 'N/A' }}</td>
+
+                                        <!-- ✅ Scheduled Column (NEW) -->
+                                        <td class="px-6 py-4">
+                                            @php
+                                                $scheduledDate = $app->appointment_date ?? null;
+                                                $scheduledTime = $app->appointment_time ?? null;
+                                                $isScheduled = !empty($scheduledDate) || !empty($scheduledTime);
+                                            @endphp
+
+                                            @if($isScheduled)
+                                                <div class="flex flex-col text-xs">
+                                                    @if($scheduledDate)
+                                                        <span class="font-semibold text-gray-900">
+                                                            {{ \Carbon\Carbon::parse($scheduledDate)->format('M d, Y') }}
+                                                        </span>
+                                                    @endif
+                                                    @if($scheduledTime)
+                                                        <span class="text-gray-600">
+                                                            {{ \Carbon\Carbon::parse($scheduledTime)->format('g:i A') }}
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                            @else
+                                                <span class="text-xs italic text-gray-400">Not scheduled</span>
+                                            @endif
+                                        </td>
+
                                         <td class="px-6 py-4 font-medium text-gray-700">{{ $app->submitted_at }}</td>
                                         
                                         <!-- Status Column -->
@@ -307,12 +335,10 @@
                 });
 
                 // Initialize Flatpickr for Time (12-hour display with AM/PM)
-                // NOTE: We display 12-hour in the UI for user-friendliness, but
-                // convert to 24-hour before submitting to match the DB time column.
                 const timePicker = flatpickr(scheduleTimeInput, {
                     enableTime: true,
                     noCalendar: true,
-                    dateFormat: "h:i K",     // 12-hour display (e.g., "1:00 PM")
+                    dateFormat: "h:i K",
                     time_24hr: false,
                     theme: "dark",
                     allowInput: false,
@@ -331,9 +357,8 @@
                 // Helper: Convert 12-hour "h:MM AM/PM" to 24-hour "HH:MM"
                 function to24Hour(time12) {
                     if (!time12) return '';
-                    // Match "h:MM AM" or "hh:MM PM" etc.
                     let match = time12.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-                    if (!match) return time12; // fallback
+                    if (!match) return time12;
                     let hours = parseInt(match[1], 10);
                     let minutes = match[2];
                     let period = match[3].toUpperCase();
@@ -351,37 +376,31 @@
 
                         scheduleForm.action = `/appointments/${type}/${id}/schedule`;
                         
-                        // Set date
                         if(date) {
                             datePicker.setDate(date, true);
                         } else {
                             datePicker.clear();
                         }
 
-                        // Set time: DB is 24-hour ("13:00:00"), display as 12-hour ("1:00 PM")
                         if(time) {
-                            let time24 = time.substring(0, 5); // "13:00"
-                            let time12 = to12Hour(time24);      // "1:00 PM"
+                            let time24 = time.substring(0, 5);
+                            let time12 = to12Hour(time24);
                             timePicker.setDate(time12, true);
                         } else {
                             timePicker.clear();
                         }
 
-                        // Show modal
                         scheduleModal.classList.remove('hidden');
 
-                        // Open calendar after modal appears
                         setTimeout(function() {
                             datePicker.open();
                         }, 100);
                     });
                 });
 
-                // Before form submits, convert the 12-hour display value back to 24-hour
-                // so Laravel/DB receives "13:00" instead of "1:00 PM".
                 scheduleForm.addEventListener('submit', function() {
-                    let current = scheduleTimeInput.value;      // "1:00 PM"
-                    let converted = to24Hour(current);          // "13:00"
+                    let current = scheduleTimeInput.value;
+                    let converted = to24Hour(current);
                     scheduleTimeInput.value = converted;
                 });
 
