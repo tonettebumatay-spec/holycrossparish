@@ -287,10 +287,8 @@ class AppointmentController extends Controller
 
         $record = $model::findOrFail($id);
 
-        if ($record->is_locked) {
-            return back()->with('error', 'Locked appointments cannot be deleted.');
-        }
-
+        // NOTE: is_locked check intentionally removed so that cancelled
+        // records (which have is_locked = true) can still be deleted.
         $record->delete();
 
         return back()->with('success', 'Appointment deleted successfully.');
@@ -314,13 +312,6 @@ class AppointmentController extends Controller
             $appointments = collect();
             $identifier = $user->email ?? ($user->name ?? null);
 
-            /*
-            |--------------------------------------------------------------------------
-            | Helper
-            |--------------------------------------------------------------------------
-            | Gets appointments while checking if email/user_id columns exist.
-            | Also returns the scheduled date/time for the Android app.
-            */
             $safeQuery = function (
                 $modelClass,
                 $type,
@@ -334,7 +325,6 @@ class AppointmentController extends Controller
                     $modelInstance = new $modelClass;
                     $table = $modelInstance->getTable();
 
-                    // Check available columns
                     $hasEmail = Schema::hasColumn($table, 'email');
                     $hasUserId = Schema::hasColumn($table, 'user_id');
                     $hasAppointmentDate = Schema::hasColumn($table, 'appointment_date');
@@ -343,7 +333,6 @@ class AppointmentController extends Controller
                     $hasCancellationReason = Schema::hasColumn($table, 'cancellation_reason');
                     $hasIsLocked = Schema::hasColumn($table, 'is_locked');
 
-                    // Filter appointments belonging to the logged-in user
                     if ($user && ($hasEmail || $hasUserId)) {
                         $query->where(function ($q) use (
                             $hasEmail,
@@ -371,7 +360,6 @@ class AppointmentController extends Controller
                         $hasIsLocked
                     ) {
 
-                        // Original sacrament date
                         $originalDate = null;
 
                         if (
@@ -381,59 +369,38 @@ class AppointmentController extends Controller
                             $originalDate = $item->{$originalDateField} ?? null;
                         }
 
-                        // Admin scheduled date
                         $appointmentDate = $hasAppointmentDate
                             ? ($item->appointment_date ?? null)
                             : null;
 
-                        // Admin scheduled time
                         $appointmentTime = $hasAppointmentTime
                             ? ($item->appointment_time ?? null)
                             : null;
 
-                        // Determine if appointment has been scheduled
                         $isScheduled = !empty($appointmentDate);
 
-                        // Normalize status
                         $status = $item->status ?? 'pending';
 
                         return [
                             'id' => $item->id,
-
                             'type' => $type,
-
                             'name' => $nameCallback($item),
-
-                            // Original requested date
                             'date' => $originalDate,
-
-                            // Date used by Android Booking model
                             'appointment_date' => $appointmentDate ?? $originalDate,
-
-                            // Time set by admin
                             'appointment_time' => $appointmentTime,
-
-                            // Fields expected by Android
                             'scheduled_date' => $appointmentDate,
-
                             'scheduled_time' => $appointmentTime,
-
                             'is_scheduled' => $isScheduled,
-
                             'status' => $status,
-
                             'cancellation_reason' => $hasCancellationReason
                                 ? ($item->cancellation_reason ?? null)
                                 : null,
-
                             'is_locked' => $hasIsLocked
                                 ? (bool) ($item->is_locked ?? false)
                                 : false,
-
                             'submitted_at' => $item->created_at
                                 ? $item->created_at->format('Y-m-d H:i:s')
                                 : null,
-
                             'created_at' => $item->created_at,
                         ];
                     });
@@ -449,11 +416,6 @@ class AppointmentController extends Controller
                 }
             };
 
-            /*
-            |--------------------------------------------------------------------------
-            | Baptism
-            |--------------------------------------------------------------------------
-            */
             $appointments = $appointments->merge(
                 $safeQuery(
                     Baptism::class,
@@ -468,11 +430,6 @@ class AppointmentController extends Controller
                 )
             );
 
-            /*
-            |--------------------------------------------------------------------------
-            | Communion
-            |--------------------------------------------------------------------------
-            */
             $appointments = $appointments->merge(
                 $safeQuery(
                     Communion::class,
@@ -487,11 +444,6 @@ class AppointmentController extends Controller
                 )
             );
 
-            /*
-            |--------------------------------------------------------------------------
-            | Confirmation
-            |--------------------------------------------------------------------------
-            */
             $appointments = $appointments->merge(
                 $safeQuery(
                     Confirmation::class,
@@ -506,11 +458,6 @@ class AppointmentController extends Controller
                 )
             );
 
-            /*
-            |--------------------------------------------------------------------------
-            | Wedding
-            |--------------------------------------------------------------------------
-            */
             $appointments = $appointments->merge(
                 $safeQuery(
                     Wedding::class,
@@ -525,11 +472,6 @@ class AppointmentController extends Controller
                 )
             );
 
-            /*
-            |--------------------------------------------------------------------------
-            | Funeral
-            |--------------------------------------------------------------------------
-            */
             $appointments = $appointments->merge(
                 $safeQuery(
                     Funeral::class,
@@ -540,14 +482,8 @@ class AppointmentController extends Controller
                 )
             );
 
-            /*
-            |--------------------------------------------------------------------------
-            | Return API response
-            |--------------------------------------------------------------------------
-            */
             return response()->json([
                 'success' => true,
-
                 'appointments' => $appointments
                     ->sortByDesc('created_at')
                     ->values(),
