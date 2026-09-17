@@ -173,7 +173,7 @@
                 <div class="mt-4 flex justify-end">
                     <div class="flex flex-col items-center">
                         @php 
-                            $qrCodeUrl = "https://quickchart.io/qr?text=" . urlencode(route('records.communion.show', $record->id)) . "&size=50&margin=0";
+                           $qrCodeUrl = "https://quickchart.io/qr?text=" . urlencode(route('records.verify', ['type' => 'communion', 'id' => $record->id])) . "&size=50&margin=0";
                         @endphp
                         <img src="{{ $qrCodeUrl }}" alt="Verify QR" width="45" height="45">
                         <p class="text-[6px] uppercase font-bold mt-0.5 text-gray-400">Scan to Verify</p>

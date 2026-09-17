@@ -154,7 +154,7 @@
                         
                         <div class="flex flex-col items-center mb-1">
                             @php 
-                                $qrCodeUrl = "https://quickchart.io/qr?text=" . urlencode(route('records.baptism.show', $record->id)) . "&size=65&margin=0";
+                               $qrCodeUrl = "https://quickchart.io/qr?text=" . urlencode(route('records.verify', ['type' => 'baptism', 'id' => $record->id])) . "&size=65&margin=0";
                             @endphp
                             <div class="border border-[#C5A059]/40 p-0.5 bg-white shadow-sm rounded">
                                 <img src="{{ $qrCodeUrl }}" alt="Verify QR" class="w-12 h-12">

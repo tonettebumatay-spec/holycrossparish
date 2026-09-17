@@ -19,6 +19,10 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+// --- Public Verification Route (no auth required) ---
+// Used by QR codes printed on certificates so anyone can verify authenticity.
+Route::get('/verify/{type}/{id}', [RecordController::class, 'verify'])->name('records.verify');
+
 // --- Authenticated Routes ---
 Route::middleware(['auth', 'verified'])->group(function () {
 

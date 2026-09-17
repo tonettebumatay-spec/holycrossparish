@@ -184,10 +184,10 @@
                             <div class="flex flex-col items-end">
                                 <p class="text-sm mb-2">Date: <span class="border-b border-black px-3 font-bold">{{ now()->format('F d, Y') }}</span></p>
                                 <div class="flex flex-col items-center">
-                                    @php
-                                        $url = route('records.confirmation.show', $record->id);
-                                        $qrCodeUrl = "https://quickchart.io/qr?text=" . urlencode($url) . "&size=55&margin=0";
-                                    @endphp
+                                  @php
+    $url = route('records.verify', ['type' => 'confirmation', 'id' => $record->id]);
+    $qrCodeUrl = "https://quickchart.io/qr?text=" . urlencode($url) . "&size=55&margin=0";
+@endphp
                                     <img src="{{ $qrCodeUrl }}" alt="Verify" class="border p-0.5 bg-white w-12 h-12 shadow-sm">
                                     <p class="text-[6px] uppercase font-black mt-0.5 text-gray-400">Verify</p>
                                 </div>

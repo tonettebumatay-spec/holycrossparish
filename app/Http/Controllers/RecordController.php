@@ -83,6 +83,55 @@ class RecordController extends Controller
     public function showWedding($id) { return view('records.wedding_certificate', ['record' => Wedding::findOrFail($id)]); }
     public function showFuneral($id) { return view('records.funeral_certificate', ['record' => Funeral::findOrFail($id)]); }
 
+    /**
+     * Public verification page (no auth required).
+     * Called when someone scans the QR code printed on a certificate.
+     * Displays only non-sensitive verification info.
+     */
+    public function verify($type, $id)
+    {
+        try {
+            $model = $this->resolveModel($type);
+            $record = $model->findOrFail($id);
+
+            // Build a human-readable name depending on record type
+            $name = match (strtolower($type)) {
+                'baptism', 'communion', 'confirmation' =>
+                    trim(($record->first_name ?? '') . ' ' . ($record->last_name ?? '')) ?: 'N/A',
+                'wedding' =>
+                    trim(($record->groom_name ?? '') . ' & ' . ($record->bride_name ?? '')) ?: 'N/A',
+                'funeral' =>
+                    $record->deceased_name ?? 'N/A',
+                default => 'N/A',
+            };
+
+            // Use updated_at or created_at as "Date Issued" fallback
+            $issuedAt = $record->updated_at ?? $record->created_at ?? now();
+
+            return view('records.verify', [
+                'type'        => ucfirst(strtolower($type)),
+                'name'        => $name,
+                'bookNumber'  => $record->book_number  ?? null,
+                'pageNumber'  => $record->page_number  ?? null,
+                'lineNumber'  => $record->line_number  ?? null,
+                'issuedAt'    => $issuedAt,
+                'verifiedAt'  => now(),
+            ]);
+
+        } catch (\Exception $e) {
+            return view('records.verify', [
+                'type'        => null,
+                'name'        => null,
+                'bookNumber'  => null,
+                'pageNumber'  => null,
+                'lineNumber'  => null,
+                'issuedAt'    => null,
+                'verifiedAt'  => now(),
+                'notFound'    => true,
+            ]);
+        }
+    }
+
     public function show($id, Request $request)
     {
         $category = $request->query('category', 'baptism');
