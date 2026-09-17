@@ -19,7 +19,6 @@ class AppointmentAvailabilityController extends Controller
         ];
 
         // Normalize input: lowercase, trim spaces, and remove trailing 's'
-        // This handles: Baptism, baptism, BAPTISM, baptisms, Baptisms, etc.
         $normalized = strtolower(trim($sacrament));
         $singularSacrament = rtrim($normalized, 's');
 
@@ -49,14 +48,14 @@ class AppointmentAvailabilityController extends Controller
             ->get();
 
         $data = $slots->map(function ($slot) use ($tableName) {
-            // Safely convert available_date to string (handles both Carbon and string)
+            // Safely convert available_date to string
             if ($slot->available_date instanceof \DateTimeInterface) {
                 $dateStr = $slot->available_date->format('Y-m-d');
             } else {
                 $dateStr = (string) $slot->available_date;
             }
 
-            // Safely format start_time (handles both Carbon and string, with null checks)
+            // Safely format start_time
             if ($slot->start_time instanceof \DateTimeInterface) {
                 $slotStartTime = $slot->start_time->format('H:i');
             } elseif (is_string($slot->start_time) && strlen($slot->start_time) >= 5) {
@@ -65,7 +64,7 @@ class AppointmentAvailabilityController extends Controller
                 $slotStartTime = '00:00';
             }
 
-            // Safely format end_time (handles both Carbon and string, with null checks)
+            // Safely format end_time
             if ($slot->end_time instanceof \DateTimeInterface) {
                 $slotEndTime = $slot->end_time->format('H:i');
             } elseif (is_string($slot->end_time) && strlen($slot->end_time) >= 5) {
@@ -74,8 +73,8 @@ class AppointmentAvailabilityController extends Controller
                 $slotEndTime = '23:59';
             }
 
-            // Count existing bookings for this date + start_time.
-            // PostgreSQL-compatible: no LEFT() function. Match both "HH:MM" and "HH:MM:SS" formats.
+            // Count existing non-cancelled bookings for this date + start_time.
+            // Matches both "HH:MM" and "HH:MM:SS" formats (PostgreSQL-compatible).
             $bookedCount = DB::table($tableName)
                 ->where('appointment_date', $dateStr)
                 ->where(function ($q) use ($slotStartTime) {
@@ -88,16 +87,18 @@ class AppointmentAvailabilityController extends Controller
                 })
                 ->count();
 
-            $remainingSlots = max(0, $slot->max_slots - $bookedCount);
+            // RULE: 1 booking per time slot
+            $remainingSlots = $bookedCount >= 1 ? 0 : 1;
+            $isFullyBooked = $bookedCount >= 1;
 
             return [
                 'available_date'   => $dateStr,
                 'start_time'       => $slotStartTime,
                 'end_time'         => $slotEndTime,
-                'max_slots'        => $slot->max_slots,
+                'max_slots'        => 1,
                 'booked_count'     => $bookedCount,
                 'remaining_slots'  => $remainingSlots,
-                'is_fully_booked'  => $remainingSlots <= 0,
+                'is_fully_booked'  => $isFullyBooked,
             ];
         });
 

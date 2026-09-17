@@ -167,65 +167,88 @@ class BookingController extends Controller
             }
 
             // ========================================================
-            // 4.5. Check appointment availability and slot capacity
+            // 4.5. Check appointment availability and prevent double booking
+            // ========================================================
+            // RULE: 1 booking per time slot. If a slot already has any
+            // non-cancelled booking, it is no longer available.
+            // Uses a transaction + lock to prevent race conditions.
             // ========================================================
 
-            $avail = AppointmentAvailability::where(
-                    'sacrament_type',
-                    $type
-                )
-                ->where(
-                    'available_date',
-                    $appointmentDate
-                )
-                ->where(
-                    'start_time',
-                    'LIKE',
-                    '%' . $appointmentTime . '%'
-                )
-                ->where('is_active', true)
-                ->first();
+            $booking = DB::transaction(function () use (
+                $table,
+                $type,
+                $appointmentDate,
+                $appointmentTime,
+                $model,
+                $filteredData
+            ) {
+                // Lock the appointment_availabilities row for this slot to
+                // prevent two concurrent bookings for the same slot.
+                $avail = AppointmentAvailability::where('sacrament_type', $type)
+                    ->where('available_date', $appointmentDate)
+                    ->where('is_active', true)
+                    ->where(function ($q) use ($appointmentTime) {
+                        // Match start_time in either "HH:MM" or "HH:MM:SS" format
+                        $q->where('start_time', $appointmentTime)
+                          ->orWhere('start_time', $appointmentTime . ':00')
+                          ->orWhere('start_time', 'LIKE', $appointmentTime . '%');
+                    })
+                    ->lockForUpdate()
+                    ->first();
 
-            if ($avail) {
+                // Count existing (non-cancelled) bookings for this exact slot.
+                // Match appointment_time in either "HH:MM" or "HH:MM:SS" format.
                 $bookedCount = DB::table($table)
-                    ->where(
-                        'appointment_date',
-                        $appointmentDate
-                    )
-                    ->where(
-                        'appointment_time',
-                        $appointmentTime
-                    )
+                    ->where('appointment_date', $appointmentDate)
+                    ->where(function ($q) use ($appointmentTime) {
+                        $q->where('appointment_time', $appointmentTime)
+                          ->orWhere('appointment_time', $appointmentTime . ':00');
+                    })
                     ->where(function ($query) {
                         $query->where('status', '!=', 'cancelled')
                               ->orWhereNull('status');
                     })
+                    ->lockForUpdate()
                     ->count();
 
-                if ($bookedCount >= $avail->max_slots) {
-                    return response()->json([
+                // RULE: 1 booking per slot — block if any non-cancelled booking exists
+                if ($bookedCount >= 1) {
+                    return [
                         'success' => false,
-                        'message' => 'The selected date and time slot is already fully booked. Please choose another schedule.',
-                    ], 422);
+                        'message' => 'This time slot is already booked. Please choose another available time.',
+                    ];
                 }
+
+                // Create the booking record
+                $record = $model->create($filteredData);
+
+                return [
+                    'success' => true,
+                    'booking' => $record,
+                ];
+            });
+
+            // If the slot was already taken, return error
+            if (!($booking['success'] ?? false)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $booking['message'] ?? 'Slot is unavailable.',
+                ], 422);
             }
 
-            Log::info("API_BOOKING_FINAL_DATA_{$type}", $filteredData);
-
-            // 5. Create booking record
-            $booking = $model->create($filteredData);
+            $record = $booking['booking'];
 
             Log::info("API_BOOKING_CREATED_{$type}", [
-                'booking_id' => $booking->id ?? null,
-                'appointment_date' => $booking->appointment_date ?? null,
-                'appointment_time' => $booking->appointment_time ?? null,
-                'status' => $booking->status ?? null,
+                'booking_id' => $record->id ?? null,
+                'appointment_date' => $record->appointment_date ?? null,
+                'appointment_time' => $record->appointment_time ?? null,
+                'status' => $record->status ?? null,
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => ucfirst($type) . ' request submitted successfully! The admin will schedule your appointment.',
-                'booking' => $booking,
+                'booking' => $record,
             ], 201);
 
         } catch (\Exception $e) {
@@ -266,7 +289,7 @@ class BookingController extends Controller
                     'last_name'           => '',
                     'legitimacy'          => 'Unknown',
                     'birth_date'          => '1900-01-01',
-                    'birth_place'        => 'Unknown',
+                    'birth_place'         => 'Unknown',
                     'father_name'         => $parsed['father'] ?? '',
                     'father_birthplace'   => '',
                     'mother_maiden_name'  => $parsed['mother'] ?? '',
@@ -305,7 +328,7 @@ class BookingController extends Controller
                     'page_number'       => 0,
                     'line_number'       => 0,
                     'year'              => '',
-                    'month_day'        => null,
+                    'month_day'         => null,
                     'first_name'        => $parsed['child'] ?? $userName,
                     'last_name'         => '',
                     'age'               => $parsed['age'] ?? 0,
@@ -327,8 +350,8 @@ class BookingController extends Controller
                     'page_number'               => 0,
                     'line_number'               => 0,
                     'year'                      => '',
-                    'month_day'                => null,
-                    'groom_name'               => $parsed['groom'] ?? $userName,
+                    'month_day'                 => null,
+                    'groom_name'                => $parsed['groom'] ?? $userName,
                     'groom_age'                 => 0,
                     'groom_status'              => 'Single',
                     'groom_residence'           => $contactNumber,
@@ -349,7 +372,7 @@ class BookingController extends Controller
                 $data = [
                     'category'      => 'Funeral',
                     'book_number'   => 0,
-                    'page_number'  => 0,
+                    'page_number'   => 0,
                     'line_number'   => 0,
                     'deceased_name' => $parsed['child'] ?? $userName,
                     'residence'     => $contactNumber,
@@ -392,34 +415,21 @@ class BookingController extends Controller
                 $value = trim($parts[1] ?? '');
 
                 if (str_contains($key, 'father')) {
-
                     $result['father'] = $value;
-
                 } elseif (str_contains($key, 'mother')) {
-
                     $result['mother'] = $value;
-
                 } elseif (str_contains($key, 'groom')) {
-
                     $result['groom'] = $value;
-
                 } elseif (str_contains($key, 'bride')) {
-
                     $result['bride'] = $value;
-
                 } elseif (str_contains($key, 'age')) {
-
                     $result['age'] = intval($value);
-
                 } elseif (str_contains($key, 'email')) {
-
                     $result['email'] = $value;
-
                 } elseif (
                     str_contains($key, 'child') ||
                     str_contains($key, 'name')
                 ) {
-
                     $result['child'] = $value;
                 }
             }
