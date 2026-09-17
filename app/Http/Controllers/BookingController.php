@@ -171,7 +171,8 @@ class BookingController extends Controller
             // ========================================================
             // RULE: 1 booking per time slot. If a slot already has any
             // non-cancelled booking, it is no longer available.
-            // Uses a transaction + lock to prevent race conditions.
+            // Uses a transaction + lock on the availability row to
+            // prevent race conditions.
             // ========================================================
 
             $booking = DB::transaction(function () use (
@@ -188,7 +189,6 @@ class BookingController extends Controller
                     ->where('available_date', $appointmentDate)
                     ->where('is_active', true)
                     ->where(function ($q) use ($appointmentTime) {
-                        // Match start_time in either "HH:MM" or "HH:MM:SS" format
                         $q->where('start_time', $appointmentTime)
                           ->orWhere('start_time', $appointmentTime . ':00')
                           ->orWhere('start_time', 'LIKE', $appointmentTime . '%');
@@ -198,6 +198,8 @@ class BookingController extends Controller
 
                 // Count existing (non-cancelled) bookings for this exact slot.
                 // Match appointment_time in either "HH:MM" or "HH:MM:SS" format.
+                // NOTE: no lockForUpdate() here — PostgreSQL does not allow
+                // FOR UPDATE with aggregate functions (count).
                 $bookedCount = DB::table($table)
                     ->where('appointment_date', $appointmentDate)
                     ->where(function ($q) use ($appointmentTime) {
@@ -208,7 +210,6 @@ class BookingController extends Controller
                         $query->where('status', '!=', 'cancelled')
                               ->orWhereNull('status');
                     })
-                    ->lockForUpdate()
                     ->count();
 
                 // RULE: 1 booking per slot — block if any non-cancelled booking exists
