@@ -85,8 +85,6 @@ class RecordController extends Controller
 
     /**
      * Public verification page (no auth required).
-     * Called when someone scans the QR code printed on a certificate.
-     * Displays only non-sensitive verification info.
      */
     public function verify($type, $id)
     {
@@ -94,7 +92,6 @@ class RecordController extends Controller
             $model = $this->resolveModel($type);
             $record = $model->findOrFail($id);
 
-            // Build a human-readable name depending on record type
             $name = match (strtolower($type)) {
                 'baptism', 'communion', 'confirmation' =>
                     trim(($record->first_name ?? '') . ' ' . ($record->last_name ?? '')) ?: 'N/A',
@@ -105,7 +102,6 @@ class RecordController extends Controller
                 default => 'N/A',
             };
 
-            // Use updated_at or created_at as "Date Issued" fallback
             $issuedAt = $record->updated_at ?? $record->created_at ?? now();
 
             return view('records.verify', [
@@ -247,6 +243,28 @@ class RecordController extends Controller
                 'last_name' => $lastName,
                 'mother_maiden_name' => $request->input('mother_name'),
                 'residence' => $request->input('residence') ?: 'N/A',
+            ]);
+        }
+
+        // 3b) Process specific layout transformations for Funerals
+        if ($category === 'funeral') {
+            $firstName  = trim((string) $request->input('first_name'));
+            $middleName = trim((string) $request->input('middle_name'));
+            $lastName   = trim((string) $request->input('last_name'));
+
+            // Build full deceased name (collapse multiple spaces)
+            $deceasedName = trim(preg_replace('/\s+/', ' ', "{$firstName} {$middleName} {$lastName}"));
+            if (empty($deceasedName)) {
+                $deceasedName = 'N/A';
+            }
+
+            // Map form field names to actual DB column names
+            $request->merge([
+                'deceased_name'  => $deceasedName,
+                'age_at_death'   => $request->input('age'),
+                'marital_status' => $request->input('civil_status'),
+                'cemetery_name'  => $request->input('burial_place'),
+                'residence'      => $request->input('residence') ?: 'N/A',
             ]);
         }
 
