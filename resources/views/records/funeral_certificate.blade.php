@@ -176,23 +176,27 @@
                                 
                                 <p>
                                     a resident of barrio 
-                                    <input type="text" name="barrio" value="{{ $record->barrio ?? $record->residence_barrio ?? '_________________' }}" 
-                                           class="font-semibold border-b border-gray-400 inline-block w-[100px] text-center bg-transparent px-1">
+                                    <input type="text" name="residence" value="{{ $record->residence ?? '_________________' }}" 
+                                           class="font-semibold border-b border-gray-400 inline-block w-[120px] text-center bg-transparent px-1">
                                     , Municipality of 
-                                    <input type="text" name="municipality" value="{{ $record->municipality ?? '_____________________' }}" 
+                                    <input type="text" name="municipality" value="Alcala" 
                                            class="font-semibold border-b border-gray-400 inline-block w-[80px] text-center bg-transparent px-1">
                                     , Province of 
-                                    <input type="text" name="province" value="{{ $record->province ?? 'Pangasinan' }}" 
+                                    <input type="text" name="province" value="Pangasinan" 
                                            class="font-semibold border-b border-gray-400 inline-block w-[90px] text-center bg-transparent px-1">
-                                    , 
-                                    <input type="text" name="civil_status" value="{{ $record->civil_status ?? '_____________________' }}" 
-                                           class="font-semibold border-b border-gray-400 inline-block w-[70px] text-center bg-transparent px-1">
-                                    , 
-                                    <input type="text" name="relationship_note" value="{{ $record->relationship_note ?? '____________________-' }}" 
-                                           class="font-semibold border-b border-gray-400 inline-block w-[65px] text-center bg-transparent px-1">
-                                    of 
-                                    <input type="text" name="spouse_name" value="{{ $record->spouse_name ?? '____________________-' }}" 
-                                           class="font-semibold border-b border-gray-400 inline-block w-[80px] text-center bg-transparent px-1">
+                                    
+                                    @if($record->marital_status)
+                                        , 
+                                        <input type="text" name="marital_status" value="{{ $record->marital_status }}" 
+                                               class="font-semibold border-b border-gray-400 inline-block w-[70px] text-center bg-transparent px-1">
+                                    @endif
+                                    
+                                    @if($record->spouse_name)
+                                        of 
+                                        <input type="text" name="spouse_name" value="{{ $record->spouse_name }}" 
+                                               class="font-semibold border-b border-gray-400 inline-block w-[100px] text-center bg-transparent px-1">
+                                    @endif
+                                    
                                     , died on the 
                                     <input type="text" name="death_day" value="{{ $record->death_date ? \Carbon\Carbon::parse($record->death_date)->format('jS') : '____' }}" 
                                            class="font-semibold border-b border-gray-400 inline-block w-[40px] text-center bg-transparent px-1">
@@ -203,11 +207,11 @@
                                     <input type="text" name="death_year" value="{{ $record->death_date ? \Carbon\Carbon::parse($record->death_date)->format('Y') : '____' }}" 
                                            class="font-semibold border-b border-gray-400 inline-block w-[50px] text-center bg-transparent px-1">
                                     , at the age 
-                                    <input type="text" name="age" value="{{ $record->age ?? '____' }}" 
+                                    <input type="text" name="age_at_death" value="{{ $record->age_at_death ?? '____' }}" 
                                            class="font-semibold border-b border-gray-400 inline-block w-[40px] text-center bg-transparent px-1">
                                     years old and was buried in the Roman Catholic Cemetery 
-                                    <input type="text" name="burial_place" value="{{ $record->burial_place ?? 'Municipal Cemetery of Alcala' }}" 
-                                           class="font-semibold border-b border-gray-400 inline-block w-[180px] text-center bg-transparent px-1">
+                                    <input type="text" name="cemetery_name" value="{{ $record->cemetery_name ?? 'Municipal Cemetery of Alcala' }}" 
+                                           class="font-semibold border-b border-gray-400 inline-block w-[220px] text-center bg-transparent px-1">
                                     on the 
                                     <input type="text" name="burial_day" value="{{ $record->burial_date ? \Carbon\Carbon::parse($record->burial_date)->format('jS') : '____' }}" 
                                            class="font-semibold border-b border-gray-400 inline-block w-[40px] text-center bg-transparent px-1">
@@ -222,13 +226,13 @@
                                 
                                 <p>
                                     The cause of death was 
-                                    <input type="text" name="cause_of_death" value="{{ $record->cause_of_death ?? '_______________________________________________________________________________________________--' }}" 
+                                    <input type="text" name="cause_of_death" value="{{ $record->cause_of_death ?? '' }}" 
                                            class="font-semibold border-b border-gray-400 inline-block w-[180px] text-center bg-transparent px-1">
                                     .
-                                   <select name="sacraments_received" class="border-b border-gray-400 bg-transparent font-semibold text-xs ml-1">
-    <option value="1" {{ $record->sacraments_received ? 'selected' : '' }}>Received Sacraments</option>
-    <option value="0" {{ !$record->sacraments_received ? 'selected' : '' }}>Not able to receive Sacraments</option>
-</select>
+                                    <select name="sacraments_received" class="border-b border-gray-400 bg-transparent font-semibold text-xs ml-1">
+                                        <option value="1" {{ $record->sacraments_received ? 'selected' : '' }}>Received Sacraments</option>
+                                        <option value="0" {{ !$record->sacraments_received ? 'selected' : '' }}>Not able to receive Sacraments</option>
+                                    </select>
                                 </p>
                                 
                                 <p>
@@ -271,7 +275,7 @@
                             <div class="mt-3 flex justify-end">
                                 <div class="flex flex-col items-center">
                                     @php 
-                                     $qrCodeUrl = "https://quickchart.io/qr?text=" . urlencode(route('records.verify', ['type' => 'funeral', 'id' => $record->id])) . "&size=45&margin=0";
+                                        $qrCodeUrl = "https://quickchart.io/qr?text=" . urlencode(route('records.verify', ['type' => 'funeral', 'id' => $record->id])) . "&size=45&margin=0";
                                     @endphp
                                     <img src="{{ $qrCodeUrl }}" alt="Verify QR" width="40" height="40">
                                     <p class="text-[6px] uppercase font-bold mt-0.5 text-gray-400">Scan to Verify</p>

@@ -43,9 +43,6 @@
                                 
                                 <td class="px-6 py-4">
                                     <div class="text-sm font-black text-gray-900 uppercase">{{ $record->deceased_name ?? 'N/A' }}</div>
-                                    @if($record->spouse_name)
-                                        <div class="text-[10px] font-bold text-gray-500 uppercase">of {{ $record->spouse_name }}</div>
-                                    @endif
                                 </td>
                                 
                                 <td class="px-6 py-4 text-xs text-gray-600">
