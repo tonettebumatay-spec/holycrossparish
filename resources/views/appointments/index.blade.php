@@ -107,7 +107,7 @@
                                         </td>
                                         <td class="px-6 py-4 font-medium text-gray-900">{{ $app->name ?? 'N/A' }}</td>
 
-                                        <!-- ✅ Scheduled Column (NEW) -->
+                                        <!-- ✅ Scheduled Column -->
                                         <td class="px-6 py-4">
                                             @php
                                                 $scheduledDate = $app->appointment_date ?? null;
@@ -234,9 +234,9 @@
             </div>
         </div>
 
-        <!-- Schedule Modal -->
+        <!-- Schedule Modal (updated with inline calendar) -->
         <div id="scheduleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <div class="bg-white rounded-2xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
                 <h2 class="text-xl font-bold mb-4">
                     Set Appointment Schedule
                 </h2>
@@ -245,41 +245,42 @@
                     @csrf
                     @method('PUT')
 
-                    <div class="mb-3">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                        <input
-                            type="text"
-                            id="schedule_date"
-                            name="appointment_date"
-                            class="w-full border rounded p-2 text-sm bg-white"
-                            placeholder="Select Date.."
-                            readonly
-                            required>
+                    {{-- Inline Calendar --}}
+                    <div class="mb-5">
+                        <label class="block text-xs font-black text-gray-600 uppercase tracking-widest mb-2">Pick a Date</label>
+                        <div class="flex justify-center">
+                            <div id="schedule-calendar" class="border border-gray-200 rounded-2xl p-2 bg-white inline-block"></div>
+                        </div>
+                        <input type="hidden" id="schedule_date" name="appointment_date" required>
+                        <p class="text-xs text-gray-600 mt-3 text-center">
+                            Selected: <strong id="selected-date-label" class="text-purple-700">None</strong>
+                        </p>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                    {{-- Time field (flatpickr popup, 12-hour display) --}}
+                    <div class="mb-5">
+                        <label class="block text-xs font-black text-gray-600 uppercase tracking-widest mb-2">Time</label>
                         <input
                             type="text"
                             id="schedule_time"
                             name="appointment_time"
-                            class="w-full border rounded p-2 text-sm bg-white"
+                            class="w-full border border-gray-200 rounded-2xl bg-gray-50 py-3.5 px-5 text-base text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent transition-all"
                             placeholder="Select Time.."
                             readonly
                             required>
                     </div>
 
-                    <div class="flex justify-end gap-2 mt-4">
+                    <div class="flex justify-end gap-2 mt-6">
                         <button
                             type="button"
                             id="closeSchedule"
-                            class="px-4 py-2 bg-gray-400 text-white rounded text-sm">
+                            class="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl text-xs font-black uppercase tracking-widest transition">
                             Cancel
                         </button>
 
                         <button
                             type="submit"
-                            class="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">
+                            class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition shadow-lg">
                             Save Schedule
                         </button>
                     </div>
@@ -290,7 +291,9 @@
         <!-- JavaScript for Modals -->
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                // Cancel Modal Logic
+                // ==========================================
+                // CANCEL MODAL LOGIC
+                // ==========================================
                 const modal = document.getElementById('cancelModal');
                 const cancelForm = document.getElementById('cancelForm');
                 const cancelTypeInput = document.getElementById('cancelType');
@@ -326,15 +329,12 @@
                 const scheduleForm = document.getElementById('scheduleForm');
                 const scheduleDateInput = document.getElementById('schedule_date');
                 const scheduleTimeInput = document.getElementById('schedule_time');
+                const selectedDateLabel = document.getElementById('selected-date-label');
+                const calendarEl = document.getElementById('schedule-calendar');
 
-                // Initialize Flatpickr for Date
-                const datePicker = flatpickr(scheduleDateInput, {
-                    dateFormat: "Y-m-d",
-                    theme: "dark",
-                    allowInput: false,
-                });
+                let datePicker = null;
 
-                // Initialize Flatpickr for Time (12-hour display with AM/PM)
+                // Initialize Flatpickr for Time (12-hour display with AM/PM) — popup mode
                 const timePicker = flatpickr(scheduleTimeInput, {
                     enableTime: true,
                     noCalendar: true,
@@ -343,6 +343,32 @@
                     theme: "dark",
                     allowInput: false,
                 });
+
+                // Initialize Flatpickr for Date — INLINE mode
+                function initCalendar() {
+                    if (typeof flatpickr === 'undefined' || !calendarEl) {
+                        return setTimeout(initCalendar, 200);
+                    }
+                    if (calendarEl._flatpickr) return;
+
+                    datePicker = flatpickr(calendarEl, {
+                        inline: true,
+                        dateFormat: "Y-m-d",
+                        theme: "dark",
+                        allowInput: false,
+                        onChange: function (selectedDates, dateStr) {
+                            scheduleDateInput.value = dateStr;
+                            if (dateStr) {
+                                const d = new Date(dateStr + 'T00:00:00');
+                                const opts = { year: 'numeric', month: 'long', day: 'numeric' };
+                                selectedDateLabel.textContent = d.toLocaleDateString('en-US', opts);
+                            } else {
+                                selectedDateLabel.textContent = 'None';
+                            }
+                        }
+                    });
+                }
+                initCalendar();
 
                 // Helper: Convert 24-hour "HH:MM" to 12-hour "h:MM AM/PM"
                 function to12Hour(time24) {
@@ -375,13 +401,21 @@
                         let time = this.dataset.time;
 
                         scheduleForm.action = `/appointments/${type}/${id}/schedule`;
-                        
-                        if(date) {
+
+                        // Set date in inline calendar
+                        if (date && datePicker) {
                             datePicker.setDate(date, true);
-                        } else {
+                            scheduleDateInput.value = date;
+                            const d = new Date(date + 'T00:00:00');
+                            const opts = { year: 'numeric', month: 'long', day: 'numeric' };
+                            selectedDateLabel.textContent = d.toLocaleDateString('en-US', opts);
+                        } else if (datePicker) {
                             datePicker.clear();
+                            scheduleDateInput.value = '';
+                            selectedDateLabel.textContent = 'None';
                         }
 
+                        // Set time
                         if(time) {
                             let time24 = time.substring(0, 5);
                             let time12 = to12Hour(time24);
@@ -391,10 +425,6 @@
                         }
 
                         scheduleModal.classList.remove('hidden');
-
-                        setTimeout(function() {
-                            datePicker.open();
-                        }, 100);
                     });
                 });
 
