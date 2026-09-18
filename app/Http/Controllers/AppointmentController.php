@@ -16,6 +16,8 @@ class AppointmentController extends Controller
 {
     /**
      * Display a listing of all appointments from all sacrament tables.
+     * Splits into active (current+future OR past-but-pending) and
+     * archived (past + approved/cancelled).
      */
     public function index(Request $request)
     {
@@ -160,20 +162,69 @@ class AppointmentController extends Controller
                 ->sortByDesc('created_at')
                 ->values();
 
+            // ============================================================
+            // Split into Active and Archived
+            // Active: future/today dates OR past dates na pending pa
+            // Archived: past dates + approved/cancelled
+            // ============================================================
+            $today = now()->toDateString();
+
+            $activeAppointments = $allAppointments->filter(function ($app) use ($today) {
+                $appointmentDate = $app->appointment_date ?? null;
+                $status = strtolower($app->status ?? 'pending');
+
+                // Walang appointment_date → active (kailangan pa i-schedule)
+                if (empty($appointmentDate)) {
+                    return true;
+                }
+
+                // Future o today → active
+                if ($appointmentDate >= $today) {
+                    return true;
+                }
+
+                // Past na, pero pending pa → active (kailangan pa ng action)
+                if (!in_array($status, ['approved', 'cancelled', 'canceled'])) {
+                    return true;
+                }
+
+                // Past na at approved/cancelled → hindi active
+                return false;
+            })->values();
+
+            $archivedAppointments = $allAppointments->filter(function ($app) use ($today) {
+                $appointmentDate = $app->appointment_date ?? null;
+                $status = strtolower($app->status ?? 'pending');
+
+                if (empty($appointmentDate)) {
+                    return false;
+                }
+
+                if ($appointmentDate >= $today) {
+                    return false;
+                }
+
+                return in_array($status, ['approved', 'cancelled', 'canceled']);
+            })->values();
+
             return view('appointments.index', [
-                'appointments' => $allAppointments,
-                'search'       => $search,
-                'statusFilter' => $statusFilter,
-                'typeFilter'   => $typeFilter,
+                'appointments'         => $allAppointments,      // keep for compatibility
+                'activeAppointments'   => $activeAppointments,
+                'archivedAppointments' => $archivedAppointments,
+                'search'               => $search,
+                'statusFilter'         => $statusFilter,
+                'typeFilter'           => $typeFilter,
             ]);
 
         } catch (\Exception $e) {
             Log::error('Appointment Index Error: ' . $e->getMessage());
             return view('appointments.index', [
-                'appointments' => collect(),
-                'search'       => null,
-                'statusFilter' => null,
-                'typeFilter'   => null,
+                'appointments'         => collect(),
+                'activeAppointments'   => collect(),
+                'archivedAppointments' => collect(),
+                'search'               => null,
+                'statusFilter'         => null,
+                'typeFilter'           => null,
             ]);
         }
     }

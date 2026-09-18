@@ -63,17 +63,27 @@
                 </form>
             </div>
 
-            <!-- Main Card -->
-            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                @if($appointments->isEmpty())
-                    <div class="text-center py-20">
+            {{-- ============================================================ --}}
+            {{-- ACTIVE APPOINTMENTS --}}
+            {{-- ============================================================ --}}
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-8">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase bg-green-100 text-green-800">Active</span>
+                        <h2 class="text-lg font-black text-gray-800 uppercase tracking-tight">Current &amp; Upcoming Appointments</h2>
+                    </div>
+                    <span class="text-xs text-gray-500 font-semibold">Total: {{ $activeAppointments->count() }}</span>
+                </div>
+
+                @if($activeAppointments->isEmpty())
+                    <div class="text-center py-16">
                         <div class="inline-flex p-6 bg-purple-50 rounded-full text-purple-600 mb-4">
                             <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                             </svg>
                         </div>
-                        <h2 class="text-2xl font-bold text-gray-700">No Appointments Found</h2>
-                        <p class="text-gray-400 mt-2">Try adjusting your filter or search criteria.</p>
+                        <h3 class="text-lg font-bold text-gray-700">No Active Appointments</h3>
+                        <p class="text-gray-400 mt-2 text-sm">All appointments are archived or filtered out.</p>
                     </div>
                 @else
                     <div class="overflow-x-auto">
@@ -90,7 +100,7 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
-                                @foreach($appointments as $index => $app)
+                                @foreach($activeAppointments as $index => $app)
                                     <tr class="hover:bg-gray-50 transition">
                                         <td class="px-6 py-4 font-medium text-gray-400">{{ $index + 1 }}</td>
                                         <td class="px-6 py-4">
@@ -107,7 +117,6 @@
                                         </td>
                                         <td class="px-6 py-4 font-medium text-gray-900">{{ $app->name ?? 'N/A' }}</td>
 
-                                        <!-- ✅ Scheduled Column -->
                                         <td class="px-6 py-4">
                                             @php
                                                 $scheduledDate = $app->appointment_date ?? null;
@@ -134,11 +143,10 @@
                                         </td>
 
                                         <td class="px-6 py-4 font-medium text-gray-700">{{ $app->submitted_at }}</td>
-                                        
-                                        <!-- Status Column -->
+
                                         <td class="px-6 py-4">
                                             @if(($app->status ?? 'pending') === 'cancelled' || ($app->status ?? 'pending') === 'canceled')
-                                                <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase bg-red-100 text-red-800 cursor-help" 
+                                                <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase bg-red-100 text-red-800 cursor-help"
                                                     title="Reason: {{ $app->cancellation_reason ?? 'No reason provided' }}">
                                                     Cancelled
                                                 </span>
@@ -155,7 +163,6 @@
                                             @endif
                                         </td>
 
-                                        <!-- Actions Column -->
                                         <td class="px-6 py-4">
                                             <div class="flex items-center justify-center space-x-2 flex-wrap gap-1">
                                                 @if(($app->status ?? 'pending') == 'pending')
@@ -171,7 +178,7 @@
                                                 @endif
 
                                                 @if(($app->status ?? 'pending') !== 'cancelled' && ($app->status ?? 'pending') !== 'canceled' && !($app->is_locked ?? false))
-                                                    <button type="button" 
+                                                    <button type="button"
                                                             class="cancel-btn px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-full transition"
                                                             data-type="{{ strtolower($app->type) }}"
                                                             data-id="{{ $app->id }}">
@@ -193,8 +200,116 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="px-6 py-4 bg-gray-50 text-sm text-gray-500 border-t">
-                        Total: {{ $appointments->count() }} appointment(s)
+                @endif
+            </div>
+
+            {{-- ============================================================ --}}
+            {{-- ARCHIVED APPOINTMENTS --}}
+            {{-- ============================================================ --}}
+            <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase bg-gray-200 text-gray-700">Archive</span>
+                        <h2 class="text-lg font-black text-gray-800 uppercase tracking-tight">Past Appointments</h2>
+                    </div>
+                    <span class="text-xs text-gray-500 font-semibold">Total: {{ $archivedAppointments->count() }}</span>
+                </div>
+
+                @if($archivedAppointments->isEmpty())
+                    <div class="text-center py-16">
+                        <div class="inline-flex p-6 bg-gray-50 rounded-full text-gray-400 mb-4">
+                            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-700">No Archived Appointments</h3>
+                        <p class="text-gray-400 mt-2 text-sm">Past appointments (approved/cancelled) will appear here automatically.</p>
+                    </div>
+                @else
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-600">
+                            <thead class="bg-gray-100 text-xs font-semibold uppercase text-gray-500 border-b">
+                                <tr>
+                                    <th class="px-6 py-4">#</th>
+                                    <th class="px-6 py-4">Type</th>
+                                    <th class="px-6 py-4">Name</th>
+                                    <th class="px-6 py-4">Scheduled</th>
+                                    <th class="px-6 py-4">Date Submitted</th>
+                                    <th class="px-6 py-4">Status</th>
+                                    <th class="px-6 py-4 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                @foreach($archivedAppointments as $index => $app)
+                                    <tr class="hover:bg-gray-50 transition opacity-80">
+                                        <td class="px-6 py-4 font-medium text-gray-400">{{ $index + 1 }}</td>
+                                        <td class="px-6 py-4">
+                                            <span class="inline-flex px-2 py-1 rounded-full text-xs font-bold uppercase
+                                                @if($app->type == 'Baptism') bg-blue-100 text-blue-800
+                                                @elseif($app->type == 'Communion') bg-green-100 text-green-800
+                                                @elseif($app->type == 'Confirmation') bg-purple-100 text-purple-800
+                                                @elseif($app->type == 'Wedding') bg-pink-100 text-pink-800
+                                                @elseif($app->type == 'Funeral') bg-gray-100 text-gray-800
+                                                @else bg-gray-100 text-gray-800
+                                                @endif">
+                                                {{ $app->type }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 font-medium text-gray-900">{{ $app->name ?? 'N/A' }}</td>
+
+                                        <td class="px-6 py-4">
+                                            @php
+                                                $scheduledDate = $app->appointment_date ?? null;
+                                                $scheduledTime = $app->appointment_time ?? null;
+                                            @endphp
+
+                                            @if($scheduledDate || $scheduledTime)
+                                                <div class="flex flex-col text-xs">
+                                                    @if($scheduledDate)
+                                                        <span class="font-semibold text-gray-900">
+                                                            {{ \Carbon\Carbon::parse($scheduledDate)->format('M d, Y') }}
+                                                        </span>
+                                                    @endif
+                                                    @if($scheduledTime)
+                                                        <span class="text-gray-600">
+                                                            {{ \Carbon\Carbon::parse($scheduledTime)->format('g:i A') }}
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                            @else
+                                                <span class="text-xs italic text-gray-400">N/A</span>
+                                            @endif
+                                        </td>
+
+                                        <td class="px-6 py-4 font-medium text-gray-700">{{ $app->submitted_at }}</td>
+
+                                        <td class="px-6 py-4">
+                                            @if(($app->status ?? 'pending') === 'cancelled' || ($app->status ?? 'pending') === 'canceled')
+                                                <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase bg-red-100 text-red-800">
+                                                    Cancelled
+                                                </span>
+                                            @else
+                                                <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase bg-green-100 text-green-800">
+                                                    {{ $app->status ?? 'pending' }}
+                                                </span>
+                                            @endif
+                                        </td>
+
+                                        <td class="px-6 py-4">
+                                            <div class="flex items-center justify-center">
+                                                <form action="{{ route('appointments.destroy', ['type' => strtolower($app->type), 'id' => $app->id]) }}" method="POST" class="inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded-full transition" onclick="return confirm('Delete this archived appointment permanently?')">
+                                                        Delete
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
                     </div>
                 @endif
             </div>
@@ -211,7 +326,7 @@
                 <form id="cancelForm" method="POST">
                     @csrf
                     @method('PUT')
-                    
+
                     <input type="hidden" name="type" id="cancelType">
                     <input type="hidden" name="id" id="cancelId">
 
@@ -234,18 +349,15 @@
             </div>
         </div>
 
-        <!-- Schedule Modal (updated with inline calendar) -->
+        <!-- Schedule Modal (inline calendar) -->
         <div id="scheduleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white rounded-2xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-                <h2 class="text-xl font-bold mb-4">
-                    Set Appointment Schedule
-                </h2>
+                <h2 class="text-xl font-bold mb-4">Set Appointment Schedule</h2>
 
                 <form id="scheduleForm" method="POST">
                     @csrf
                     @method('PUT')
 
-                    {{-- Inline Calendar --}}
                     <div class="mb-5">
                         <label class="block text-xs font-black text-gray-600 uppercase tracking-widest mb-2">Pick a Date</label>
                         <div class="flex justify-center">
@@ -257,7 +369,6 @@
                         </p>
                     </div>
 
-                    {{-- Time field (flatpickr popup, 12-hour display) --}}
                     <div class="mb-5">
                         <label class="block text-xs font-black text-gray-600 uppercase tracking-widest mb-2">Time</label>
                         <input
@@ -271,16 +382,10 @@
                     </div>
 
                     <div class="flex justify-end gap-2 mt-6">
-                        <button
-                            type="button"
-                            id="closeSchedule"
-                            class="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl text-xs font-black uppercase tracking-widest transition">
+                        <button type="button" id="closeSchedule" class="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl text-xs font-black uppercase tracking-widest transition">
                             Cancel
                         </button>
-
-                        <button
-                            type="submit"
-                            class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition shadow-lg">
+                        <button type="submit" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition shadow-lg">
                             Save Schedule
                         </button>
                     </div>
@@ -291,9 +396,7 @@
         <!-- JavaScript for Modals -->
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                // ==========================================
-                // CANCEL MODAL LOGIC
-                // ==========================================
+                // Cancel Modal
                 const modal = document.getElementById('cancelModal');
                 const cancelForm = document.getElementById('cancelForm');
                 const cancelTypeInput = document.getElementById('cancelType');
@@ -305,11 +408,9 @@
                     btn.addEventListener('click', function() {
                         const type = this.dataset.type;
                         const id = this.dataset.id;
-                        
                         cancelTypeInput.value = type;
                         cancelIdInput.value = id;
                         cancelForm.action = `/appointments/${type}/${id}/cancel`;
-                        
                         modal.classList.remove('hidden');
                     });
                 });
@@ -322,9 +423,7 @@
                 if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
                 if (cancelModalCloseBtn) cancelModalCloseBtn.addEventListener('click', closeModal);
 
-                // ==========================================
-                // SCHEDULE MODAL LOGIC
-                // ==========================================
+                // Schedule Modal
                 const scheduleModal = document.getElementById('scheduleModal');
                 const scheduleForm = document.getElementById('scheduleForm');
                 const scheduleDateInput = document.getElementById('schedule_date');
@@ -334,7 +433,6 @@
 
                 let datePicker = null;
 
-                // Initialize Flatpickr for Time (12-hour display with AM/PM) — popup mode
                 const timePicker = flatpickr(scheduleTimeInput, {
                     enableTime: true,
                     noCalendar: true,
@@ -344,7 +442,6 @@
                     allowInput: false,
                 });
 
-                // Initialize Flatpickr for Date — INLINE mode
                 function initCalendar() {
                     if (typeof flatpickr === 'undefined' || !calendarEl) {
                         return setTimeout(initCalendar, 200);
@@ -356,6 +453,7 @@
                         dateFormat: "Y-m-d",
                         theme: "dark",
                         allowInput: false,
+                        minDate: "today",
                         onChange: function (selectedDates, dateStr) {
                             scheduleDateInput.value = dateStr;
                             if (dateStr) {
@@ -370,7 +468,6 @@
                 }
                 initCalendar();
 
-                // Helper: Convert 24-hour "HH:MM" to 12-hour "h:MM AM/PM"
                 function to12Hour(time24) {
                     if (!time24) return '';
                     let [hours, minutes] = time24.split(':').map(Number);
@@ -380,7 +477,6 @@
                     return hours12 + ':' + String(minutes).padStart(2, '0') + ' ' + period;
                 }
 
-                // Helper: Convert 12-hour "h:MM AM/PM" to 24-hour "HH:MM"
                 function to24Hour(time12) {
                     if (!time12) return '';
                     let match = time12.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
@@ -402,7 +498,6 @@
 
                         scheduleForm.action = `/appointments/${type}/${id}/schedule`;
 
-                        // Set date in inline calendar
                         if (date && datePicker) {
                             datePicker.setDate(date, true);
                             scheduleDateInput.value = date;
@@ -415,7 +510,6 @@
                             selectedDateLabel.textContent = 'None';
                         }
 
-                        // Set time
                         if(time) {
                             let time24 = time.substring(0, 5);
                             let time12 = to12Hour(time24);
