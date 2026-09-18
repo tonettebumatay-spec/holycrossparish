@@ -173,11 +173,14 @@ class BookingController extends Controller
             // non-cancelled booking, it is no longer available.
             // Uses a transaction + lock on the availability row to
             // prevent race conditions.
+            //
+            // NOTE: availability is GENERIC (not per-sacrament). The
+            // sacrament_type filter was intentionally removed so that
+            // any sacrament can book any of the available slots.
             // ========================================================
 
             $booking = DB::transaction(function () use (
                 $table,
-                $type,
                 $appointmentDate,
                 $appointmentTime,
                 $model,
@@ -185,8 +188,8 @@ class BookingController extends Controller
             ) {
                 // Lock the appointment_availabilities row for this slot to
                 // prevent two concurrent bookings for the same slot.
-                $avail = AppointmentAvailability::where('sacrament_type', $type)
-                    ->where('available_date', $appointmentDate)
+                // NOTE: no sacrament_type filter — slots are generic.
+                $avail = AppointmentAvailability::where('available_date', $appointmentDate)
                     ->where('is_active', true)
                     ->where(function ($q) use ($appointmentTime) {
                         $q->where('start_time', $appointmentTime)

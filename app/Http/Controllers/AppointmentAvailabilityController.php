@@ -8,21 +8,29 @@ use Illuminate\Support\Facades\DB;
 
 class AppointmentAvailabilityController extends Controller
 {
-    public function apiGetSlots($sacrament)
+    /**
+     * API: return all active availability slots for upcoming dates.
+     *
+     * NOTE: The $sacrament parameter is accepted for backward compatibility
+     * with the Android app, but it is IGNORED — all slots are generic and
+     * available to every sacrament.
+     */
+    public function apiGetSlots($sacrament = null)
     {
+        // Sacrament-based table lookup (used to count existing bookings per type)
         $tableMap = [
-            'baptism' => 'baptisms',
-            'communion' => 'communions',
+            'baptism'      => 'baptisms',
+            'communion'    => 'communions',
             'confirmation' => 'confirmations',
-            'wedding' => 'weddings',
-            'funeral' => 'funerals',
+            'wedding'      => 'weddings',
+            'funeral'      => 'funerals',
         ];
 
-        // Normalize input: lowercase, trim spaces, and remove trailing 's'
-        $normalized = strtolower(trim($sacrament));
+        // Normalize sacrament to determine which table to count bookings from.
+        // Defaults to 'baptism' if the input is unrecognized.
+        $normalized = strtolower(trim((string) $sacrament));
         $singularSacrament = rtrim($normalized, 's');
 
-        // Match against known sacrament types (case-insensitive)
         $key = null;
         foreach (array_keys($tableMap) as $tKey) {
             if ($singularSacrament === $tKey || $normalized === $tKey) {
@@ -31,20 +39,19 @@ class AppointmentAvailabilityController extends Controller
             }
         }
 
-        if (!$key || !array_key_exists($key, $tableMap)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid sacrament type.',
-                'received' => $sacrament,
-            ], 400);
+        // Fallback: use baptism table if sacrament is unknown, so the
+        // endpoint still returns the generic slot list.
+        if (!$key) {
+            $key = 'baptism';
         }
 
         $tableName = $tableMap[$key];
 
-        $slots = AppointmentAvailability::where('sacrament_type', $key)
-            ->where('available_date', '>=', now()->toDateString())
+        // Generic query — no sacrament_type filter.
+        $slots = AppointmentAvailability::where('available_date', '>=', now()->toDateString())
             ->where('is_active', true)
             ->orderBy('available_date')
+            ->orderBy('start_time')
             ->get();
 
         $data = $slots->map(function ($slot) use ($tableName) {
@@ -92,19 +99,19 @@ class AppointmentAvailabilityController extends Controller
             $isFullyBooked = $bookedCount >= 1;
 
             return [
-                'available_date'   => $dateStr,
-                'start_time'       => $slotStartTime,
-                'end_time'         => $slotEndTime,
-                'max_slots'        => 1,
-                'booked_count'     => $bookedCount,
-                'remaining_slots'  => $remainingSlots,
-                'is_fully_booked'  => $isFullyBooked,
+                'available_date'  => $dateStr,
+                'start_time'      => $slotStartTime,
+                'end_time'        => $slotEndTime,
+                'max_slots'       => 1,
+                'booked_count'    => $bookedCount,
+                'remaining_slots' => $remainingSlots,
+                'is_fully_booked' => $isFullyBooked,
             ];
         });
 
         return response()->json([
             'success' => true,
-            'data' => $data
+            'data' => $data,
         ]);
     }
 }

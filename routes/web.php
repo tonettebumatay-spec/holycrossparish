@@ -31,6 +31,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // --- Admin Availability Management (3.2) ---
     Route::prefix('admin')->name('admin.')->group(function () {
+        // Bulk store: adds 4 fixed time slots for a given date in one click
+        Route::post('availability/bulk', [AppointmentAvailabilityController::class, 'storeBulk'])->name('availability.bulk');
+
         Route::resource('availability', AppointmentAvailabilityController::class)->except(['show', 'edit', 'update']);
         Route::patch('availability/{id}/toggle', [AppointmentAvailabilityController::class, 'toggleActive'])->name('availability.toggle');
     });
