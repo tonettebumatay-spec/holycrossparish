@@ -9,7 +9,21 @@
                 <h1 class="text-4xl font-black text-gray-800 tracking-tighter italic uppercase underline decoration-[#4d290a] decoration-4 underline-offset-8">
                     {{ $title }}
                 </h1>
-                <div class="w-32"></div> </div>
+                <div class="w-32"></div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="max-w-2xl mx-auto mb-10">
+                <form method="GET" action="{{ route('records.search') }}" class="flex gap-3">
+                    <input type="hidden" name="category" value="{{ $category }}">
+                    <input type="text" name="q" required placeholder="Search {{ ucfirst($category) }} records by name..."
+                           class="flex-1 border-2 border-gray-300 rounded-full px-6 py-3 text-sm focus:outline-none focus:border-[#4d290a]">
+                    <button type="submit"
+                            class="bg-[#4d290a] hover:bg-[#3a1f07] text-white font-black text-xs uppercase tracking-widest px-8 py-3 rounded-full transition">
+                        Search
+                    </button>
+                </form>
+            </div>
 
             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8">
                 @foreach($volumes as $num)
@@ -34,7 +48,3 @@
         </div>
     </div>
 </x-app-layout>
-Compose
-Write to xiao xiao
-
-

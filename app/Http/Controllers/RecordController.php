@@ -66,6 +66,108 @@ class RecordController extends Controller
     }
 
     /**
+     * Search records by name across one or all sacrament tables.
+     * Optional ?category=baptism limits the search to a specific sacrament.
+     */
+    public function search(Request $request)
+    {
+        $query = trim((string) $request->input('q'));
+        $category = $request->input('category'); // optional filter
+
+        $results = collect();
+
+        // If no query, return empty results page
+        if ($query === '') {
+            return view('records.search_results', [
+                'query' => '',
+                'category' => $category,
+                'results' => $results,
+            ]);
+        }
+
+        // Normalize category
+        $normalized = strtolower(trim((string) $category));
+        $allowedCategories = ['baptism', 'communion', 'confirmation', 'wedding', 'funeral'];
+
+        $searchIn = function ($modelClass, $type, $nameFields) use ($query) {
+            $q = $modelClass::query();
+            $q->where(function ($w) use ($query, $nameFields) {
+                foreach ($nameFields as $field) {
+                    $w->orWhere($field, 'LIKE', "%{$query}%");
+                }
+            });
+            return $q->orderByDesc('id')->limit(50)->get()->map(function ($item) use ($type) {
+                // Build display name per sacrament
+                $name = match (strtolower($type)) {
+                    'baptism', 'communion', 'confirmation' =>
+                        trim(($item->first_name ?? '') . ' ' . ($item->last_name ?? '')) ?: 'N/A',
+                    'wedding' =>
+                        trim(($item->groom_name ?? '') . ' & ' . ($item->bride_name ?? '')) ?: 'N/A',
+                    'funeral' =>
+                        $item->deceased_name ?? 'N/A',
+                    default => 'N/A',
+                };
+
+                return [
+                    'id'            => $item->id,
+                    'type'          => ucfirst($type),
+                    'category_slug' => strtolower($type),
+                    'name'          => $name,
+                    'book_number'   => $item->book_number ?? null,
+                    'page_number'   => $item->page_number ?? null,
+                    'line_number'   => $item->line_number ?? null,
+                ];
+            });
+        };
+
+        // Decide which tables to search
+        if ($normalized && in_array($normalized, $allowedCategories)) {
+            // Per-sacrament search
+            $results = match ($normalized) {
+                'baptism' => $searchIn(Baptism::class, 'baptism', [
+                    'first_name', 'last_name', 'father_name', 'mother_name', 'mother_maiden_name',
+                ]),
+                'communion' => $searchIn(Communion::class, 'communion', [
+                    'first_name', 'last_name',
+                ]),
+                'confirmation' => $searchIn(Confirmation::class, 'confirmation', [
+                    'first_name', 'last_name', 'father_name', 'mother_name',
+                ]),
+                'wedding' => $searchIn(Wedding::class, 'wedding', [
+                    'groom_name', 'bride_name', 'groom_parents', 'bride_parents',
+                ]),
+                'funeral' => $searchIn(Funeral::class, 'funeral', [
+                    'deceased_name', 'spouse_name',
+                ]),
+            };
+        } else {
+            // All sacraments — search everything
+            $results = collect()
+                ->merge($searchIn(Baptism::class, 'baptism', [
+                    'first_name', 'last_name', 'father_name', 'mother_name', 'mother_maiden_name',
+                ]))
+                ->merge($searchIn(Communion::class, 'communion', [
+                    'first_name', 'last_name',
+                ]))
+                ->merge($searchIn(Confirmation::class, 'confirmation', [
+                    'first_name', 'last_name', 'father_name', 'mother_name',
+                ]))
+                ->merge($searchIn(Wedding::class, 'wedding', [
+                    'groom_name', 'bride_name',
+                ]))
+                ->merge($searchIn(Funeral::class, 'funeral', [
+                    'deceased_name', 'spouse_name',
+                ]));
+        }
+
+        return view('records.search_results', [
+            'query'    => $query,
+            'category' => $normalized ?: null,
+            'results'  => $results,
+        ]);
+    }
+
+    /**
      * Show the form for creating a new record.
      */
     public function create(Request $request)
@@ -83,9 +185,6 @@ class RecordController extends Controller
     public function showWedding($id) { return view('records.wedding_certificate', ['record' => Wedding::findOrFail($id)]); }
     public function showFuneral($id) { return view('records.funeral_certificate', ['record' => Funeral::findOrFail($id)]); }
 
-    /**
-     * Public verification page (no auth required).
-     */
     public function verify($type, $id)
     {
         try {
@@ -166,14 +265,10 @@ class RecordController extends Controller
                          ->with('success', 'Record deleted!');
     }
 
-    /**
-     * Store a newly created record.
-     */
     public function store(Request $request)
     {
         $category = strtolower($request->category ?? '');
         
-        // 1) Define base validation rules required by EVERY single book
         $rules = [
             'category' => 'required|string',
             'book_number' => 'required|integer',
@@ -181,7 +276,6 @@ class RecordController extends Controller
             'line_number' => 'required|integer',
         ];
 
-        // 2) Apply strict validation rules ONLY if the book category is Baptism
         if ($category === 'baptism') {
             $rules['candidate_name'] = 'required|string';
             $rules['birth_date'] = 'required|date';
@@ -196,14 +290,11 @@ class RecordController extends Controller
             $rules['legitimacy'] = 'nullable|string';
         }
 
-        // Run the dynamic validation checklist
         $request->validate($rules);
 
-        // Resolve the target model and fetch its distinct table name
         $model = $this->resolveModel($category);
         $tableName = $model->getTable();
 
-        // 3) Process specific layout transformations for Baptisms
         if ($category === 'baptism') {
             $candidateName = trim((string) $request->input('candidate_name'));
             $parts = preg_split('/\s+/', $candidateName);
@@ -221,7 +312,6 @@ class RecordController extends Controller
                 ]);
             }
 
-            // Duplicate Check logic for Baptisms
             $exists = \App\Models\Baptism::where('first_name', $firstName)
                 ->where('last_name', $lastName)
                 ->whereDate('birth_date', $request->birth_date)
@@ -237,7 +327,6 @@ class RecordController extends Controller
                 ]);
             }
 
-            // Map and merge normalized keys for the Baptism table schema
             $request->merge([
                 'first_name' => $firstName,
                 'last_name' => $lastName,
@@ -246,19 +335,16 @@ class RecordController extends Controller
             ]);
         }
 
-        // 3b) Process specific layout transformations for Funerals
         if ($category === 'funeral') {
             $firstName  = trim((string) $request->input('first_name'));
             $middleName = trim((string) $request->input('middle_name'));
             $lastName   = trim((string) $request->input('last_name'));
 
-            // Build full deceased name (collapse multiple spaces)
             $deceasedName = trim(preg_replace('/\s+/', ' ', "{$firstName} {$middleName} {$lastName}"));
             if (empty($deceasedName)) {
                 $deceasedName = 'N/A';
             }
 
-            // Map form field names to actual DB column names
             $request->merge([
                 'deceased_name'  => $deceasedName,
                 'age_at_death'   => $request->input('age'),
@@ -268,7 +354,6 @@ class RecordController extends Controller
             ]);
         }
 
-        // 4) Cross-book structural data normalization 
         if ($category === 'confirmation' && $request->has('sponsor_name')) {
             $request->merge(['sponsors' => $request->input('sponsor_name')]);
         }
@@ -277,20 +362,15 @@ class RecordController extends Controller
             $request->merge(['minister' => $request->input('minister_name')]);
         }
 
-        // 5) DYNAMIC CLEANING FILTER: Match payload keys directly against database columns
         $dbColumns = Schema::getColumnListing($tableName);
         $saveData = array_intersect_key($request->all(), array_flip($dbColumns));
 
-        // Save the cleaned dataset securely utilizing Eloquent model definitions
         $model->fill($saveData)->save();
 
         return redirect()->route('records.index', ['category' => $category, 'book_number' => $request->book_number])
                          ->with('success', 'Record successfully saved!');
     }
 
-    /**
-     * Helper to resolve model based on category
-     */
     private function resolveModel($category)
     {
         return match (strtolower($category)) {

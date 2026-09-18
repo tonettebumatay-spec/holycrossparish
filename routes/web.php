@@ -20,7 +20,6 @@ Route::get('/', function () {
 });
 
 // --- Public Verification Route (no auth required) ---
-// Used by QR codes printed on certificates so anyone can verify authenticity.
 Route::get('/verify/{type}/{id}', [RecordController::class, 'verify'])->name('records.verify');
 
 // --- Authenticated Routes ---
@@ -31,14 +30,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // --- Admin Availability Management (3.2) ---
     Route::prefix('admin')->name('admin.')->group(function () {
-        // Bulk store: adds 4 fixed time slots for a given date in one click
         Route::post('availability/bulk', [AppointmentAvailabilityController::class, 'storeBulk'])->name('availability.bulk');
-
         Route::resource('availability', AppointmentAvailabilityController::class)->except(['show', 'edit', 'update']);
         Route::patch('availability/{id}/toggle', [AppointmentAvailabilityController::class, 'toggleActive'])->name('availability.toggle');
     });
 
     // --- Records Management ---
+    // NOTE: search route MUST come before the dynamic /records/{category}/{id} routes
+    Route::get('/records/search', [RecordController::class, 'search'])->name('records.search');
     Route::get('/records', [RecordController::class, 'index'])->name('records.index');
     Route::get('/records/create', [RecordController::class, 'create'])->name('records.create');
     Route::post('/records', [RecordController::class, 'store'])->name('records.store');
@@ -79,13 +78,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // --- Appointments Management ---
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
-
-    Route::put('/appointments/{type}/{id}/schedule', [AppointmentController::class, 'schedule'])
-    ->name('appointments.schedule');
-
+    Route::put('/appointments/{type}/{id}/schedule', [AppointmentController::class, 'schedule'])->name('appointments.schedule');
     Route::put('/appointments/{type}/{id}/status', [AppointmentController::class, 'updateStatus'])->name('appointments.update-status');
     Route::put('/appointments/{type}/{id}/cancel', [AppointmentController::class, 'cancel'])->name('appointments.cancel');
     Route::delete('/appointments/{type}/{id}', [AppointmentController::class, 'destroy'])->name('appointments.destroy');
+
     // --- Bookings ---
     Route::get('/booking/create', [BookingController::class, 'create'])->name('booking.create');
     Route::post('/booking', [BookingController::class, 'store'])->name('booking.store');

@@ -1,15 +1,22 @@
 <x-app-layout>
     <div class="py-12 bg-white min-h-screen font-sans">
         <div class="max-w-7xl mx-auto px-6">
-            
-            
-                
-                <div class="flex items-center gap-4">
-                    <a href="{{ route('dashboard') }}" class="border-2 border-gray-200 rounded-full px-8 py-2.5 font-black text-sm tracking-widest text-gray-700 hover:bg-gray-50 transition uppercase shadow-sm">
-                        Dashboard
-                    </a>
-                    
-                </div>
+
+            <!-- Top bar: Dashboard + Search -->
+            <div class="flex justify-between items-center mb-8">
+                <a href="{{ route('dashboard') }}" class="border-2 border-gray-200 rounded-full px-8 py-2.5 font-black text-sm tracking-widest text-gray-700 hover:bg-gray-50 transition uppercase shadow-sm">
+                    Dashboard
+                </a>
+
+                <!-- Search Bar -->
+                <form method="GET" action="{{ route('records.search') }}" class="flex gap-2">
+                    <input type="text" name="q" required placeholder="Search any name..."
+                           class="w-72 border-2 border-gray-300 rounded-full px-5 py-2.5 text-sm focus:outline-none focus:border-[#4d290a]">
+                    <button type="submit"
+                            class="bg-[#4d290a] hover:bg-[#3a1f07] text-white font-black text-xs uppercase tracking-widest px-6 py-2.5 rounded-full transition">
+                        Search
+                    </button>
+                </form>
             </div>
 
             <!-- Archival Shelf -->
