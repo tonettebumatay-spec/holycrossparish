@@ -21,15 +21,28 @@ class AppointmentAvailabilityController extends Controller
     ];
 
     /**
-     * List all availability records (flat, per slot).
+     * List all availability records, split into:
+     * - Active: today and future dates
+     * - Archived: past dates (before today)
      */
     public function index()
     {
-        $availabilities = AppointmentAvailability::orderBy('available_date')
+        $today = now()->toDateString();
+
+        $activeAvailabilities = AppointmentAvailability::where('available_date', '>=', $today)
+            ->orderBy('available_date')
             ->orderBy('start_time')
             ->get();
 
-        return view('admin.availability.index', compact('availabilities'));
+        $archivedAvailabilities = AppointmentAvailability::where('available_date', '<', $today)
+            ->orderByDesc('available_date')
+            ->orderBy('start_time')
+            ->get();
+
+        return view('admin.availability.index', compact(
+            'activeAvailabilities',
+            'archivedAvailabilities'
+        ));
     }
 
     /**

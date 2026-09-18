@@ -10,6 +10,10 @@
     <!-- Bootstrap CSS CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
+    <!-- Flatpickr CSS (para sa calendar) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+
     <style>
         body {
             background-color: #f8f9fa;
@@ -41,6 +45,26 @@
         .container {
             max-width: 1140px;
         }
+
+        /* Flatpickr custom styling (cyan/teal highlight) */
+        .flatpickr-day.selected,
+        .flatpickr-day.selected:focus,
+        .flatpickr-day.selected:hover {
+            background: #4FD1C5 !important;
+            border-color: #4FD1C5 !important;
+            color: #1A202C !important;
+            font-weight: bold;
+        }
+        .flatpickr-months .flatpickr-month {
+            background: #2D3748 !important;
+        }
+        .flatpickr-months .flatpickr-prev-month,
+        .flatpickr-months .flatpickr-next-month,
+        .flatpickr-current-month .flatpickr-monthDropdown-months,
+        .flatpickr-current-month input.cur-year {
+            color: #ffffff !important;
+            fill: #ffffff !important;
+        }
     </style>
 </head>
 <body>
@@ -66,7 +90,13 @@
         @yield('content')
     </main>
 
-    <!-- Bootstrap JS CDN (para sa dropdowns, modals, atbp.) -->
+    <!-- Bootstrap JS CDN -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Flatpickr JS (para sa calendar) -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <!-- Stack para sa child page scripts (e.g. inline calendar initialization) -->
+    @stack('scripts')
 </body>
 </html>
