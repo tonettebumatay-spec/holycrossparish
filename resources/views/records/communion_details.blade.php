@@ -14,31 +14,17 @@
                 </button>
             </div>
 
-            <div class="text-center mb-16">
+            <div class="text-center mb-10">
                 <h2 class="text-7xl font-black text-[#1a202c] tracking-[0.15em] uppercase italic">HOLY CROSS ARCHIVES</h2>
                 <p class="text-sm font-bold text-gray-500 uppercase tracking-[0.4em] mt-4">COMMUNION — BOOK {{ $bookNumber }}</p>
             </div>
 
-            <div class="flex justify-center mb-8">
-                <form action="{{ url()->current() }}" method="GET" class="flex items-center">
-                        <input type="hidden" name="category" value="{{ request('category') }}">
-                        <input type="hidden" name="book_number" value="{{ request('book_number') }}">
-                        <div class="relative w-full max-w-md flex items-center">
-                            <input type="text"
-                                   name="search"
-                                   value="{{ request('search') }}"
-                                   placeholder="Search records..."
-                                   class="w-80 pl-6 pr-14 py-2.5 border border-gray-200 rounded-full text-sm italic text-gray-500 focus:ring-0 focus:border-gray-300 transition-all shadow-sm">
-                            <button type="submit" class="absolute right-0 h-full px-5 bg-[#5D4037] text-white rounded-r-full hover:bg-[#4E342E] transition-colors flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </button>
-                        </div>
-                        @if(request('search'))
-                            <a href="{{ url()->current() }}" class="ml-3 text-[10px] font-bold text-red-400 hover:text-red-600 uppercase tracking-tighter">Clear</a>
-                        @endif
-                </form>
+            <!-- Client-side Search Bar -->
+            <div class="flex justify-end mb-4">
+                <div class="relative">
+                    <input type="text" id="record-search" placeholder="🔍 Search records..."
+                           class="w-72 border border-gray-300 rounded-full pl-5 pr-5 py-2.5 text-sm italic focus:outline-none focus:border-[#4d290a] transition-all shadow-sm">
+                </div>
             </div>
 
             <div class="border border-gray-200 rounded-sm overflow-hidden bg-white shadow-sm">
@@ -55,9 +41,9 @@
                             <th class="px-4 py-5 text-right">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
+                    <tbody class="divide-y divide-gray-100" id="record-tbody">
                         @forelse($records as $record)
-                        <tr class="hover:bg-orange-50/30 transition">
+                        <tr class="hover:bg-orange-50/30 transition record-row">
                             <td class="px-4 py-4 text-xs font-bold text-gray-500">{{ $record->line_number }}</td>
                             <td class="px-4 py-4 text-xs text-gray-600 uppercase">{{ \Carbon\Carbon::parse($record->communion_date)->format('Y') }}</td>
                             <td class="px-4 py-4 text-xs text-gray-600 uppercase">{{ \Carbon\Carbon::parse($record->communion_date)->format('M d') }}</td>
@@ -69,11 +55,9 @@
                             </td>
                             <td class="px-4 py-4 text-right">
                                 <div class="flex items-center justify-end gap-4">
-                                    <!-- FIXED: Changed from records.show to records.communion.show -->
                                     <a href="{{ route('records.communion.show', $record->id) }}" 
                                        class="text-[10px] font-black uppercase text-[#7c2d12] hover:underline">View</a>
 
-                                    <!-- FIXED: Added book_number parameter to delete route -->
                                     <form action="{{ route('records.destroy', ['id' => $record->id, 'category' => 'communion', 'book_number' => $bookNumber]) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this record?')">
                                         @csrf 
                                         @method('DELETE')
@@ -83,7 +67,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="8" class="px-6 py-10 text-center text-gray-400 uppercase text-xs tracking-widest font-bold">No records found.</td></tr>
+                        <tr class="record-row"><td colspan="8" class="px-6 py-10 text-center text-gray-400 uppercase text-xs tracking-widest font-bold">No records found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -127,4 +111,22 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('record-search');
+            const tbody = document.getElementById('record-tbody');
+            if (!searchInput || !tbody) return;
+
+            searchInput.addEventListener('input', function () {
+                const term = this.value.toLowerCase().trim();
+                const rows = tbody.querySelectorAll('tr.record-row');
+                rows.forEach(row => {
+                    if (row.querySelector('td[colspan]')) return;
+                    const text = row.innerText.toLowerCase();
+                    row.style.display = (term === '' || text.includes(term)) ? '' : 'none';
+                });
+            });
+        });
+    </script>
 </x-app-layout>

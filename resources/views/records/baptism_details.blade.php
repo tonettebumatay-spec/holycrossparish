@@ -14,9 +14,17 @@
                 </a>
             </div>
 
-            <div class="text-center mb-16">
+            <div class="text-center mb-10">
                 <h2 class="text-7xl font-black text-[#1a202c] tracking-[0.15em] uppercase italic leading-none">HOLY CROSS ARCHIVES</h2>
                 <p class="text-sm font-bold text-gray-500 uppercase tracking-[0.4em] mt-4">BAPTISM — BOOK {{ $bookNumber }}</p>
+            </div>
+
+            <!-- Client-side Search Bar -->
+            <div class="flex justify-end mb-4">
+                <div class="relative">
+                    <input type="text" id="record-search" placeholder="🔍 Search records..."
+                           class="w-72 border border-gray-300 rounded-full pl-5 pr-5 py-2.5 text-sm italic focus:outline-none focus:border-[#4d290a] transition-all shadow-sm">
+                </div>
             </div>
 
             <div class="border border-gray-200 rounded-md overflow-hidden bg-white shadow-sm">
@@ -30,9 +38,9 @@
                             <th class="px-6 py-4 text-center">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
+                    <tbody class="divide-y divide-gray-100" id="record-tbody">
                         @forelse($records as $record)
-                            <tr class="hover:bg-gray-50 transition italic">
+                            <tr class="hover:bg-gray-50 transition italic record-row">
                                 <td class="px-6 py-4 text-xs font-bold text-gray-700">
                                     {{ $record->book_number }}/{{ $record->page_number }}/{{ $record->line_number }}
                                 </td>
@@ -61,9 +69,7 @@
                                               class="inline">
                                             @csrf
                                             @method('DELETE')
-                                            
                                             <input type="hidden" name="category" value="baptism">
-                                            
                                             <button type="submit" class="text-[#B71C1C] hover:text-red-600 font-black text-xs uppercase tracking-wider transition">
                                                 DELETE
                                             </button>
@@ -72,7 +78,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr>
+                            <tr class="record-row">
                                 <td colspan="5" class="py-32 text-center text-gray-400 italic font-medium uppercase text-sm">
                                     No records found in this book.
                                 </td>
@@ -83,4 +89,22 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('record-search');
+            const tbody = document.getElementById('record-tbody');
+            if (!searchInput || !tbody) return;
+
+            searchInput.addEventListener('input', function () {
+                const term = this.value.toLowerCase().trim();
+                const rows = tbody.querySelectorAll('tr.record-row');
+                rows.forEach(row => {
+                    if (row.querySelector('td[colspan]')) return; // skip "no records" row
+                    const text = row.innerText.toLowerCase();
+                    row.style.display = (term === '' || text.includes(term)) ? '' : 'none';
+                });
+            });
+        });
+    </script>
 </x-app-layout>

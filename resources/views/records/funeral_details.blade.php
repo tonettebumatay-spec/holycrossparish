@@ -14,9 +14,17 @@
                 </a>
             </div>
 
-            <div class="text-center mb-16">
+            <div class="text-center mb-10">
                 <h2 class="text-7xl font-black text-[#1a202c] tracking-[0.15em] uppercase italic leading-none">HOLY CROSS ARCHIVES</h2>
                 <p class="text-sm font-bold text-gray-500 uppercase tracking-[0.4em] mt-4">FUNERAL — BOOK {{ $bookNumber }}</p>
+            </div>
+
+            <!-- Client-side Search Bar -->
+            <div class="flex justify-end mb-4">
+                <div class="relative">
+                    <input type="text" id="record-search" placeholder="🔍 Search records..."
+                           class="w-72 border border-gray-300 rounded-full pl-5 pr-5 py-2.5 text-sm italic focus:outline-none focus:border-[#4d290a] transition-all shadow-sm">
+                </div>
             </div>
 
             <div class="border border-gray-200 rounded-md overflow-hidden bg-white shadow-sm">
@@ -34,31 +42,26 @@
                             <th class="px-6 py-4 text-center">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
+                    <tbody class="divide-y divide-gray-100" id="record-tbody">
                         @forelse($records as $record)
-                            <tr class="hover:bg-gray-50 transition italic">
+                            <tr class="hover:bg-gray-50 transition italic record-row">
                                 <td class="px-6 py-4 text-xs font-bold text-gray-700">
                                     {{ $record->book_number }}/{{ $record->page_number }}/{{ $record->line_number }}
                                 </td>
-                                
                                 <td class="px-6 py-4">
                                     <div class="text-sm font-black text-gray-900 uppercase">{{ $record->deceased_name ?? 'N/A' }}</div>
                                 </td>
-                                
                                 <td class="px-6 py-4 text-xs text-gray-600">
                                     {{ $record->residence ?? 'N/A' }}
                                 </td>
-                                
                                 <td class="px-6 py-4 text-xs font-bold text-gray-700">
                                     {{ $record->age_at_death ?? 'N/A' }} yrs
                                 </td>
-                                
                                 <td class="px-6 py-4 text-xs text-gray-600">
                                     <div>Died: {{ $record->death_date ? \Carbon\Carbon::parse($record->death_date)->format('M d, Y') : 'N/A' }}</div>
                                     <div>Buried: {{ $record->burial_date ? \Carbon\Carbon::parse($record->burial_date)->format('M d, Y') : 'N/A' }}</div>
                                     <div class="text-[10px] text-gray-400 mt-1">{{ $record->cause_of_death ?? 'SENILITY WITHOUT MENTION OF PSYCHOSIS' }}</div>
                                 </td>
-                                
                                 <td class="px-6 py-4">
                                     @if($record->sacraments_received)
                                         <span class="inline-block bg-green-100 text-green-800 text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider">
@@ -71,16 +74,12 @@
                                         </span>
                                     @endif
                                 </td>
-                                
                                 <td class="px-6 py-4 text-xs text-gray-600">
                                     {{ $record->cemetery_name ?? 'ALCALÁ MUNICIPAL CEMETERY' }}
                                 </td>
-                                
                                 <td class="px-6 py-4 text-xs text-gray-600">
                                     {{ $record->minister_name ?? 'REV. FR. NUMERIANO A. GABOT JR.' }}
                                 </td>
-                                
-                                <!-- FIXED ACTION COLUMN -->
                                 <td class="px-6 py-4">
                                     <div class="flex items-center justify-center gap-4">
                                         <a href="{{ route('records.funeral.show', $record->id) }}" 
@@ -102,7 +101,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr>
+                            <tr class="record-row">
                                 <td colspan="9" class="py-32 text-center text-gray-400 italic font-medium uppercase text-sm">
                                     No funeral records found in this book.
                                 </td>
@@ -135,4 +134,22 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('record-search');
+            const tbody = document.getElementById('record-tbody');
+            if (!searchInput || !tbody) return;
+
+            searchInput.addEventListener('input', function () {
+                const term = this.value.toLowerCase().trim();
+                const rows = tbody.querySelectorAll('tr.record-row');
+                rows.forEach(row => {
+                    if (row.querySelector('td[colspan]')) return;
+                    const text = row.innerText.toLowerCase();
+                    row.style.display = (term === '' || text.includes(term)) ? '' : 'none';
+                });
+            });
+        });
+    </script>
 </x-app-layout>
