@@ -210,32 +210,37 @@
                     <form action="{{ route('schedules.store') }}" method="POST" class="space-y-4">
                         @csrf
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                             {{-- LEFT: Inline Calendar --}}
                             <div>
-                                <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Pick a Date</label>
-                                <div id="schedule-calendar" class="border border-gray-200 rounded-xl p-2 bg-white inline-block"></div>
+                                <label class="block text-xs font-black text-gray-600 uppercase tracking-widest mb-2 ml-1">Pick a Date</label>
+                                <div id="schedule-calendar" class="border border-gray-200 rounded-2xl p-2 bg-white inline-block"></div>
                                 <input type="hidden" name="date" id="schedule_date_input" required>
-                                <p class="text-[10px] text-gray-500 mt-2 ml-1">
+                                <p class="text-xs text-gray-600 mt-3 ml-1">
                                     Selected: <strong id="selected-date-label" class="text-[#5D4037]">None</strong>
                                 </p>
                             </div>
 
-                            {{-- RIGHT: Form Fields --}}
-                            <div class="space-y-4">
+                            {{-- RIGHT: Form Fields (enlarged) --}}
+                            <div class="space-y-5">
                                 <div>
-                                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 ml-1">Barangay / Location</label>
-                                    <input type="text" name="location" required class="w-full border-none rounded-xl bg-gray-50 text-sm focus:ring-[#5D4037]" placeholder="e.g. Brgy. San Manuel">
+                                    <label class="block text-xs font-black text-gray-600 uppercase tracking-widest mb-2 ml-1">Barangay / Location</label>
+                                    <input type="text" name="location" required 
+                                           class="w-full border border-gray-200 rounded-2xl bg-gray-50 text-base py-3.5 px-5 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5D4037] focus:border-transparent transition-all" 
+                                           placeholder="e.g. Brgy. San Manuel">
                                 </div>
 
                                 <div>
-                                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 ml-1">Time</label>
-                                    <input type="time" name="time" required class="w-full border-none rounded-xl bg-gray-50 text-sm focus:ring-[#5D4037]">
+                                    <label class="block text-xs font-black text-gray-600 uppercase tracking-widest mb-2 ml-1">Time</label>
+                                    <input type="time" name="time" required 
+                                           class="w-full border border-gray-200 rounded-2xl bg-gray-50 text-base py-3.5 px-5 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#5D4037] focus:border-transparent transition-all">
                                 </div>
 
                                 <div>
-                                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 ml-1">Event Description</label>
-                                    <textarea name="description" rows="3" class="w-full border-none rounded-xl bg-gray-50 text-sm focus:ring-[#5D4037]" placeholder="e.g. Patronal Feast Mass"></textarea>
+                                    <label class="block text-xs font-black text-gray-600 uppercase tracking-widest mb-2 ml-1">Event Description</label>
+                                    <textarea name="description" rows="4" 
+                                              class="w-full border border-gray-200 rounded-2xl bg-gray-50 text-base py-3.5 px-5 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#5D4037] focus:border-transparent transition-all resize-none" 
+                                              placeholder="e.g. Patronal Feast Mass"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -263,10 +268,9 @@
                 const hiddenInput = document.getElementById('schedule_date_input');
                 const labelEl = document.getElementById('selected-date-label');
                 if (!calendarEl || !hiddenInput || typeof flatpickr === 'undefined') {
-                    // Retry kung hindi pa loaded ang flatpickr
                     return setTimeout(initScheduleCalendar, 200);
                 }
-                if (calendarEl._flatpickr) return; // already initialized
+                if (calendarEl._flatpickr) return;
 
                 flatpickr(calendarEl, {
                     inline: true,
