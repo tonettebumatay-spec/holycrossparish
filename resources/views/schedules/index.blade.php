@@ -146,7 +146,6 @@
                                     <div class="flex items-center justify-between p-6 bg-gray-50 rounded-[20px] border border-gray-100 hover:border-green-300 transition-all gap-4">
                                         <div class="min-w-0">
                                             <div class="flex items-center gap-3 mb-1">
-                                                {{-- INAYOS DITO: Ginawang 'cancelled' para mag-match sa controller at database table --}}
                                                 @if($status === 'done')
                                                     <span class="text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded uppercase tracking-tighter">Done</span>
                                                 @elseif($status === 'cancelled')
@@ -171,7 +170,7 @@
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 transition-all" aria-label="Delete schedule">
-                                                    <svg xmlns="http://www.w3.org/2000/xl" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                         <path d="M18 6 6 18" />
                                                         <path d="M6 6l12 12" />
                                                     </svg>
@@ -197,11 +196,12 @@
             </div>
         </div>
 
+        {{-- MODAL WITH INLINE CALENDAR --}}
         <div x-show="openModal" class="fixed inset-0 z-50 overflow-y-auto" x-cloak x-transition.opacity>
             <div class="flex items-center justify-center min-h-screen p-4">
                 <div class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity" @click="openModal = false"></div>
 
-                <div class="relative bg-white rounded-[30px] shadow-2xl max-w-lg w-full p-8 transition-all transform">
+                <div class="relative bg-white rounded-[30px] shadow-2xl max-w-4xl w-full p-8 transition-all transform">
                     <div class="mb-6">
                         <h3 class="text-xl font-black text-gray-800 uppercase italic">Add New Entry</h3>
                         <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Schedule for Barangay Mass or Event</p>
@@ -209,25 +209,35 @@
 
                     <form action="{{ route('schedules.store') }}" method="POST" class="space-y-4">
                         @csrf
-                        <div>
-                            <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 ml-1">Barangay / Location</label>
-                            <input type="text" name="location" required class="w-full border-none rounded-xl bg-gray-50 text-sm focus:ring-[#5D4037]" placeholder="e.g. Brgy. San Manuel">
-                        </div>
 
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {{-- LEFT: Inline Calendar --}}
                             <div>
-                                <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 ml-1">Date</label>
-                                <input type="date" name="date" required class="w-full border-none rounded-xl bg-gray-50 text-sm focus:ring-[#5D4037]">
+                                <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Pick a Date</label>
+                                <div id="schedule-calendar" class="border border-gray-200 rounded-xl p-2 bg-white inline-block"></div>
+                                <input type="hidden" name="date" id="schedule_date_input" required>
+                                <p class="text-[10px] text-gray-500 mt-2 ml-1">
+                                    Selected: <strong id="selected-date-label" class="text-[#5D4037]">None</strong>
+                                </p>
                             </div>
-                            <div>
-                                <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 ml-1">Time</label>
-                                <input type="time" name="time" required class="w-full border-none rounded-xl bg-gray-50 text-sm focus:ring-[#5D4037]">
-                            </div>
-                        </div>
 
-                        <div>
-                            <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 ml-1">Event Description</label>
-                            <textarea name="description" rows="3" class="w-full border-none rounded-xl bg-gray-50 text-sm focus:ring-[#5D4037]" placeholder="e.g. Patronal Feast Mass"></textarea>
+                            {{-- RIGHT: Form Fields --}}
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 ml-1">Barangay / Location</label>
+                                    <input type="text" name="location" required class="w-full border-none rounded-xl bg-gray-50 text-sm focus:ring-[#5D4037]" placeholder="e.g. Brgy. San Manuel">
+                                </div>
+
+                                <div>
+                                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 ml-1">Time</label>
+                                    <input type="time" name="time" required class="w-full border-none rounded-xl bg-gray-50 text-sm focus:ring-[#5D4037]">
+                                </div>
+
+                                <div>
+                                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 ml-1">Event Description</label>
+                                    <textarea name="description" rows="3" class="w-full border-none rounded-xl bg-gray-50 text-sm focus:ring-[#5D4037]" placeholder="e.g. Patronal Feast Mass"></textarea>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="pt-4 flex gap-3">
@@ -244,4 +254,39 @@
         </div>
 
     </div>
+
+    {{-- Flatpickr Inline Calendar Script --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            function initScheduleCalendar() {
+                const calendarEl = document.getElementById('schedule-calendar');
+                const hiddenInput = document.getElementById('schedule_date_input');
+                const labelEl = document.getElementById('selected-date-label');
+                if (!calendarEl || !hiddenInput || typeof flatpickr === 'undefined') {
+                    // Retry kung hindi pa loaded ang flatpickr
+                    return setTimeout(initScheduleCalendar, 200);
+                }
+                if (calendarEl._flatpickr) return; // already initialized
+
+                flatpickr(calendarEl, {
+                    inline: true,
+                    dateFormat: "Y-m-d",
+                    minDate: "today",
+                    theme: "dark",
+                    defaultDate: null,
+                    onChange: function (selectedDates, dateStr) {
+                        hiddenInput.value = dateStr;
+                        if (dateStr) {
+                            const d = new Date(dateStr + 'T00:00:00');
+                            const opts = { year: 'numeric', month: 'long', day: 'numeric' };
+                            labelEl.textContent = d.toLocaleDateString('en-US', opts);
+                        } else {
+                            labelEl.textContent = 'None';
+                        }
+                    }
+                });
+            }
+            initScheduleCalendar();
+        });
+    </script>
 </x-app-layout>
