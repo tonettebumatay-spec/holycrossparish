@@ -76,7 +76,9 @@ Route::prefix('v1')->group(function () {
 
         // ---- Generic appointment & certificate (if used) ----
         Route::post('/appointment', [AppointmentController::class, 'store']);
-        Route::post('/certificates', [CertificateController::class, 'store']);
+
+        // Certificate request from Android app (returns JSON)
+        Route::post('/certificates', [CertificateController::class, 'apiStore']);
 
         // ---- Appointment Availability (Admin only – but we keep it here) ----
         Route::get('/availability', [AppointmentAvailabilityController::class, 'index']);

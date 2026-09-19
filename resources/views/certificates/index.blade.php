@@ -33,7 +33,6 @@
                     </div>
                 @endif
 
-
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-[30px] p-10 border border-gray-100">
                     <div class="flex items-center justify-between mb-8 border-b border-gray-50 pb-6">
                         <div>
@@ -49,6 +48,8 @@
                                 <tr class="text-[11px] text-gray-400 uppercase tracking-widest">
                                     <th class="px-4 py-3">Full Name</th>
                                     <th class="px-4 py-3">Type</th>
+                                    <th class="px-4 py-3">Contact</th>
+                                    <th class="px-4 py-3">Scheduled</th>
                                     <th class="px-4 py-3">Request Date</th>
                                     <th class="px-4 py-3">Status</th>
                                     <th class="px-4 py-3 text-right">Actions</th>
@@ -57,9 +58,33 @@
                             <tbody>
                                 @forelse($certificates as $certificate)
                                     <tr class="border-t border-gray-100 hover:bg-gray-50 transition-colors">
-                                        <td class="px-4 py-4 font-medium text-gray-800">{{ $certificate->full_name }}</td>
+                                        <td class="px-4 py-4">
+                                            <div class="font-medium text-gray-800">{{ $certificate->full_name }}</div>
+                                            @if($certificate->email)
+                                                <div class="text-[11px] text-gray-400">{{ $certificate->email }}</div>
+                                            @endif
+                                        </td>
                                         <td class="px-4 py-4 text-gray-600">{{ $certificate->certificate_type }}</td>
-                                        <td class="px-4 py-4 text-gray-600">{{ \Carbon\Carbon::parse($certificate->request_date)->format('M d, Y') }}</td>
+                                        <td class="px-4 py-4 text-gray-600 text-sm">
+                                            {{ $certificate->contact_number ?? '—' }}
+                                        </td>
+                                        <td class="px-4 py-4">
+                                            @if($certificate->appointment_date)
+                                                <div class="flex flex-col text-xs">
+                                                    <span class="font-semibold text-gray-900">
+                                                        {{ \Carbon\Carbon::parse($certificate->appointment_date)->format('M d, Y') }}
+                                                    </span>
+                                                    @if($certificate->appointment_time)
+                                                        <span class="text-gray-600">
+                                                            {{ \Carbon\Carbon::parse($certificate->appointment_time)->format('g:i A') }}
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                            @else
+                                                <span class="text-xs italic text-gray-400">Not scheduled</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-4 text-gray-600 text-sm">{{ \Carbon\Carbon::parse($certificate->request_date)->format('M d, Y') }}</td>
                                         <td class="px-4 py-4">
                                             @if($certificate->status === 'pending')
                                                 <span class="px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-[10px] font-black uppercase tracking-tighter">Pending</span>
@@ -93,7 +118,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="px-4 py-14 text-center">
+                                        <td colspan="7" class="px-4 py-14 text-center">
                                             <div class="flex flex-col items-center">
                                                 <div class="bg-gray-50 p-5 rounded-full mb-4">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -113,4 +138,3 @@
         </div>
     </div>
 </x-app-layout>
-
