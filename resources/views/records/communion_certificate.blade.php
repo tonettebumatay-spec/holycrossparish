@@ -8,16 +8,32 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
     <style>
         @media print {
-            @page { size: letter; margin: 0 !important; }
+            @page {
+                size: letter;
+                margin: 0.2in !important;
+            }
             .no-print { display: none !important; }
-            body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            .certificate-container { 
-                margin: 0 !important; 
-                box-shadow: none !important; 
-                height: 100vh !important; 
-                width: 100vw !important;
+            body {
+                background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .certificate-container {
+                margin: 0 auto !important;
+                box-shadow: none !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: 100% !important;
                 page-break-after: avoid !important;
                 page-break-inside: avoid !important;
+            }
+            .certificate-inner {
+                padding: 1rem !important;
+                height: auto !important;
             }
             input, select {
                 border: none !important;
@@ -70,113 +86,113 @@
         @csrf 
         @method('PUT')
         
-        <div class="certificate-container max-w-4xl mx-auto bg-white p-4 shadow-2xl relative border-[12px] border-double border-gold mt-6 flex flex-col justify-between" style="height: 1056px; width: 816px; page-break-inside: avoid;">
+        <div class="certificate-container max-w-4xl mx-auto bg-white p-2 print:p-0 shadow-2xl relative border-[8px] print:border-[4px] border-double border-gold mt-6 flex flex-col justify-between" style="min-height: 980px;">
             
-            <div class="absolute inset-0 p-8">
+            <div class="absolute inset-0 p-6 print:p-2">
                 <div class="w-full h-full border border-gold opacity-30"></div>
             </div>
 
-            <div class="p-10 flex-1 flex flex-col justify-between relative z-10 font-serif">
+            <div class="certificate-inner p-8 print:p-4 flex-1 flex flex-col justify-between relative z-10 font-serif">
                 
                 <!-- Header with Logos -->
-                <div class="flex justify-between items-center mb-8 px-4">
+                <div class="flex justify-between items-center mb-6 print:mb-3 px-4">
                     <!-- LEFT: Parish Logo (holylogo.png) -->
-                    <div class="w-20 h-20 flex items-center justify-center">
+                    <div class="w-16 h-16 print:w-12 print:h-12 flex items-center justify-center">
                         <img src="{{ asset('images/holylogo.png') }}" alt="Parish Logo" class="object-contain max-h-full max-w-full rounded-full border border-gold/30 p-0.5" onerror="this.src='/baprec.png'">
                     </div>
                     
                     <!-- CENTER: Header Text -->
                     <div class="text-center">
-                        <p class="text-[10px] italic text-gray-700 tracking-wider">Roman Catholic Diocese of Urdaneta</p>
-                        <h1 class="text-2xl font-bold font-cinzel tracking-widest text-gray-900 my-0.5">HOLY CROSS PARISH</h1>
-                        <p class="text-[10px] tracking-wide text-gray-600">Alcala, Pangasinan 2425</p>
+                        <p class="text-[10px] print:text-[8px] italic text-gray-700 tracking-wider">Roman Catholic Diocese of Urdaneta</p>
+                        <h1 class="text-2xl print:text-xl font-bold font-cinzel tracking-widest text-gray-900 my-0.5">HOLY CROSS PARISH</h1>
+                        <p class="text-[10px] print:text-[8px] tracking-wide text-gray-600">Alcala, Pangasinan 2425</p>
                     </div>
                     
                     <!-- RIGHT: Diocese Logo (dialogo.png) -->
-                    <div class="w-20 h-20 flex items-center justify-center">
+                    <div class="w-16 h-16 print:w-12 print:h-12 flex items-center justify-center">
                         <img src="{{ asset('images/diologo.png') }}" alt="Diocese Logo" class="object-contain max-h-full max-w-full rounded-full border border-gold/30 p-0.5" onerror="this.style.display='none'">
                     </div>
                 </div>
 
                 <!-- Title -->
-                <div class="text-center space-y-10 flex-1 flex flex-col items-center justify-center pt-10">
-                    <h2 class="text-5xl font-playfair font-normal italic text-[#2E7D32]" style="font-weight: 600;">Certificate of</h2>
-                    <h2 class="text-7xl font-playfair font-normal italic text-[#1B5E20] -mt-6" style="font-weight: 700;">First Communion</h2>
+                <div class="text-center space-y-8 print:space-y-4 flex-1 flex flex-col items-center justify-center pt-8 print:pt-2">
+                    <h2 class="text-4xl print:text-3xl font-playfair font-normal italic text-[#2E7D32]" style="font-weight: 600;">Certificate of</h2>
+                    <h2 class="text-6xl print:text-5xl font-playfair font-normal italic text-[#1B5E20] -mt-4" style="font-weight: 700;">First Communion</h2>
 
-                    <p class="text-sm italic text-gray-700 w-3/4 mx-auto leading-relaxed">
+                    <p class="text-sm print:text-xs italic text-gray-700 w-3/4 mx-auto leading-relaxed">
                         Jesus said, "I am the bread of life; he who comes to me shall not hunger, and he who believes in me shall never thirst." — John 6:35
                     </p>
 
                     <!-- Candidate Name - Editable -->
-                    <div class="w-3/4 mx-auto mt-16">
+                    <div class="w-3/4 mx-auto mt-10 print:mt-4">
                         <div class="border-b-2 border-gold pb-0.5 text-center">
                             <input type="text" name="candidate_name" value="{{ $record->candidate_name ?? $record->first_name . ' ' . $record->last_name }}" 
-                                   class="text-3xl font-bold font-cinzel tracking-wider text-gray-950 uppercase text-center w-full bg-transparent border-none focus:outline-none">
+                                   class="text-3xl print:text-2xl font-bold font-cinzel tracking-wider text-gray-950 uppercase text-center w-full bg-transparent border-none focus:outline-none">
                         </div>
-                        <p class="text-[11px] mt-1.5 uppercase font-medium tracking-wider text-gray-600">Name of Recipient</p>
+                        <p class="text-[11px] print:text-[9px] mt-1.5 uppercase font-medium tracking-wider text-gray-600">Name of Recipient</p>
                     </div>
 
-                    <div class="space-y-1 pt-6">
-                        <p class="text-sm tracking-wide text-gray-800">received</p>
-                        <p class="text-xl font-bold uppercase tracking-widest text-gray-950 font-cinzel">THE BODY AND BLOOD OF OUR LORD</p>
-                        <p class="text-sm tracking-wide text-gray-800">for the first time</p>
+                    <div class="space-y-1 pt-6 print:pt-2">
+                        <p class="text-sm print:text-xs tracking-wide text-gray-800">received</p>
+                        <p class="text-xl print:text-lg font-bold uppercase tracking-widest text-gray-950 font-cinzel">THE BODY AND BLOOD OF OUR LORD</p>
+                        <p class="text-sm print:text-xs tracking-wide text-gray-800">for the first time</p>
                     </div>
 
                     <!-- Minister and Date - Editable -->
-                    <div class="w-3/4 mx-auto pt-6 space-y-3.5 text-sm">
+                    <div class="w-3/4 mx-auto pt-6 print:pt-2 space-y-3 print:space-y-1.5 text-sm print:text-xs">
                         <div class="flex items-baseline justify-center gap-2">
                             from the hands of 
                             <input type="text" name="minister_name" value="{{ $record->minister_name }}" 
                                    class="font-bold border-b border-gold px-6 min-w-[250px] text-center bg-transparent focus:outline-none">
                         </div>
-                        <p class="text-[11px] mt-1.5 uppercase font-medium tracking-wider text-gray-600 -ml-16">Minister of Holy Communion</p>
+                        <p class="text-[11px] print:text-[9px] mt-1.5 uppercase font-medium tracking-wider text-gray-600 -ml-16">Minister of Holy Communion</p>
                         
                         <div class="pt-2 flex items-baseline justify-center gap-2">
                             on 
                             <input type="date" name="communion_date" value="{{ $record->communion_date ? \Carbon\Carbon::parse($record->communion_date)->format('Y-m-d') : '' }}" 
                                    class="font-bold border-b border-gold px-6 min-w-[150px] text-center bg-transparent focus:outline-none">
                         </div>
-                        <p class="text-[11px] mt-1.5 uppercase font-medium tracking-wider text-gray-600">Date of First Communion</p>
+                        <p class="text-[11px] print:text-[9px] mt-1.5 uppercase font-medium tracking-wider text-gray-600">Date of First Communion</p>
 
-                        <p class="pt-3 text-sm italic text-gray-700">In the assembly of this Parish Community.</p>
+                        <p class="pt-3 print:pt-1 text-sm print:text-xs italic text-gray-700">In the assembly of this Parish Community.</p>
                     </div>
                 </div>
 
                 <!-- Footer Section -->
-                <div class="w-full mt-auto pt-20 px-8 space-y-20">
+                <div class="w-full mt-auto pt-12 print:pt-4 px-8 print:px-4 space-y-12 print:space-y-6">
                     <!-- Issue Date -->
                     <div class="text-center">
-                        <div class="flex items-baseline justify-center gap-2 text-sm text-gray-800">
+                        <div class="flex items-baseline justify-center gap-2 text-sm print:text-xs text-gray-800">
                             Given this 
                             <span class="font-bold border-b border-gold px-6 min-w-[150px]">{{ now()->format('F d, Y') }}</span>
                         </div>
-                        <p class="text-[11px] mt-1.5 uppercase font-medium tracking-wider text-gray-600">Date of Issue</p>
+                        <p class="text-[11px] print:text-[9px] mt-1.5 uppercase font-medium tracking-wider text-gray-600">Date of Issue</p>
                     </div>
 
                     <!-- Signatures -->
-                    <div class="flex justify-between items-end gap-16 text-sm font-medium">
+                    <div class="flex justify-between items-end gap-16 print:gap-8 text-sm print:text-xs font-medium">
                         <div class="flex-1 text-center">
                             <input type="text" name="coordinator_name" value="{{ $record->coordinator_name ?? '_________________________' }}" 
                                    class="border-b border-gold pb-0.5 min-w-[200px] text-center bg-transparent focus:outline-none">
-                            <p class="text-[11px] mt-1.5 uppercase font-medium tracking-wider text-gray-600">Coordinator, Adult Catechesis</p>
+                            <p class="text-[11px] print:text-[9px] mt-1.5 uppercase font-medium tracking-wider text-gray-600">Coordinator, Adult Catechesis</p>
                         </div>
 
                         <div class="flex-1 text-center">
                             <input type="text" name="parish_priest" value="{{ $record->minister_name ?? 'REV. FR. ELISAR CHRISTOPHER M. ITCHON' }}" 
                                    class="font-bold border-b border-gold pb-0.5 min-w-[200px] text-center bg-transparent focus:outline-none uppercase">
-                            <p class="text-[11px] mt-1.5 uppercase font-medium tracking-wider text-gray-600">Parish Priest</p>
+                            <p class="text-[11px] print:text-[9px] mt-1.5 uppercase font-medium tracking-wider text-gray-600">Parish Priest</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- QR Code Section -->
-                <div class="mt-4 flex justify-end">
+                <div class="mt-4 print:mt-2 flex justify-end">
                     <div class="flex flex-col items-center">
                         @php 
                            $qrCodeUrl = "https://quickchart.io/qr?text=" . urlencode(route('records.verify', ['type' => 'communion', 'id' => $record->id])) . "&size=50&margin=0";
                         @endphp
-                        <img src="{{ $qrCodeUrl }}" alt="Verify QR" width="45" height="45">
-                        <p class="text-[6px] uppercase font-bold mt-0.5 text-gray-400">Scan to Verify</p>
+                        <img src="{{ $qrCodeUrl }}" alt="Verify QR" width="45" height="45" class="print:w-10 print:h-10">
+                        <p class="text-[6px] print:text-[5px] uppercase font-bold mt-0.5 text-gray-400">Scan to Verify</p>
                     </div>
                 </div>
 

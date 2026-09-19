@@ -16,17 +16,22 @@ class DashboardController extends Controller
     public function index()
     {
         try {
-            // Calculate total appointments from all sacrament tables
-            $appointmentCount = Baptism::count()
+            // Sacramental records count (archives/books)
+            // Mula sa 5 sacrament tables
+            $sacramentalRecordCount = Baptism::count()
                 + Communion::count()
                 + Confirmation::count()
                 + Wedding::count()
                 + Funeral::count();
 
+            // Appointments count (bookings)
+            // Mula sa central appointments table
+            $appointmentCount = Appointment::count();
+
             $data = [
                 'bookCount' => 5,
 
-                'sacramentalRecordCount' => $appointmentCount,
+                'sacramentalRecordCount' => $sacramentalRecordCount,
 
                 // Count only active/pending schedules
                 // whose date is today or in the future

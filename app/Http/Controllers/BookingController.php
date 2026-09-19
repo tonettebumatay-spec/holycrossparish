@@ -2,58 +2,45 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Baptism;
-use App\Models\Communion;
-use App\Models\Confirmation;
-use App\Models\Wedding;
-use App\Models\Funeral;
+use App\Models\Appointment;
 use App\Models\AppointmentAvailability;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
 class BookingController extends Controller
 {
-    // ============================================================
-    // API METHODS – Called by Android app
-    // ============================================================
-
     public function storeBaptism(Request $request)
     {
-        return $this->handleBooking($request, 'baptism', Baptism::class);
+        return $this->handleBooking($request, 'baptism');
     }
 
     public function storeCommunion(Request $request)
     {
-        return $this->handleBooking($request, 'communion', Communion::class);
+        return $this->handleBooking($request, 'communion');
     }
 
     public function storeConfirmation(Request $request)
     {
-        return $this->handleBooking($request, 'confirmation', Confirmation::class);
+        return $this->handleBooking($request, 'confirmation');
     }
 
     public function storeWedding(Request $request)
     {
-        return $this->handleBooking($request, 'wedding', Wedding::class);
+        return $this->handleBooking($request, 'wedding');
     }
 
     public function storeFuneral(Request $request)
     {
-        return $this->handleBooking($request, 'funeral', Funeral::class);
+        return $this->handleBooking($request, 'funeral');
     }
 
-    /**
-     * Core booking logic – safely inserts data and appointment schedule.
-     */
-    private function handleBooking(Request $request, string $type, string $modelClass)
+    private function handleBooking(Request $request, string $type)
     {
         try {
             Log::info("API_BOOKING_REQUEST_{$type}", $request->all());
 
-            // 1. Validate request data
             $validator = Validator::make($request->all(), [
                 'user_name'        => 'required|string|max:255',
                 'contact_number'   => 'required|string|max:20',
@@ -70,126 +57,35 @@ class BookingController extends Controller
                 ], 422);
             }
 
-            Log::info('AUTH HEADER', [
-                'authorization' => $request->header('Authorization'),
-            ]);
-
-            Log::info('AUTH USER', [
-                'user' => $request->user(),
-            ]);
-
             $user = $request->user();
-
             $userName = $request->input('user_name');
             $contactNumber = $request->input('contact_number');
             $details = $request->input('details') ?: '';
 
-            // Appointment schedule sent by Android
             $appointmentDate = $request->input('appointment_date');
             $appointmentTime = $request->input('time');
 
             $parsed = $this->parseDetails($details);
 
-            // 2. Build raw data array
-            $rawData = $this->buildDataArray(
+            $detailsJson = json_encode(array_merge(
+                $parsed,
+                [
+                    'raw_details' => $details,
+                    'submitted_by_name' => $userName,
+                ]
+            ));
+
+            $booking = DB::transaction(function () use (
+                $appointmentDate,
+                $appointmentTime,
                 $type,
                 $userName,
                 $contactNumber,
-                $parsed,
-                $details
-            );
-
-            // Add appointment schedule
-            $rawData['appointment_date'] = $appointmentDate;
-            $rawData['appointment_time'] = $appointmentTime;
-
-            // Add logged-in user's information
-            if ($user) {
-                $rawData['user_id'] = $user->id;
-                $rawData['email'] = $user->email;
-            } elseif (isset($parsed['email'])) {
-                $rawData['email'] = $parsed['email'];
-            }
-
-            // 3. Filter data based on the actual model/table columns
-            $model = new $modelClass();
-            $table = $model->getTable();
-            $fillable = $model->getFillable();
-
-            $filteredData = [];
-
-            foreach ($fillable as $column) {
-                if (array_key_exists($column, $rawData)) {
-                    $filteredData[$column] = $rawData[$column];
-                }
-            }
-
-            // Add appointment date if the table contains the column
-            if (
-                Schema::hasColumn($table, 'appointment_date') &&
-                $appointmentDate !== null
+                $detailsJson,
+                $user,
+                $parsed
             ) {
-                $filteredData['appointment_date'] = $appointmentDate;
-            }
-
-            // Add appointment time if the table contains the column
-            if (
-                Schema::hasColumn($table, 'appointment_time') &&
-                $appointmentTime !== null
-            ) {
-                $filteredData['appointment_time'] = $appointmentTime;
-            }
-
-            // Add user_id if the table contains the column
-            if (
-                Schema::hasColumn($table, 'user_id') &&
-                isset($rawData['user_id'])
-            ) {
-                $filteredData['user_id'] = $rawData['user_id'];
-            }
-
-            // Add email if the table contains the column
-            if (
-                Schema::hasColumn($table, 'email') &&
-                isset($rawData['email'])
-            ) {
-                $filteredData['email'] = $rawData['email'];
-            }
-
-            // 4. Add pending status
-            if (
-                in_array('status', $fillable) ||
-                Schema::hasColumn($table, 'status')
-            ) {
-                if (!isset($filteredData['status'])) {
-                    $filteredData['status'] = 'pending';
-                }
-            }
-
-            // ========================================================
-            // 4.5. Check appointment availability and prevent double booking
-            // ========================================================
-            // RULE: 1 booking per time slot. If a slot already has any
-            // non-cancelled booking, it is no longer available.
-            // Uses a transaction + lock on the availability row to
-            // prevent race conditions.
-            //
-            // NOTE: availability is GENERIC (not per-sacrament). The
-            // sacrament_type filter was intentionally removed so that
-            // any sacrament can book any of the available slots.
-            // ========================================================
-
-            $booking = DB::transaction(function () use (
-                $table,
-                $appointmentDate,
-                $appointmentTime,
-                $model,
-                $filteredData
-            ) {
-                // Lock the appointment_availabilities row for this slot to
-                // prevent two concurrent bookings for the same slot.
-                // NOTE: no sacrament_type filter — slots are generic.
-                $avail = AppointmentAvailability::where('available_date', $appointmentDate)
+                AppointmentAvailability::where('available_date', $appointmentDate)
                     ->where('is_active', true)
                     ->where(function ($q) use ($appointmentTime) {
                         $q->where('start_time', $appointmentTime)
@@ -199,11 +95,7 @@ class BookingController extends Controller
                     ->lockForUpdate()
                     ->first();
 
-                // Count existing (non-cancelled) bookings for this exact slot.
-                // Match appointment_time in either "HH:MM" or "HH:MM:SS" format.
-                // NOTE: no lockForUpdate() here — PostgreSQL does not allow
-                // FOR UPDATE with aggregate functions (count).
-                $bookedCount = DB::table($table)
+                $bookedCount = DB::table('appointments')
                     ->where('appointment_date', $appointmentDate)
                     ->where(function ($q) use ($appointmentTime) {
                         $q->where('appointment_time', $appointmentTime)
@@ -215,7 +107,6 @@ class BookingController extends Controller
                     })
                     ->count();
 
-                // RULE: 1 booking per slot — block if any non-cancelled booking exists
                 if ($bookedCount >= 1) {
                     return [
                         'success' => false,
@@ -223,8 +114,17 @@ class BookingController extends Controller
                     ];
                 }
 
-                // Create the booking record
-                $record = $model->create($filteredData);
+                $record = Appointment::create([
+                    'user_name'        => $userName,
+                    'service_type'     => $type,
+                    'appointment_date' => $appointmentDate,
+                    'appointment_time' => $appointmentTime,
+                    'contact_number'   => $contactNumber,
+                    'details'          => $detailsJson,
+                    'status'           => 'pending',
+                    'user_id'          => $user?->id,
+                    'email'            => $user?->email ?? ($parsed['email'] ?? null),
+                ]);
 
                 return [
                     'success' => true,
@@ -232,7 +132,6 @@ class BookingController extends Controller
                 ];
             });
 
-            // If the slot was already taken, return error
             if (!($booking['success'] ?? false)) {
                 return response()->json([
                     'success' => false,
@@ -268,131 +167,6 @@ class BookingController extends Controller
         }
     }
 
-    /**
-     * Build strict and safe data array matching each table schema.
-     */
-    private function buildDataArray(
-        string $type,
-        string $userName,
-        string $contactNumber,
-        array $parsed,
-        string $details
-    ): array {
-        $data = [];
-
-        switch ($type) {
-
-            case 'baptism':
-
-                $data = [
-                    'category'            => 'Baptism',
-                    'book_number'         => 0,
-                    'page_number'         => 0,
-                    'line_number'         => 0,
-                    'first_name'          => $parsed['child'] ?? $userName,
-                    'last_name'           => '',
-                    'legitimacy'          => 'Unknown',
-                    'birth_date'          => '1900-01-01',
-                    'birth_place'         => 'Unknown',
-                    'father_name'         => $parsed['father'] ?? '',
-                    'father_birthplace'   => '',
-                    'mother_maiden_name'  => $parsed['mother'] ?? '',
-                    'mother_birthplace'   => '',
-                    'residence'           => $contactNumber,
-                    'baptism_date'        => null,
-                    'minister_name'       => 'TBD',
-                    'godfather'           => '',
-                    'godmother'           => '',
-                    'remarks'             => $details,
-                ];
-
-                break;
-
-            case 'communion':
-
-                $data = [
-                    'book_number'        => 0,
-                    'page_number'        => 0,
-                    'line_number'        => 0,
-                    'first_name'         => $parsed['child'] ?? $userName,
-                    'last_name'          => '',
-                    'communion_date'     => null,
-                    'residence'          => $contactNumber,
-                    'minister_name'      => 'TBD',
-                    'baptism_date'       => null,
-                    'place_of_baptism'   => 'Unknown',
-                ];
-
-                break;
-
-            case 'confirmation':
-
-                $data = [
-                    'book_number'       => 0,
-                    'page_number'       => 0,
-                    'line_number'       => 0,
-                    'year'              => '',
-                    'month_day'         => null,
-                    'first_name'        => $parsed['child'] ?? $userName,
-                    'last_name'         => '',
-                    'age'               => $parsed['age'] ?? 0,
-                    'birthplace'        => 'Unknown',
-                    'father_name'       => $parsed['father'] ?? '',
-                    'mother_name'       => $parsed['mother'] ?? '',
-                    'parents_residence' => $contactNumber,
-                    'sponsors'          => 'TBD',
-                    'minister_name'     => 'TBD',
-                ];
-
-                break;
-
-            case 'wedding':
-
-                $data = [
-                    'category'                  => 'Wedding',
-                    'book_number'               => 0,
-                    'page_number'               => 0,
-                    'line_number'               => 0,
-                    'year'                      => '',
-                    'month_day'                 => null,
-                    'groom_name'                => $parsed['groom'] ?? $userName,
-                    'groom_age'                 => 0,
-                    'groom_status'              => 'Single',
-                    'groom_residence'           => $contactNumber,
-                    'groom_parents'             => '',
-                    'groom_parents_residence'   => '',
-                    'bride_name'                => $parsed['bride'] ?? '',
-                    'bride_age'                 => 0,
-                    'bride_status'              => 'Single',
-                    'bride_residence'           => '',
-                    'bride_parents'             => '',
-                    'bride_parents_residence'   => '',
-                ];
-
-                break;
-
-            case 'funeral':
-
-                $data = [
-                    'category'      => 'Funeral',
-                    'book_number'   => 0,
-                    'page_number'   => 0,
-                    'line_number'   => 0,
-                    'deceased_name' => $parsed['child'] ?? $userName,
-                    'residence'     => $contactNumber,
-                    'minister_name' => 'TBD',
-                    'remarks'       => $details,
-                ];
-
-                break;
-        }
-
-        return $data;
-    }
-
-    /**
-     * Parse the 'details' string to extract extra fields.
-     */
     private function parseDetails(string $details): array
     {
         $result = [];
@@ -404,7 +178,6 @@ class BookingController extends Controller
         $lines = explode("\n", $details);
 
         foreach ($lines as $line) {
-
             $line = trim($line);
 
             if (empty($line)) {
@@ -412,7 +185,6 @@ class BookingController extends Controller
             }
 
             if (strpos($line, ':') !== false) {
-
                 $parts = explode(':', $line, 2);
 
                 $key = strtolower(trim($parts[0]));
@@ -430,10 +202,7 @@ class BookingController extends Controller
                     $result['age'] = intval($value);
                 } elseif (str_contains($key, 'email')) {
                     $result['email'] = $value;
-                } elseif (
-                    str_contains($key, 'child') ||
-                    str_contains($key, 'name')
-                ) {
+                } elseif (str_contains($key, 'child') || str_contains($key, 'name')) {
                     $result['child'] = $value;
                 }
             }
