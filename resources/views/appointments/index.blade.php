@@ -47,7 +47,7 @@
                         <select name="status" class="w-full text-sm border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500">
                             <option value="">All Status</option>
                             <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="confirmed" {{ request('status') == 'confirmed' ? 'selected' : '' }}>Confirmed</option>
+                            <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
                             <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                         </select>
                     </div>
@@ -63,9 +63,7 @@
                 </form>
             </div>
 
-            {{-- ============================================================ --}}
             {{-- ACTIVE APPOINTMENTS --}}
-            {{-- ============================================================ --}}
             <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-8">
                 <div class="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
                     <div class="flex items-center gap-3">
@@ -169,7 +167,6 @@
                                                     <button
                                                         type="button"
                                                         class="schedule-btn px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded-full transition"
-                                                        data-type="{{ strtolower($app->type) }}"
                                                         data-id="{{ $app->id }}"
                                                         data-date="{{ $app->appointment_date ?? '' }}"
                                                         data-time="{{ $app->appointment_time ?? '' }}">
@@ -180,13 +177,12 @@
                                                 @if(($app->status ?? 'pending') !== 'cancelled' && ($app->status ?? 'pending') !== 'canceled' && !($app->is_locked ?? false))
                                                     <button type="button"
                                                             class="cancel-btn px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-full transition"
-                                                            data-type="{{ strtolower($app->type) }}"
                                                             data-id="{{ $app->id }}">
                                                         Cancel
                                                     </button>
                                                 @endif
 
-                                                <form action="{{ route('appointments.destroy', ['type' => strtolower($app->type), 'id' => $app->id]) }}" method="POST" class="inline">
+                                                <form action="{{ route('appointments.destroy', $app->id) }}" method="POST" class="inline">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded-full transition" onclick="return confirm('Delete this appointment permanently?')">
@@ -203,9 +199,7 @@
                 @endif
             </div>
 
-            {{-- ============================================================ --}}
             {{-- ARCHIVED APPOINTMENTS --}}
-            {{-- ============================================================ --}}
             <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                 <div class="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
                     <div class="flex items-center gap-3">
@@ -297,7 +291,7 @@
 
                                         <td class="px-6 py-4">
                                             <div class="flex items-center justify-center">
-                                                <form action="{{ route('appointments.destroy', ['type' => strtolower($app->type), 'id' => $app->id]) }}" method="POST" class="inline">
+                                                <form action="{{ route('appointments.destroy', $app->id) }}" method="POST" class="inline">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded-full transition" onclick="return confirm('Delete this archived appointment permanently?')">
@@ -327,7 +321,6 @@
                     @csrf
                     @method('PUT')
 
-                    <input type="hidden" name="type" id="cancelType">
                     <input type="hidden" name="id" id="cancelId">
 
                     <div class="mb-4">
@@ -399,18 +392,15 @@
                 // Cancel Modal
                 const modal = document.getElementById('cancelModal');
                 const cancelForm = document.getElementById('cancelForm');
-                const cancelTypeInput = document.getElementById('cancelType');
                 const cancelIdInput = document.getElementById('cancelId');
                 const closeModalBtn = document.getElementById('closeModalBtn');
                 const cancelModalCloseBtn = document.getElementById('cancelModalCloseBtn');
 
                 document.querySelectorAll('.cancel-btn').forEach(btn => {
                     btn.addEventListener('click', function() {
-                        const type = this.dataset.type;
                         const id = this.dataset.id;
-                        cancelTypeInput.value = type;
                         cancelIdInput.value = id;
-                        cancelForm.action = `/appointments/${type}/${id}/cancel`;
+                        cancelForm.action = `/appointments/${id}/cancel`;
                         modal.classList.remove('hidden');
                     });
                 });
@@ -491,12 +481,11 @@
 
                 document.querySelectorAll('.schedule-btn').forEach(btn => {
                     btn.addEventListener('click', function(){
-                        let type = this.dataset.type;
                         let id = this.dataset.id;
                         let date = this.dataset.date;
                         let time = this.dataset.time;
 
-                        scheduleForm.action = `/appointments/${type}/${id}/schedule`;
+                        scheduleForm.action = `/appointments/${id}/schedule`;
 
                         if (date && datePicker) {
                             datePicker.setDate(date, true);
