@@ -9,60 +9,32 @@ use Illuminate\Support\Facades\DB;
 class AppointmentAvailabilityController extends Controller
 {
     /**
-     * API: return all active availability slots for upcoming dates.
-     *
-     * NOTE: The $sacrament parameter is accepted for backward compatibility
-     * with the Android app, but it is IGNORED — all slots are generic and
-     * available to every sacrament.
+     * API: return active availability slots for a specific date.
      */
-    public function apiGetSlots($sacrament = null)
+    public function apiGetSlots(Request $request, $sacrament = null)
     {
-        // Sacrament-based table lookup (used to count existing bookings per type)
-        $tableMap = [
-            'baptism'      => 'baptisms',
-            'communion'    => 'communions',
-            'confirmation' => 'confirmations',
-            'wedding'      => 'weddings',
-            'funeral'      => 'funerals',
-        ];
+        $date = $request->query('date');
 
-        // Normalize sacrament to determine which table to count bookings from.
-        // Defaults to 'baptism' if the input is unrecognized.
-        $normalized = strtolower(trim((string) $sacrament));
-        $singularSacrament = rtrim($normalized, 's');
+        $query = AppointmentAvailability::where('is_active', true);
 
-        $key = null;
-        foreach (array_keys($tableMap) as $tKey) {
-            if ($singularSacrament === $tKey || $normalized === $tKey) {
-                $key = $tKey;
-                break;
-            }
+        if (!empty($date)) {
+            $query->where('available_date', $date);
+        } else {
+            $query->where('available_date', '>=', now()->toDateString());
         }
 
-        // Fallback: use baptism table if sacrament is unknown, so the
-        // endpoint still returns the generic slot list.
-        if (!$key) {
-            $key = 'baptism';
-        }
-
-        $tableName = $tableMap[$key];
-
-        // Generic query — no sacrament_type filter.
-        $slots = AppointmentAvailability::where('available_date', '>=', now()->toDateString())
-            ->where('is_active', true)
+        $slots = $query
             ->orderBy('available_date')
             ->orderBy('start_time')
             ->get();
 
-        $data = $slots->map(function ($slot) use ($tableName) {
-            // Safely convert available_date to string
+        $data = $slots->map(function ($slot) {
             if ($slot->available_date instanceof \DateTimeInterface) {
                 $dateStr = $slot->available_date->format('Y-m-d');
             } else {
                 $dateStr = (string) $slot->available_date;
             }
 
-            // Safely format start_time
             if ($slot->start_time instanceof \DateTimeInterface) {
                 $slotStartTime = $slot->start_time->format('H:i');
             } elseif (is_string($slot->start_time) && strlen($slot->start_time) >= 5) {
@@ -71,7 +43,6 @@ class AppointmentAvailabilityController extends Controller
                 $slotStartTime = '00:00';
             }
 
-            // Safely format end_time
             if ($slot->end_time instanceof \DateTimeInterface) {
                 $slotEndTime = $slot->end_time->format('H:i');
             } elseif (is_string($slot->end_time) && strlen($slot->end_time) >= 5) {
@@ -80,9 +51,7 @@ class AppointmentAvailabilityController extends Controller
                 $slotEndTime = '23:59';
             }
 
-            // Count existing non-cancelled bookings for this date + start_time.
-            // Matches both "HH:MM" and "HH:MM:SS" formats (PostgreSQL-compatible).
-            $bookedCount = DB::table($tableName)
+            $bookedCount = DB::table('appointments')
                 ->where('appointment_date', $dateStr)
                 ->where(function ($q) use ($slotStartTime) {
                     $q->where('appointment_time', $slotStartTime)
@@ -94,7 +63,6 @@ class AppointmentAvailabilityController extends Controller
                 })
                 ->count();
 
-            // RULE: 1 booking per time slot
             $remainingSlots = $bookedCount >= 1 ? 0 : 1;
             $isFullyBooked = $bookedCount >= 1;
 
