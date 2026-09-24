@@ -8,6 +8,7 @@ use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\AppointmentAvailabilityController;
 use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\IdVerificationController;
+use App\Http\Controllers\FaceRecognitionController;
 use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,18 +42,18 @@ Route::prefix('v1')->group(function () {
     Route::get('/schedules', [ScheduleController::class, 'indexApi']);
     Route::get('/events', [ScheduleController::class, 'eventsApi']);
 
-// Public availability for Android booking
+    // Public availability for Android booking
     Route::get('/availability/{sacrament}', [AppointmentAvailabilityController::class, 'apiGetSlots']);
+
     // ---- Sacrament Bookings (Public) ----
-    // ✅ Both aliases are provided for maximum Android compatibility
-    // Format 1: /book-{sacrament} (original Android app format)
+    // Format 1: /book-{sacrament}
     Route::post('/book-baptism', [BookingController::class, 'storeBaptism']);
     Route::post('/book-communion', [BookingController::class, 'storeCommunion']);
     Route::post('/book-confirmation', [BookingController::class, 'storeConfirmation']);
     Route::post('/book-wedding', [BookingController::class, 'storeWedding']);
     Route::post('/book-funeral', [BookingController::class, 'storeFuneral']);
 
-    // Format 2: /booking/{sacrament} (standard RESTful format)
+    // Format 2: /booking/{sacrament}
     Route::post('/booking/baptism', [BookingController::class, 'storeBaptism']);
     Route::post('/booking/communion', [BookingController::class, 'storeCommunion']);
     Route::post('/booking/confirmation', [BookingController::class, 'storeConfirmation']);
@@ -68,7 +69,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/logout', [SacramentApiController::class, 'logoutMobileUser']);
         Route::get('/profile', [SacramentApiController::class, 'getUserProfile']);
 
-        // ---- Appointments / Bookings (for authenticated users) ----
+        // ---- Appointments / Bookings ----
         Route::get('/my-appointments', [AppointmentController::class, 'myAppointments']);
         Route::get('/appointments', [AppointmentController::class, 'index']);
         Route::get('/booked-slots', [AppointmentAvailabilityController::class, 'bookedSlots']);
@@ -76,21 +77,22 @@ Route::prefix('v1')->group(function () {
         // Get scheduled/approved appointments for the logged-in user
         Route::get('/my-confirmed-appointments', [AppointmentController::class, 'getConfirmedAppointments']);
 
-        // ---- Generic appointment & certificate (if used) ----
+        // ---- Generic appointment & certificate ----
         Route::post('/appointment', [AppointmentController::class, 'store']);
 
         // Certificate request from Android app (returns JSON)
         Route::post('/certificates', [CertificateController::class, 'apiStore']);
 
         // ---- ID Verification ----
-        // ID verification from Android app (with image upload)
         Route::post('/id-verifications', [IdVerificationController::class, 'apiStore']);
 
+        // ---- Face Recognition ----
+        Route::post('/face-recognitions', [FaceRecognitionController::class, 'apiStore']);
+
         // ---- Payment ----
-        // Payment from Android app (cash or gcash)
         Route::post('/payments', [PaymentController::class, 'apiStore']);
 
-        // ---- Appointment Availability (Admin only – but we keep it here) ----
+        // ---- Appointment Availability (Admin only) ----
         Route::get('/availability', [AppointmentAvailabilityController::class, 'index']);
         Route::post('/availability', [AppointmentAvailabilityController::class, 'store']);
         Route::put('/availability/{id}', [AppointmentAvailabilityController::class, 'update']);
@@ -99,7 +101,6 @@ Route::prefix('v1')->group(function () {
     });
 
     // ==================== DEBUG ROUTE (local only) ====================
-    // Lists all registered API routes – helpful for debugging
     if (app()->environment('local')) {
         Route::get('/routes', function () {
             $routes = collect(Route::getRoutes())->filter(function ($route) {
