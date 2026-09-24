@@ -7,6 +7,8 @@ use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\AppointmentAvailabilityController;
 use App\Http\Controllers\CertificateController;
+use App\Http\Controllers\IdVerificationController;
+use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -79,6 +81,14 @@ Route::prefix('v1')->group(function () {
 
         // Certificate request from Android app (returns JSON)
         Route::post('/certificates', [CertificateController::class, 'apiStore']);
+
+        // ---- ID Verification ----
+        // ID verification from Android app (with image upload)
+        Route::post('/id-verifications', [IdVerificationController::class, 'apiStore']);
+
+        // ---- Payment ----
+        // Payment from Android app (cash or gcash)
+        Route::post('/payments', [PaymentController::class, 'apiStore']);
 
         // ---- Appointment Availability (Admin only – but we keep it here) ----
         Route::get('/availability', [AppointmentAvailabilityController::class, 'index']);
