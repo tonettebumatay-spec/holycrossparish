@@ -6,6 +6,7 @@ use App\Models\PayMongoPayment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class PayMongoController extends Controller
@@ -49,7 +50,7 @@ class PayMongoController extends Controller
                 ->post($this->baseUrl . '/payment_intents', [
                     'data' => [
                         'attributes' => [
-                            'amount' => intval($amount * 100), // Convert to centavos
+                            'amount' => intval($amount * 100),
                             'currency' => 'PHP',
                             'payment_method_allowed' => ['qrph'],
                             'description' => $description,
@@ -109,30 +110,52 @@ class PayMongoController extends Controller
 
             $attachedIntent = $attachResponse->json()['data'];
 
-            // 4. Save to database
+            // 4. Save QR code to file (hindi sa DB)
+            $qrCodeUrl = null;
+            $qrBase64 = $attachedIntent['attributes']['next_action']['code']['image_url'] ?? null;
+
+            if ($qrBase64) {
+                // Remove "data:image/png;base64," prefix
+                $imageData = explode(',', $qrBase64)[1] ?? null;
+
+                if ($imageData) {
+                    $filename = 'qr_codes/' . $referenceNumber . '.png';
+                    Storage::disk('public')->put($filename, base64_decode($imageData));
+                    $qrCodeUrl = Storage::disk('public')->url($filename);
+                }
+            }
+
+            // 5. Save to database (qr_code_url = file path, hindi base64)
             $record = PayMongoPayment::create([
-                'user_id'            => $user?->id,
-                'paymongo_id'        => $paymentIntentId,
-                'reference_number'   => $referenceNumber,
-                'amount'             => $amount,
-                'currency'           => 'PHP',
-                'payment_method'     => 'qrph',
-                'status'             => 'pending',
-                'qr_code_url'        => $attachedIntent['attributes']['next_action']['code']['image_url'] ?? null,
+                'user_id'               => $user?->id,
+                'paymongo_id'           => $paymentIntentId,
+                'reference_number'      => $referenceNumber,
+                'amount'                => $amount,
+                'currency'              => 'PHP',
+                'payment_method'        => 'qrph',
+                'status'                => 'pending',
+                'qr_code_url'           => $qrCodeUrl,
                 'payment_intent_status' => $attachedIntent['attributes']['status'] ?? null,
-                'raw_response'       => json_encode($attachedIntent),
+                'raw_response'          => json_encode([
+                    'id' => $paymentIntentId,
+                    'status' => $attachedIntent['attributes']['status'] ?? null,
+                    'next_action_type' => $attachedIntent['attributes']['next_action']['type'] ?? null,
+                    'qr_code_id' => $attachedIntent['attributes']['next_action']['code']['id'] ?? null,
+                    'expires_at' => $attachedIntent['attributes']['next_action']['code']['expires_at'] ?? null,
+                ]),
             ]);
 
             Log::info('PAYMONGO_QRPH_CREATED', [
                 'id' => $record->id,
                 'reference' => $referenceNumber,
+                'qr_url' => $qrCodeUrl,
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'QR Ph payment created successfully!',
                 'payment' => $record,
-                'qr_code_url' => $record->qr_code_url,
+                'qr_code_url' => $qrCodeUrl,
                 'next_action' => $attachedIntent['attributes']['next_action'] ?? null,
             ], 201);
 
