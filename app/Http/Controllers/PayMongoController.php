@@ -4,19 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\PayMongoPayment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Paymongo\PaymongoClient;
 
 class PayMongoController extends Controller
 {
-    private $client;
+    private $secretKey;
+    private $baseUrl = 'https://api.paymongo.com/v1';
 
     public function __construct()
     {
-        $this->client = new PaymongoClient(
-            config('services.paymongo.secret_key')
-        );
+        $this->secretKey = config('services.paymongo.secret_key');
     }
 
     /**
@@ -46,38 +45,81 @@ class PayMongoController extends Controller
             $referenceNumber = 'HCP-' . strtoupper(uniqid());
 
             // 1. Create Payment Intent
-            $paymentIntent = $this->client->paymentIntents->create([
-                'amount' => intval($amount * 100), // Convert to centavos
-                'currency' => 'PHP',
-                'payment_method_allowed' => ['qrph'],
-                'description' => $description,
-                'statement_descriptor' => 'Holy Cross Parish',
-            ]);
+            $intentResponse = Http::withBasicAuth($this->secretKey, '')
+                ->post($this->baseUrl . '/payment_intents', [
+                    'data' => [
+                        'attributes' => [
+                            'amount' => intval($amount * 100), // Convert to centavos
+                            'currency' => 'PHP',
+                            'payment_method_allowed' => ['qrph'],
+                            'description' => $description,
+                            'statement_descriptor' => 'Holy Cross Parish',
+                        ],
+                    ],
+                ]);
+
+            if ($intentResponse->failed()) {
+                Log::error('PAYMONGO_INTENT_FAILED', $intentResponse->json());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create payment intent: ' . $intentResponse->body(),
+                ], 500);
+            }
+
+            $paymentIntent = $intentResponse->json()['data'];
+            $paymentIntentId = $paymentIntent['id'];
 
             // 2. Create Payment Method (QR Ph)
-            $paymentMethod = $this->client->paymentMethods->create([
-                'type' => 'qrph',
-            ]);
+            $methodResponse = Http::withBasicAuth($this->secretKey, '')
+                ->post($this->baseUrl . '/payment_methods', [
+                    'data' => [
+                        'attributes' => [
+                            'type' => 'qrph',
+                        ],
+                    ],
+                ]);
+
+            if ($methodResponse->failed()) {
+                Log::error('PAYMONGO_METHOD_FAILED', $methodResponse->json());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create payment method: ' . $methodResponse->body(),
+                ], 500);
+            }
+
+            $paymentMethodId = $methodResponse->json()['data']['id'];
 
             // 3. Attach Payment Method to Payment Intent
-            $attachedIntent = $this->client->paymentIntents->attach(
-                $paymentIntent->id,
-                [
-                    'payment_method' => $paymentMethod->id,
-                ]
-            );
+            $attachResponse = Http::withBasicAuth($this->secretKey, '')
+                ->post($this->baseUrl . '/payment_intents/' . $paymentIntentId . '/attach', [
+                    'data' => [
+                        'attributes' => [
+                            'payment_method' => $paymentMethodId,
+                        ],
+                    ],
+                ]);
+
+            if ($attachResponse->failed()) {
+                Log::error('PAYMONGO_ATTACH_FAILED', $attachResponse->json());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to attach payment method: ' . $attachResponse->body(),
+                ], 500);
+            }
+
+            $attachedIntent = $attachResponse->json()['data'];
 
             // 4. Save to database
             $record = PayMongoPayment::create([
                 'user_id'            => $user?->id,
-                'paymongo_id'        => $paymentIntent->id,
+                'paymongo_id'        => $paymentIntentId,
                 'reference_number'   => $referenceNumber,
                 'amount'             => $amount,
                 'currency'           => 'PHP',
                 'payment_method'     => 'qrph',
                 'status'             => 'pending',
-                'qr_code_url'        => $attachedIntent->next_action->code->image_url ?? null,
-                'payment_intent_status' => $attachedIntent->status,
+                'qr_code_url'        => $attachedIntent['attributes']['next_action']['code']['image_url'] ?? null,
+                'payment_intent_status' => $attachedIntent['attributes']['status'] ?? null,
                 'raw_response'       => json_encode($attachedIntent),
             ]);
 
@@ -91,7 +133,7 @@ class PayMongoController extends Controller
                 'message' => 'QR Ph payment created successfully!',
                 'payment' => $record,
                 'qr_code_url' => $record->qr_code_url,
-                'next_action' => $attachedIntent->next_action ?? null,
+                'next_action' => $attachedIntent['attributes']['next_action'] ?? null,
             ], 201);
 
         } catch (\Exception $e) {
@@ -126,7 +168,6 @@ class PayMongoController extends Controller
             $paymentIntentId = $paymentData['id'] ?? null;
 
             if ($eventType === 'payment.paid' || $eventType === 'checkout_session.payment.paid') {
-                // Update payment status
                 PayMongoPayment::where('paymongo_id', $paymentIntentId)
                     ->update(['status' => 'paid']);
             } elseif ($eventType === 'payment.failed') {
