@@ -10,6 +10,7 @@ use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\IdVerificationController;
 use App\Http\Controllers\FaceRecognitionController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PayMongoController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -60,6 +61,9 @@ Route::prefix('v1')->group(function () {
     Route::post('/booking/wedding', [BookingController::class, 'storeWedding']);
     Route::post('/booking/funeral', [BookingController::class, 'storeFuneral']);
 
+    // ---- PayMongo Webhook (Public — walang auth) ----
+    Route::post('/paymongo/webhook', [PayMongoController::class, 'webhook']);
+
     // ==================== PROTECTED ENDPOINTS ====================
     // All routes below require a valid Sanctum token (Bearer token)
 
@@ -91,6 +95,9 @@ Route::prefix('v1')->group(function () {
 
         // ---- Payment ----
         Route::post('/payments', [PaymentController::class, 'apiStore']);
+
+        // ---- PayMongo QR Ph ----
+        Route::post('/paymongo/qrph', [PayMongoController::class, 'createQrPhPayment']);
 
         // ---- Appointment Availability (Admin only) ----
         Route::get('/availability', [AppointmentAvailabilityController::class, 'index']);
