@@ -9,6 +9,9 @@ class PayMongoPayment extends Model
 {
     use HasFactory;
 
+    // ✅ I-override ang default table name
+    protected $table = 'paymongo_payments';
+
     protected $fillable = [
         'user_id',
         'paymongo_id',
