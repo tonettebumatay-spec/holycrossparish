@@ -42,13 +42,11 @@
                     </button>
                 </div>
 
-                <!-- Admin-managed notice -->
+                          <!-- Admin-managed notice -->
                 <div class="text-center mt-6">
                     <p class="text-[#4d290a]/70 text-sm font-medium">
                         Admin-managed accounts only.
                     </p>
                 </div>
-            </form>
-        </div>
     </div>
 </x-guest-layout>
