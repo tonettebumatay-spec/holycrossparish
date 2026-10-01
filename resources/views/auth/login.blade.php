@@ -42,13 +42,10 @@
                     </button>
                 </div>
 
-                <!-- Create Account Link -->
+                <!-- Admin-managed notice -->
                 <div class="text-center mt-6">
-                    <p class="text-[#4d290a] font-medium">
-                        Don't have an account? 
-                        <a href="{{ route('register') }}" class="font-bold underline hover:text-[#7a4211]">
-                            Create Account
-                        </a>
+                    <p class="text-[#4d290a]/70 text-sm font-medium">
+                        Admin-managed accounts only.
                     </p>
                 </div>
             </form>
