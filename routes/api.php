@@ -11,6 +11,7 @@ use App\Http\Controllers\IdVerificationController;
 use App\Http\Controllers\FaceRecognitionController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PayMongoController;
+use App\Http\Controllers\OtpController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -38,6 +39,14 @@ Route::prefix('v1')->group(function () {
     // Authentication (register & login)
     Route::post('/register', [SacramentApiController::class, 'registerMobileUser']);
     Route::post('/login', [SacramentApiController::class, 'loginMobileUser']);
+
+    // ==================== OTP ENDPOINTS ====================
+    Route::post('/otp/login/send', [OtpController::class, 'sendLoginOtp']);
+    Route::post('/otp/login/verify', [OtpController::class, 'verifyLoginOtp']);
+    Route::post('/otp/register/send', [OtpController::class, 'sendRegisterOtp']);
+    Route::post('/otp/register/verify', [OtpController::class, 'verifyRegisterOtp']);
+    Route::post('/otp/password/send', [OtpController::class, 'sendPasswordResetOtp']);
+    Route::post('/otp/password/verify', [OtpController::class, 'verifyPasswordResetOtp']);
 
    // Public data (schedules/events)
     Route::get('/schedules', [ScheduleController::class, 'indexApi']);
@@ -98,6 +107,7 @@ Route::prefix('v1')->group(function () {
 
         // ---- PayMongo QR Ph ----
         Route::post('/paymongo/qrph', [PayMongoController::class, 'createQrPhPayment']);
+        Route::get('/paymongo/status/{reference}', [PayMongoController::class, 'getStatus']);
 
         // ---- Appointment Availability (Admin only) ----
         Route::get('/availability', [AppointmentAvailabilityController::class, 'index']);
