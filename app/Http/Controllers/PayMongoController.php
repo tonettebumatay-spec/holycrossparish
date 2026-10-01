@@ -173,6 +173,39 @@ class PayMongoController extends Controller
     }
 
     /**
+     * Get payment status by reference number
+     */
+    public function getStatus($reference)
+    {
+        try {
+            $payment = PayMongoPayment::where('reference_number', $reference)->first();
+
+            if (!$payment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payment not found',
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'payment' => $payment,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('PAYMONGO_STATUS_ERROR', [
+                'message' => $e->getMessage(),
+                'reference' => $reference,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Webhook handler
      */
     public function webhook(Request $request)
