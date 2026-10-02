@@ -71,4 +71,24 @@ class OtpCode extends Model
 
         return false;
     }
+
+    /**
+     * ✅ Verify OTP for registration (walang user_id).
+     */
+    public static function verifyRegistration($email, $otpCode)
+    {
+        $otp = self::where('email', $email)
+            ->where('otp_code', $otpCode)
+            ->where('purpose', 'register')
+            ->where('is_used', false)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if ($otp) {
+            $otp->update(['is_used' => true]);
+            return true;
+        }
+
+        return false;
+    }
 }

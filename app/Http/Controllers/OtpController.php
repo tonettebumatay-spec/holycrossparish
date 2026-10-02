@@ -111,9 +111,9 @@ class OtpController extends Controller
         // Store temporarily in session o cache (hindi pa sa users table)
         $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        // Save OTP to database (temporary user_id = 0)
+        // ✅ Save OTP to database (user_id = null para sa registration)
         OtpCode::create([
-            'user_id' => 0,
+            'user_id' => null,
             'email' => $request->email,
             'otp_code' => $otp,
             'purpose' => 'register',
@@ -151,23 +151,15 @@ class OtpController extends Controller
             ], 422);
         }
 
-        // Verify OTP
-        $otp = OtpCode::where('email', $request->email)
-            ->where('otp_code', $request->otp_code)
-            ->where('purpose', 'register')
-            ->where('is_used', false)
-            ->where('expires_at', '>', now())
-            ->first();
+        // ✅ Verify OTP gamit ang verification method (walang user_id)
+        $verified = OtpCode::verifyRegistration($request->email, $request->otp_code);
 
-        if (!$otp) {
+        if (!$verified) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid or expired OTP.',
             ], 401);
         }
-
-        // Mark OTP as used
-        $otp->update(['is_used' => true]);
 
         // Create user
         $user = User::create([
