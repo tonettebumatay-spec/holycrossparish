@@ -25,11 +25,9 @@ class PaymentRecordController extends Controller
             $paymongoQuery->whereRaw('1 = 0');
         }
 
-        // ✅ Status filter logic
         if ($status === 'archived') {
             $paymongoQuery->where('status', 'archived');
         } elseif ($status === 'all') {
-            // ✅ Default: huwag isama ang archived
             $paymongoQuery->where('status', '!=', 'archived');
         } else {
             $paymongoQuery->where('status', $status);
@@ -50,11 +48,9 @@ class PaymentRecordController extends Controller
             $paymentQuery->whereRaw('1 = 0');
         }
 
-        // ✅ Status filter logic
         if ($status === 'archived') {
             $paymentQuery->where('status', 'archived');
         } elseif ($status === 'all') {
-            // ✅ Default: huwag isama ang archived
             $paymentQuery->where('status', '!=', 'archived');
         } else {
             $paymentQuery->where('status', $status);
@@ -68,8 +64,9 @@ class PaymentRecordController extends Controller
         }
         $payments = $paymentQuery->orderByDesc('created_at')->get();
 
-        // ==================== MERGE AND SORT ====================
-        $allPayments = $paymongoPayments->map(function ($item) {
+        // ==================== MERGE AND SORT (FIXED) ====================
+        // ✅ I-convert sa plain array gamit ang ->toArray()
+        $paymongoArray = $paymongoPayments->map(function ($item) {
             return [
                 'id' => $item->id,
                 'source' => 'paymongo',
@@ -82,7 +79,9 @@ class PaymentRecordController extends Controller
                 'created_at' => $item->created_at,
                 'user_id' => $item->user_id,
             ];
-        })->merge($payments->map(function ($item) {
+        })->toArray();
+
+        $paymentsArray = $payments->map(function ($item) {
             return [
                 'id' => $item->id,
                 'source' => 'payments',
@@ -95,7 +94,12 @@ class PaymentRecordController extends Controller
                 'created_at' => $item->created_at,
                 'user_id' => $item->user_id,
             ];
-        }))->sortByDesc('created_at')->values();
+        })->toArray();
+
+        // ✅ Gamitin ang array_merge at collect
+        $allPayments = collect(array_merge($paymongoArray, $paymentsArray))
+            ->sortByDesc('created_at')
+            ->values();
 
         // ==================== STATS ====================
         $stats = [
