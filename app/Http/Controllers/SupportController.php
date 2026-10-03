@@ -124,7 +124,6 @@ class SupportController extends Controller
         $request->validate([
             'auto_reply_message' => 'required|string|max:2000',
             'office_hours' => 'nullable|string|max:255',
-            'contact_number' => 'nullable|string|max:50',
             'contact_email' => 'nullable|email|max:255',
             'contact_address' => 'nullable|string|max:500',
         ]);
@@ -132,7 +131,6 @@ class SupportController extends Controller
         SupportSetting::setValue('auto_reply_message', $request->auto_reply_message);
         SupportSetting::setValue('auto_reply_enabled', $request->has('auto_reply_enabled') ? '1' : '0');
         SupportSetting::setValue('office_hours', $request->office_hours);
-        SupportSetting::setValue('contact_number', $request->contact_number);
         SupportSetting::setValue('contact_email', $request->contact_email);
         SupportSetting::setValue('contact_address', $request->contact_address);
 

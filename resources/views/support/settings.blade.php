@@ -51,15 +51,6 @@
                                class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-500">
                     </div>
 
-                    <!-- Contact Number -->
-                    <div>
-                        <label class="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">
-                            Contact Number
-                        </label>
-                        <input type="text" name="contact_number" value="{{ $settings['contact_number'] ?? '' }}"
-                               class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-500">
-                    </div>
-
                     <!-- Contact Email -->
                     <div>
                         <label class="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">

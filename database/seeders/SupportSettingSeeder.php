@@ -22,13 +22,8 @@ class SupportSettingSeeder extends Seeder
             ],
             [
                 'key' => 'office_hours',
-                'value' => 'Monday to Saturday: 8:00 AM - 5:00 PM',
+                'value' => 'Monday only: 8:00 AM - 4:00 PM',
                 'description' => 'Office hours ng parish',
-            ],
-            [
-                'key' => 'contact_number',
-                'value' => '+63 968 676 9234',
-                'description' => 'Contact number ng parish',
             ],
             [
                 'key' => 'contact_email',
@@ -37,7 +32,7 @@ class SupportSettingSeeder extends Seeder
             ],
             [
                 'key' => 'contact_address',
-                'value' => 'J. Ramos Street 267, Poblacion West, Asingan, Pangasinan, 2439',
+                'value' => 'Poblacion West Alcala Pangasinan, 2425',
                 'description' => 'Address ng parish',
             ],
         ];

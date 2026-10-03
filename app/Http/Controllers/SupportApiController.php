@@ -217,7 +217,6 @@ class SupportApiController extends Controller
                 'success' => true,
                 'support_info' => [
                     'office_hours' => $settings['office_hours'] ?? null,
-                    'contact_number' => $settings['contact_number'] ?? null,
                     'contact_email' => $settings['contact_email'] ?? null,
                     'contact_address' => $settings['contact_address'] ?? null,
                 ],
