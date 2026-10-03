@@ -49,6 +49,7 @@
                             <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
                             <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Approved</option>
                             <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                            <option value="expired" {{ request('status') == 'expired' ? 'selected' : '' }}>Expired</option>
                         </select>
                     </div>
 
@@ -152,12 +153,18 @@
                                                 @php
                                                     $statusColor = match($app->status ?? 'pending') {
                                                         'confirmed', 'approved' => 'bg-green-100 text-green-800',
+                                                        'expired'               => 'bg-red-100 text-red-800',
                                                         default                 => 'bg-yellow-100 text-yellow-800',
                                                     };
                                                 @endphp
                                                 <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase {{ $statusColor }}">
                                                     {{ $app->status ?? 'pending' }}
                                                 </span>
+                                                @if(($app->status ?? 'pending') === 'pending' && $app->expires_at)
+                                                    <div class="text-[10px] mt-1 {{ $app->isExpiringSoon() ? 'text-red-600 font-bold' : 'text-gray-500' }}">
+                                                        ⏰ Expires {{ $app->expires_at->diffForHumans() }}
+                                                    </div>
+                                                @endif
                                             @endif
                                         </td>
 
@@ -172,6 +179,15 @@
                                                         data-time="{{ $app->appointment_time ?? '' }}">
                                                         Schedule
                                                     </button>
+                                                @endif
+
+                                                @if(($app->status ?? 'pending') == 'pending')
+                                                    <form action="{{ route('appointments.forceExpire', $app->id) }}" method="POST" class="inline" onsubmit="return confirm('Force expire this booking?')">
+                                                        @csrf
+                                                        <button type="submit" class="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded-full transition">
+                                                            Force Expire
+                                                        </button>
+                                                    </form>
                                                 @endif
 
                                                 @if(($app->status ?? 'pending') !== 'cancelled' && ($app->status ?? 'pending') !== 'canceled' && !($app->is_locked ?? false))
@@ -217,7 +233,7 @@
                             </svg>
                         </div>
                         <h3 class="text-lg font-bold text-gray-700">No Archived Appointments</h3>
-                        <p class="text-gray-400 mt-2 text-sm">Past appointments (approved/cancelled) will appear here automatically.</p>
+                        <p class="text-gray-400 mt-2 text-sm">Past appointments (approved/cancelled/expired) will appear here automatically.</p>
                     </div>
                 @else
                     <div class="overflow-x-auto">
@@ -282,6 +298,15 @@
                                                 <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase bg-red-100 text-red-800">
                                                     Cancelled
                                                 </span>
+                                            @elseif(($app->status ?? 'pending') === 'expired')
+                                                <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase bg-red-100 text-red-800">
+                                                    Expired
+                                                </span>
+                                                @if($app->expired_at)
+                                                    <div class="text-[10px] mt-1 text-gray-400">
+                                                        {{ $app->expired_at->format('M d, Y g:i A') }}
+                                                    </div>
+                                                @endif
                                             @else
                                                 <span class="inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase bg-green-100 text-green-800">
                                                     {{ $app->status ?? 'pending' }}
@@ -290,7 +315,16 @@
                                         </td>
 
                                         <td class="px-6 py-4">
-                                            <div class="flex items-center justify-center">
+                                            <div class="flex items-center justify-center gap-1 flex-wrap">
+                                                @if(($app->status ?? 'pending') === 'expired')
+                                                    <form action="{{ route('appointments.restore', $app->id) }}" method="POST" class="inline" onsubmit="return confirm('Restore this expired booking?')">
+                                                        @csrf
+                                                        <button type="submit" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-full transition">
+                                                            Restore
+                                                        </button>
+                                                    </form>
+                                                @endif
+
                                                 <form action="{{ route('appointments.destroy', $app->id) }}" method="POST" class="inline">
                                                     @csrf
                                                     @method('DELETE')
