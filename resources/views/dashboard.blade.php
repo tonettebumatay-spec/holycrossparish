@@ -10,6 +10,7 @@
         $paymentCount = $paymentCount ?? 0;
         $onlineViewingCount = $onlineViewingCount ?? 0;
         $calendarEventCount = $calendarEventCount ?? 0;
+        $supportCount = $supportCount ?? 0;
     @endphp
 
     <div class="relative min-h-[calc(100vh-140px)]">
@@ -22,7 +23,7 @@
 
         <main class="relative">
             <div class="max-w-[1500px] mx-auto px-6 py-12">
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6 justify-items-center">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-6 justify-items-center">
 
                     <!-- Indexed Books -->
                     <a
@@ -150,7 +151,7 @@
                         </div>
                     </a>
 
-                    <!-- ✅ Calendar (BAGO) -->
+                    <!-- Calendar -->
                     <a
                         href="{{ Route::has('calendar.index') ? route('calendar.index') : '#' }}"
                         class="block w-full bg-white rounded-3xl shadow-lg p-8 border border-white/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
@@ -167,6 +168,27 @@
                             <div class="h-1 w-12 bg-cyan-100 mb-6"></div>
                             <span class="text-xs font-black text-cyan-500 uppercase tracking-widest flex items-center">
                                 View Calendar <span class="ml-2">→</span>
+                            </span>
+                        </div>
+                    </a>
+
+                    <!-- ✅ Customer Support (BAGO) -->
+                    <a
+                        href="{{ Route::has('support.index') ? route('support.index') : '#' }}"
+                        class="block w-full bg-white rounded-3xl shadow-lg p-8 border border-white/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
+                    >
+                        <div>
+                            <h4 class="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-6">
+                                Customer Support
+                            </h4>
+                            <p class="text-7xl font-black text-pink-600 mb-6 tracking-tighter">
+                                💬
+                            </p>
+                        </div>
+                        <div>
+                            <div class="h-1 w-12 bg-pink-100 mb-6"></div>
+                            <span class="text-xs font-black text-pink-500 uppercase tracking-widest flex items-center">
+                                View Messages <span class="ml-2">→</span>
                             </span>
                         </div>
                     </a>

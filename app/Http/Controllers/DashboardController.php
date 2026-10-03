@@ -10,6 +10,7 @@ use App\Models\Funeral;
 use App\Models\Appointment;
 use App\Models\PayMongoPayment;
 use App\Models\Payment;
+use App\Models\SupportConversation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -37,6 +38,9 @@ class DashboardController extends Controller
             $calendarEventCount = Appointment::whereNotNull('appointment_date')->count()
                 + DB::table('schedules')->where('status', 'pending')->count();
 
+            // ==================== SUPPORT CONVERSATIONS ====================
+            $supportCount = SupportConversation::where('is_archived', false)->count();
+
             // ==================== DASHBOARD DATA ====================
             $data = [
                 'bookCount' => 5,
@@ -58,8 +62,10 @@ class DashboardController extends Controller
 
                 'onlineViewingCount' => DB::table('viewings')->count() ?? 0,
 
-                // ✅ BAGO: Calendar Event Count
                 'calendarEventCount' => $calendarEventCount,
+
+                // ✅ BAGO: Support Conversation Count
+                'supportCount' => $supportCount,
             ];
 
             return view('dashboard', $data);
@@ -76,6 +82,7 @@ class DashboardController extends Controller
                 'paymentCount' => 0,
                 'onlineViewingCount' => 0,
                 'calendarEventCount' => 0,
+                'supportCount' => 0,
             ]);
         }
     }
