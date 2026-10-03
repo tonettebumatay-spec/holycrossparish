@@ -19,7 +19,6 @@ class DashboardController extends Controller
     {
         try {
             // ==================== SACRAMENTAL RECORDS ====================
-            // Mula sa 5 sacrament tables
             $sacramentalRecordCount = Baptism::count()
                 + Communion::count()
                 + Confirmation::count()
@@ -34,14 +33,16 @@ class DashboardController extends Controller
             $cashCount = Payment::count();
             $paymentCount = $paymongoCount + $cashCount;
 
+            // ==================== CALENDAR EVENTS ====================
+            $calendarEventCount = Appointment::whereNotNull('appointment_date')->count()
+                + DB::table('schedules')->where('status', 'pending')->count();
+
             // ==================== DASHBOARD DATA ====================
             $data = [
                 'bookCount' => 5,
 
                 'sacramentalRecordCount' => $sacramentalRecordCount,
 
-                // Count only active/pending schedules
-                // whose date is today or in the future
                 'massScheduleCount' => DB::table('schedules')
                     ->where('status', 'pending')
                     ->whereDate('date', '>=', now()->toDateString())
@@ -53,10 +54,12 @@ class DashboardController extends Controller
 
                 'appointmentCount' => $appointmentCount,
 
-                // ✅ Payment Records count (GCash + Cash)
                 'paymentCount' => $paymentCount,
 
                 'onlineViewingCount' => DB::table('viewings')->count() ?? 0,
+
+                // ✅ BAGO: Calendar Event Count
+                'calendarEventCount' => $calendarEventCount,
             ];
 
             return view('dashboard', $data);
@@ -72,6 +75,7 @@ class DashboardController extends Controller
                 'appointmentCount' => 0,
                 'paymentCount' => 0,
                 'onlineViewingCount' => 0,
+                'calendarEventCount' => 0,
             ]);
         }
     }

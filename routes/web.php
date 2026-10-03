@@ -10,6 +10,7 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PaymentRecordController;
 use App\Http\Controllers\RequirementController;
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\Admin\AppointmentAvailabilityController;
 use Illuminate\Support\Facades\Route;
 
@@ -94,6 +95,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/requirements/{id}', [RequirementController::class, 'update'])->name('requirements.update');
     Route::delete('/requirements/{id}', [RequirementController::class, 'destroy'])->name('requirements.destroy');
     Route::post('/requirements/{id}/toggle', [RequirementController::class, 'toggle'])->name('requirements.toggle');
+
+    // --- Calendar View ---
+    Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
+    Route::get('/calendar/events', [CalendarController::class, 'events'])->name('calendar.events');
 
     Route::get('/viewing', [ViewingController::class, 'index'])->name('viewing.index');
     Route::get('/viewing/create', [ViewingController::class, 'create'])->name('viewing.create');
