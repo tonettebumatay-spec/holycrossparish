@@ -11,6 +11,7 @@ use App\Models\Appointment;
 use App\Models\PayMongoPayment;
 use App\Models\Payment;
 use App\Models\SupportConversation;
+use App\Models\MarriageBann;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -41,6 +42,10 @@ class DashboardController extends Controller
             // ==================== SUPPORT CONVERSATIONS ====================
             $supportCount = SupportConversation::where('is_archived', false)->count();
 
+            // ==================== MARRIAGE BANNS ====================
+            MarriageBann::updateExpiredStatus();
+            $bannsCount = MarriageBann::where('status', 'active')->count();
+
             // ==================== DASHBOARD DATA ====================
             $data = [
                 'bookCount' => 5,
@@ -64,8 +69,10 @@ class DashboardController extends Controller
 
                 'calendarEventCount' => $calendarEventCount,
 
-                // ✅ BAGO: Support Conversation Count
                 'supportCount' => $supportCount,
+
+                // ✅ BAGO: Marriage Banns Count
+                'bannsCount' => $bannsCount,
             ];
 
             return view('dashboard', $data);
@@ -83,6 +90,7 @@ class DashboardController extends Controller
                 'onlineViewingCount' => 0,
                 'calendarEventCount' => 0,
                 'supportCount' => 0,
+                'bannsCount' => 0,
             ]);
         }
     }

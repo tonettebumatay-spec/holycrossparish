@@ -12,6 +12,8 @@ use App\Http\Controllers\PaymentRecordController;
 use App\Http\Controllers\RequirementController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\SupportController;
+use App\Http\Controllers\MarriageBannController;
+use App\Http\Controllers\PublicBannController;
 use App\Http\Controllers\Admin\AppointmentAvailabilityController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,6 +24,9 @@ Route::get('/', function () {
 });
 
 Route::get('/verify/{type}/{id}', [RecordController::class, 'verify'])->name('records.verify');
+
+// ==================== PUBLIC MARRIAGE BANNS ====================
+Route::get('/banns', [PublicBannController::class, 'index'])->name('banns.public');
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
@@ -109,6 +114,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/support/{id}/messages', [SupportController::class, 'store'])->name('support.messages.store');
     Route::post('/support/{id}/archive', [SupportController::class, 'archive'])->name('support.archive');
     Route::delete('/support/{id}', [SupportController::class, 'destroy'])->name('support.destroy');
+
+    // --- Marriage Banns (Admin) ---
+    Route::get('/banns-admin', [MarriageBannController::class, 'index'])->name('banns.index');
+    Route::get('/banns-admin/create', [MarriageBannController::class, 'create'])->name('banns.create');
+    Route::post('/banns-admin', [MarriageBannController::class, 'store'])->name('banns.store');
+    Route::get('/banns-admin/{id}/edit', [MarriageBannController::class, 'edit'])->name('banns.edit');
+    Route::put('/banns-admin/{id}', [MarriageBannController::class, 'update'])->name('banns.update');
+    Route::delete('/banns-admin/{id}', [MarriageBannController::class, 'destroy'])->name('banns.destroy');
 
     Route::get('/viewing', [ViewingController::class, 'index'])->name('viewing.index');
     Route::get('/viewing/create', [ViewingController::class, 'create'])->name('viewing.create');
