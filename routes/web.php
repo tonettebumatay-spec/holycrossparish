@@ -8,6 +8,7 @@ use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\ViewingController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PaymentRecordController;
 use App\Http\Controllers\Admin\AppointmentAvailabilityController;
 use Illuminate\Support\Facades\Route;
 
@@ -63,7 +64,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // --- Appointments Management (no more {type}) ---
+    // --- Appointments Management ---
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
     Route::put('/appointments/{id}/schedule', [AppointmentController::class, 'schedule'])->name('appointments.schedule');
     Route::put('/appointments/{id}/status', [AppointmentController::class, 'updateStatus'])->name('appointments.update-status');
@@ -72,6 +73,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/booking/create', [BookingController::class, 'create'])->name('booking.create');
     Route::post('/booking', [BookingController::class, 'store'])->name('booking.store');
+
+    // --- Payment Records ---
+    Route::get('/payments', [PaymentRecordController::class, 'index'])->name('payments.index');
+    Route::get('/payments/export', [PaymentRecordController::class, 'export'])->name('payments.export');
+    Route::get('/payments/{id}/{source}', [PaymentRecordController::class, 'show'])->name('payments.show');
+    Route::post('/payments/{id}/mark-paid', [PaymentRecordController::class, 'markAsPaid'])->name('payments.markPaid');
 
     Route::get('/viewing', [ViewingController::class, 'index'])->name('viewing.index');
     Route::get('/viewing/create', [ViewingController::class, 'create'])->name('viewing.create');
