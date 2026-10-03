@@ -11,6 +11,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PaymentRecordController;
 use App\Http\Controllers\RequirementController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\SupportController;
 use App\Http\Controllers\Admin\AppointmentAvailabilityController;
 use Illuminate\Support\Facades\Route;
 
@@ -99,6 +100,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // --- Calendar View ---
     Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
     Route::get('/calendar/events', [CalendarController::class, 'events'])->name('calendar.events');
+
+    // --- Customer Service Support (Admin) ---
+    Route::get('/support', [SupportController::class, 'index'])->name('support.index');
+    Route::get('/support/settings', [SupportController::class, 'settings'])->name('support.settings');
+    Route::post('/support/settings', [SupportController::class, 'updateSettings'])->name('support.settings.update');
+    Route::get('/support/{id}', [SupportController::class, 'show'])->name('support.show');
+    Route::post('/support/{id}/messages', [SupportController::class, 'store'])->name('support.messages.store');
+    Route::post('/support/{id}/archive', [SupportController::class, 'archive'])->name('support.archive');
+    Route::delete('/support/{id}', [SupportController::class, 'destroy'])->name('support.destroy');
 
     Route::get('/viewing', [ViewingController::class, 'index'])->name('viewing.index');
     Route::get('/viewing/create', [ViewingController::class, 'create'])->name('viewing.create');

@@ -13,6 +13,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PayMongoController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\RequirementController;
+use App\Http\Controllers\SupportApiController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -112,6 +113,12 @@ Route::prefix('v1')->group(function () {
         // ---- PayMongo QR Ph ----
         Route::post('/paymongo/qrph', [PayMongoController::class, 'createQrPhPayment']);
         Route::get('/paymongo/status/{reference}', [PayMongoController::class, 'getStatus']);
+
+        // ---- Customer Service Support ----
+        Route::get('/support/conversation', [SupportApiController::class, 'getOrCreateConversation']);
+        Route::get('/support/messages', [SupportApiController::class, 'getMessages']);
+        Route::post('/support/messages', [SupportApiController::class, 'sendMessage']);
+        Route::get('/support/info', [SupportApiController::class, 'getSupportInfo']);
 
         // ---- Appointment Availability (Admin only) ----
         Route::get('/availability', [AppointmentAvailabilityController::class, 'index']);
