@@ -12,6 +12,7 @@ use App\Http\Controllers\FaceRecognitionController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PayMongoController;
 use App\Http\Controllers\OtpController;
+use App\Http\Controllers\RequirementController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -54,6 +55,9 @@ Route::prefix('v1')->group(function () {
 
     // Public availability for Android booking
     Route::get('/availability/{sacrament}', [AppointmentAvailabilityController::class, 'apiGetSlots']);
+
+    // ---- Booking Requirements (Public) ----
+    Route::get('/requirements/{sacrament}', [RequirementController::class, 'apiGetRequirements']);
 
     // ---- Sacrament Bookings (Public) ----
     // Format 1: /book-{sacrament}

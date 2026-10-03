@@ -9,6 +9,7 @@ use App\Http\Controllers\ViewingController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PaymentRecordController;
+use App\Http\Controllers\RequirementController;
 use App\Http\Controllers\Admin\AppointmentAvailabilityController;
 use Illuminate\Support\Facades\Route;
 
@@ -84,6 +85,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/payments/{id}/{source}/archive', [PaymentRecordController::class, 'archive'])->name('payments.archive');
     Route::post('/payments/{id}/{source}/restore', [PaymentRecordController::class, 'restore'])->name('payments.restore');
     Route::delete('/payments/{id}/{source}', [PaymentRecordController::class, 'destroy'])->name('payments.destroy');
+
+    // --- Booking Requirements (Admin) ---
+    Route::get('/requirements', [RequirementController::class, 'index'])->name('requirements.index');
+    Route::get('/requirements/create', [RequirementController::class, 'create'])->name('requirements.create');
+    Route::post('/requirements', [RequirementController::class, 'store'])->name('requirements.store');
+    Route::get('/requirements/{id}/edit', [RequirementController::class, 'edit'])->name('requirements.edit');
+    Route::put('/requirements/{id}', [RequirementController::class, 'update'])->name('requirements.update');
+    Route::delete('/requirements/{id}', [RequirementController::class, 'destroy'])->name('requirements.destroy');
+    Route::post('/requirements/{id}/toggle', [RequirementController::class, 'toggle'])->name('requirements.toggle');
 
     Route::get('/viewing', [ViewingController::class, 'index'])->name('viewing.index');
     Route::get('/viewing/create', [ViewingController::class, 'create'])->name('viewing.create');
