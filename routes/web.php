@@ -79,6 +79,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/payments/export', [PaymentRecordController::class, 'export'])->name('payments.export');
     Route::get('/payments/{id}/{source}', [PaymentRecordController::class, 'show'])->name('payments.show');
     Route::post('/payments/{id}/mark-paid', [PaymentRecordController::class, 'markAsPaid'])->name('payments.markPaid');
+    Route::post('/payments/{id}/{source}/archive', [PaymentRecordController::class, 'archive'])->name('payments.archive');
+    Route::delete('/payments/{id}/{source}', [PaymentRecordController::class, 'destroy'])->name('payments.destroy');
 
     Route::get('/viewing', [ViewingController::class, 'index'])->name('viewing.index');
     Route::get('/viewing/create', [ViewingController::class, 'create'])->name('viewing.create');

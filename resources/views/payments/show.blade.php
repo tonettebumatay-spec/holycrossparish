@@ -5,10 +5,19 @@
                 {{ __('Payment Details') }}
             </h2>
 
-            <a href="{{ route('payments.index') }}" 
-               class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-gray-50">
-                ← Back to Payments
-            </a>
+            <div class="flex gap-2">
+                <!-- ✅ Back to Payments -->
+                <a href="{{ route('payments.index') }}" 
+                   class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-gray-50">
+                    ← Back to Payments
+                </a>
+
+                <!-- ✅ Back to Dashboard -->
+                <a href="{{ route('dashboard') }}" 
+                   class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-gray-50">
+                    ← Dashboard
+                </a>
+            </div>
         </div>
     </x-slot>
 
@@ -27,6 +36,8 @@
                             <span class="px-4 py-2 bg-green-100 text-green-700 rounded-full text-xs font-black uppercase">Paid</span>
                         @elseif($payment->status === 'pending')
                             <span class="px-4 py-2 bg-amber-100 text-amber-700 rounded-full text-xs font-black uppercase">Pending</span>
+                        @elseif($payment->status === 'archived')
+                            <span class="px-4 py-2 bg-gray-200 text-gray-600 rounded-full text-xs font-black uppercase">Archived</span>
                         @else
                             <span class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-xs font-black uppercase">{{ $payment->status }}</span>
                         @endif
@@ -67,15 +78,43 @@
                 @endif
 
                 <!-- Actions -->
-                @if($source === 'payments' && $payment->status === 'pending')
-                    <form action="{{ route('payments.markPaid', $payment->id) }}" method="POST" class="mt-6">
+                <div class="flex flex-col gap-3 mt-6">
+                    <!-- Mark as Paid (kung pending cash) -->
+                    @if($source === 'payments' && $payment->status === 'pending')
+                        <form action="{{ route('payments.markPaid', $payment->id) }}" method="POST">
+                            @csrf
+                            <button type="submit" 
+                                    class="w-full py-4 bg-green-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-green-700">
+                                ✅ Mark as Paid
+                            </button>
+                        </form>
+                    @endif
+
+                    <!-- ✅ Archive -->
+                    @if($payment->status !== 'archived')
+                        <form action="{{ route('payments.archive', ['id' => $payment->id, 'source' => $source]) }}" 
+                              method="POST" 
+                              onsubmit="return confirm('Archive this payment?')">
+                            @csrf
+                            <button type="submit" 
+                                    class="w-full py-4 bg-amber-500 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-amber-600">
+                                📦 Archive Payment
+                            </button>
+                        </form>
+                    @endif
+
+                    <!-- ✅ Delete -->
+                    <form action="{{ route('payments.destroy', ['id' => $payment->id, 'source' => $source]) }}" 
+                          method="POST" 
+                          onsubmit="return confirm('Delete this payment permanently? This cannot be undone.')">
                         @csrf
+                        @method('DELETE')
                         <button type="submit" 
-                                class="w-full py-4 bg-green-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-green-700">
-                            ✅ Mark as Paid
+                                class="w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-red-700">
+                            🗑️ Delete Payment
                         </button>
                     </form>
-                @endif
+                </div>
 
             </div>
         </div>

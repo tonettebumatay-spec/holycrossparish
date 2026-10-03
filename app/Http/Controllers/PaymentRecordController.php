@@ -14,15 +14,14 @@ class PaymentRecordController extends Controller
      */
     public function index(Request $request)
     {
-        // Get filter parameters
-        $method = $request->input('method', 'all'); // all, gcash, cash
-        $status = $request->input('status', 'all'); // all, pending, paid, failed
+        $method = $request->input('method', 'all');
+        $status = $request->input('status', 'all');
         $search = $request->input('search', '');
 
-        // Build query for PayMongo payments (GCash)
+        // PayMongo payments (GCash)
         $paymongoQuery = PayMongoPayment::query();
         if ($method === 'cash') {
-            $paymongoQuery->whereRaw('1 = 0'); // exclude if cash only
+            $paymongoQuery->whereRaw('1 = 0');
         }
         if ($status !== 'all') {
             $paymongoQuery->where('status', $status);
@@ -35,10 +34,10 @@ class PaymentRecordController extends Controller
         }
         $paymongoPayments = $paymongoQuery->orderByDesc('created_at')->get();
 
-        // Build query for regular payments (Cash)
+        // Regular payments (Cash)
         $paymentQuery = Payment::query();
         if ($method === 'gcash') {
-            $paymentQuery->whereRaw('1 = 0'); // exclude if gcash only
+            $paymentQuery->whereRaw('1 = 0');
         }
         if ($status !== 'all') {
             $paymentQuery->where('status', $status);
@@ -51,7 +50,7 @@ class PaymentRecordController extends Controller
         }
         $payments = $paymentQuery->orderByDesc('created_at')->get();
 
-        // Merge and sort by created_at
+        // Merge and sort
         $allPayments = $paymongoPayments->map(function ($item) {
             return [
                 'id' => $item->id,
@@ -80,7 +79,7 @@ class PaymentRecordController extends Controller
             ];
         }))->sortByDesc('created_at')->values();
 
-        // Calculate stats
+        // Stats
         $stats = [
             'total' => $allPayments->count(),
             'paid' => $allPayments->where('status', 'paid')->count(),
@@ -121,6 +120,51 @@ class PaymentRecordController extends Controller
     }
 
     /**
+     * ✅ Archive a payment (soft delete).
+     */
+    public function archive($id, $source = 'paymongo')
+    {
+        try {
+            if ($source === 'paymongo') {
+                $payment = PayMongoPayment::findOrFail($id);
+            } else {
+                $payment = Payment::findOrFail($id);
+            }
+
+            // Update status to 'archived'
+            $payment->update(['status' => 'archived']);
+
+            return redirect()->route('payments.index')
+                ->with('success', 'Payment archived successfully!');
+        } catch (\Exception $e) {
+            return redirect()->route('payments.index')
+                ->with('error', 'Failed to archive payment: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * ✅ Delete a payment.
+     */
+    public function destroy($id, $source = 'paymongo')
+    {
+        try {
+            if ($source === 'paymongo') {
+                $payment = PayMongoPayment::findOrFail($id);
+            } else {
+                $payment = Payment::findOrFail($id);
+            }
+
+            $payment->delete();
+
+            return redirect()->route('payments.index')
+                ->with('success', 'Payment deleted successfully!');
+        } catch (\Exception $e) {
+            return redirect()->route('payments.index')
+                ->with('error', 'Failed to delete payment: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Export payments to CSV.
      */
     public function export(Request $request)
@@ -137,7 +181,6 @@ class PaymentRecordController extends Controller
         $callback = function () use ($method, $status) {
             $file = fopen('php://output', 'w');
 
-            // CSV Header
             fputcsv($file, [
                 'Date',
                 'Reference Number',
@@ -148,20 +191,16 @@ class PaymentRecordController extends Controller
                 'User ID',
             ]);
 
-            // Get all payments
             $paymongoQuery = PayMongoPayment::query();
             if ($method === 'cash') $paymongoQuery->whereRaw('1 = 0');
             if ($status !== 'all') $paymongoQuery->where('status', $status);
-
             $paymongoPayments = $paymongoQuery->orderByDesc('created_at')->get();
 
             $paymentQuery = Payment::query();
             if ($method === 'gcash') $paymentQuery->whereRaw('1 = 0');
             if ($status !== 'all') $paymentQuery->where('status', $status);
-
             $payments = $paymentQuery->orderByDesc('created_at')->get();
 
-            // Write PayMongo payments
             foreach ($paymongoPayments as $payment) {
                 fputcsv($file, [
                     $payment->created_at,
@@ -174,7 +213,6 @@ class PaymentRecordController extends Controller
                 ]);
             }
 
-            // Write regular payments
             foreach ($payments as $payment) {
                 fputcsv($file, [
                     $payment->created_at,
