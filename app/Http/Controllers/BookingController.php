@@ -102,7 +102,7 @@ class BookingController extends Controller
                           ->orWhere('appointment_time', $appointmentTime . ':00');
                     })
                     ->where(function ($query) {
-                        $query->where('status', '!=', 'cancelled')
+                        $query->whereNotIn('status', ['cancelled', 'expired'])
                               ->orWhereNull('status');
                     })
                     ->count();
@@ -124,6 +124,7 @@ class BookingController extends Controller
                     'status'           => 'pending',
                     'user_id'          => $user?->id,
                     'email'            => $user?->email ?? ($parsed['email'] ?? null),
+                    'expires_at'       => now()->addHours(24),
                 ]);
 
                 return [
@@ -146,6 +147,7 @@ class BookingController extends Controller
                 'appointment_date' => $record->appointment_date ?? null,
                 'appointment_time' => $record->appointment_time ?? null,
                 'status' => $record->status ?? null,
+                'expires_at' => $record->expires_at ?? null,
             ]);
 
             return response()->json([

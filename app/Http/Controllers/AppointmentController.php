@@ -60,7 +60,7 @@ class AppointmentController extends Controller
                     return true;
                 }
 
-                if (!in_array($status, ['approved', 'cancelled', 'canceled'])) {
+                if (!in_array($status, ['approved', 'cancelled', 'canceled', 'expired'])) {
                     return true;
                 }
 
@@ -83,7 +83,7 @@ class AppointmentController extends Controller
                     return false;
                 }
 
-                return in_array($status, ['approved', 'cancelled', 'canceled']);
+                return in_array($status, ['approved', 'cancelled', 'canceled', 'expired']);
             })->values();
 
             return view('appointments.index', [
@@ -174,6 +174,8 @@ class AppointmentController extends Controller
         $record->appointment_date = $request->appointment_date;
         $record->appointment_time = $request->appointment_time;
         $record->status = 'approved';
+        $record->expires_at = null;
+        $record->expiry_reminder_sent = false;
 
         $record->save();
 
@@ -215,6 +217,9 @@ class AppointmentController extends Controller
                     'status' => $item->status ?? 'pending',
                     'cancellation_reason' => $item->cancellation_reason,
                     'is_locked' => (bool) ($item->is_locked ?? false),
+                    'expires_at' => $item->expires_at?->toDateTimeString(),
+                    'time_remaining' => $item->time_remaining,
+                    'is_expired' => $item->isExpired(),
                     'submitted_at' => $item->created_at
                         ? $item->created_at->format('Y-m-d H:i:s')
                         : null,
@@ -283,6 +288,12 @@ class AppointmentController extends Controller
     {
         $record = Appointment::findOrFail($id);
         $record->status = $request->status;
+
+        if ($request->status === 'approved') {
+            $record->expires_at = null;
+            $record->expiry_reminder_sent = false;
+        }
+
         $record->save();
 
         return back()->with('success', 'Appointment status updated.');
@@ -291,5 +302,53 @@ class AppointmentController extends Controller
     public function store(Request $request)
     {
         return response()->json(['status' => 'error', 'message' => 'Use booking endpoints'], 400);
+    }
+
+    /**
+     * ✅ Restore an expired booking.
+     */
+    public function restore($id)
+    {
+        try {
+            $appointment = Appointment::findOrFail($id);
+
+            if ($appointment->status !== 'expired') {
+                return back()->with('error', 'Only expired bookings can be restored.');
+            }
+
+            $appointment->update([
+                'status' => 'pending',
+                'expires_at' => now()->addHours(24),
+                'expired_at' => null,
+                'expiry_reminder_sent' => false,
+            ]);
+
+            return back()->with('success', 'Booking restored successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to restore booking: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * ✅ Force expire a booking (admin only).
+     */
+    public function forceExpire($id)
+    {
+        try {
+            $appointment = Appointment::findOrFail($id);
+
+            if ($appointment->status !== 'pending') {
+                return back()->with('error', 'Only pending bookings can be expired.');
+            }
+
+            $appointment->update([
+                'status' => 'expired',
+                'expired_at' => now(),
+            ]);
+
+            return back()->with('success', 'Booking expired successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to expire booking: ' . $e->getMessage());
+        }
     }
 }
