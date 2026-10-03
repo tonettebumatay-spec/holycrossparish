@@ -85,6 +85,13 @@
         </header>
 
         <main>
+            <!-- ✅ HEADER SLOT — Dito naka-render ang mga back buttons at page titles -->
+            @if(isset($header))
+                <div class="max-w-7xl mx-auto px-6 pt-6">
+                    {{ $header }}
+                </div>
+            @endif
+
             {{ $slot }}
         </main>
     </div>
@@ -97,20 +104,18 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // I-initialize ang Datepicker sa lahat ng input na may class na "flatpickr-date"
-            // Siguraduhin na ang input sa modal mo ay may class="flatpickr-date"
             flatpickr(".flatpickr-date", {
-                dateFormat: "Y-m-d", // Format na ise-save sa database (e.g., 2026-09-09)
+                dateFormat: "Y-m-d",
                 defaultDate: "today",
-                theme: "dark", // Gamitin ang dark theme
-                allowInput: false, // Bawal i-type manually para iwas error
+                theme: "dark",
+                allowInput: false,
             });
 
-            // Optional: Para sa Time input kung gusto mo rin palitan
-            // Siguraduhin na ang input sa modal mo ay may class="flatpickr-time"
+            // Optional: Para sa Time input
             flatpickr(".flatpickr-time", {
                 enableTime: true,
                 noCalendar: true,
-                dateFormat: "h:i K", // Format: 09:00 AM
+                dateFormat: "h:i K",
                 time_24hr: false,
                 theme: "dark",
                 allowInput: false,
