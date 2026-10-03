@@ -16,12 +16,23 @@
                 <div class="w-32"></div>
             </div>
 
-            <!-- Search Bar (for refining) -->
-            <div class="max-w-2xl mx-auto mb-10">
-                <form method="GET" action="{{ route('records.search') }}" class="flex gap-3">
+            <!-- Search Bar (for refining) with Category Filter -->
+            <div class="max-w-4xl mx-auto mb-10">
+                <form method="GET" action="{{ route('records.search') }}" class="flex gap-3 items-center">
                     <input type="text" name="q" value="{{ $query }}"
                            placeholder="Search by name..."
                            class="flex-1 border-2 border-gray-300 rounded-full px-6 py-3 text-sm focus:outline-none focus:border-[#4d290a]">
+
+                    <!-- ✅ Category Filter -->
+                    <select name="category" class="border-2 border-gray-300 rounded-full px-5 py-3 text-sm focus:outline-none focus:border-[#4d290a]">
+                        <option value="">All Sacraments</option>
+                        <option value="baptism" {{ $category == 'baptism' ? 'selected' : '' }}>Baptism</option>
+                        <option value="communion" {{ $category == 'communion' ? 'selected' : '' }}>Communion</option>
+                        <option value="confirmation" {{ $category == 'confirmation' ? 'selected' : '' }}>Confirmation</option>
+                        <option value="wedding" {{ $category == 'wedding' ? 'selected' : '' }}>Wedding</option>
+                        <option value="funeral" {{ $category == 'funeral' ? 'selected' : '' }}>Funeral</option>
+                    </select>
+
                     <button type="submit"
                             class="bg-[#4d290a] hover:bg-[#3a1f07] text-white font-black text-xs uppercase tracking-widest px-8 py-3 rounded-full transition">
                         Search

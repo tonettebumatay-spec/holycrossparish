@@ -8,10 +8,21 @@
                     Dashboard
                 </a>
 
-                <!-- Search Bar -->
-                <form method="GET" action="{{ route('records.search') }}" class="flex gap-2">
+                <!-- ✅ Search Bar with Category Filter -->
+                <form method="GET" action="{{ route('records.search') }}" class="flex gap-2 items-center">
                     <input type="text" name="q" required placeholder="Search any name..."
                            class="w-72 border-2 border-gray-300 rounded-full px-5 py-2.5 text-sm focus:outline-none focus:border-[#4d290a]">
+
+                    <!-- ✅ Category Filter -->
+                    <select name="category" class="border-2 border-gray-300 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-[#4d290a]">
+                        <option value="">All Sacraments</option>
+                        <option value="baptism">Baptism</option>
+                        <option value="communion">Communion</option>
+                        <option value="confirmation">Confirmation</option>
+                        <option value="wedding">Wedding</option>
+                        <option value="funeral">Funeral</option>
+                    </select>
+
                     <button type="submit"
                             class="bg-[#4d290a] hover:bg-[#3a1f07] text-white font-black text-xs uppercase tracking-widest px-6 py-2.5 rounded-full transition">
                         Search
