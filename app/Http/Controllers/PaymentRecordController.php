@@ -18,14 +18,23 @@ class PaymentRecordController extends Controller
         $status = $request->input('status', 'all');
         $search = $request->input('search', '');
 
-        // PayMongo payments (GCash)
+        // ==================== PAYMONGO PAYMENTS (GCash) ====================
         $paymongoQuery = PayMongoPayment::query();
+
         if ($method === 'cash') {
             $paymongoQuery->whereRaw('1 = 0');
         }
-        if ($status !== 'all') {
+
+        // ✅ Status filter logic
+        if ($status === 'archived') {
+            $paymongoQuery->where('status', 'archived');
+        } elseif ($status === 'all') {
+            // ✅ Default: huwag isama ang archived
+            $paymongoQuery->where('status', '!=', 'archived');
+        } else {
             $paymongoQuery->where('status', $status);
         }
+
         if ($search) {
             $paymongoQuery->where(function ($q) use ($search) {
                 $q->where('reference_number', 'like', "%{$search}%")
@@ -34,14 +43,23 @@ class PaymentRecordController extends Controller
         }
         $paymongoPayments = $paymongoQuery->orderByDesc('created_at')->get();
 
-        // Regular payments (Cash)
+        // ==================== REGULAR PAYMENTS (Cash) ====================
         $paymentQuery = Payment::query();
+
         if ($method === 'gcash') {
             $paymentQuery->whereRaw('1 = 0');
         }
-        if ($status !== 'all') {
+
+        // ✅ Status filter logic
+        if ($status === 'archived') {
+            $paymentQuery->where('status', 'archived');
+        } elseif ($status === 'all') {
+            // ✅ Default: huwag isama ang archived
+            $paymentQuery->where('status', '!=', 'archived');
+        } else {
             $paymentQuery->where('status', $status);
         }
+
         if ($search) {
             $paymentQuery->where(function ($q) use ($search) {
                 $q->where('reference_number', 'like', "%{$search}%")
@@ -50,7 +68,7 @@ class PaymentRecordController extends Controller
         }
         $payments = $paymentQuery->orderByDesc('created_at')->get();
 
-        // Merge and sort
+        // ==================== MERGE AND SORT ====================
         $allPayments = $paymongoPayments->map(function ($item) {
             return [
                 'id' => $item->id,
@@ -79,12 +97,13 @@ class PaymentRecordController extends Controller
             ];
         }))->sortByDesc('created_at')->values();
 
-        // Stats
+        // ==================== STATS ====================
         $stats = [
             'total' => $allPayments->count(),
             'paid' => $allPayments->where('status', 'paid')->count(),
             'pending' => $allPayments->where('status', 'pending')->count(),
             'failed' => $allPayments->where('status', 'failed')->count(),
+            'archived' => $allPayments->where('status', 'archived')->count(),
             'gcash' => $allPayments->where('payment_method', 'gcash')->count(),
             'cash' => $allPayments->where('payment_method', 'cash')->count(),
             'total_amount' => $allPayments->where('status', 'paid')->sum('amount'),
@@ -131,7 +150,6 @@ class PaymentRecordController extends Controller
                 $payment = Payment::findOrFail($id);
             }
 
-            // Update status to 'archived'
             $payment->update(['status' => 'archived']);
 
             return redirect()->route('payments.index')
@@ -139,6 +157,28 @@ class PaymentRecordController extends Controller
         } catch (\Exception $e) {
             return redirect()->route('payments.index')
                 ->with('error', 'Failed to archive payment: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * ✅ Restore an archived payment.
+     */
+    public function restore($id, $source = 'paymongo')
+    {
+        try {
+            if ($source === 'paymongo') {
+                $payment = PayMongoPayment::findOrFail($id);
+            } else {
+                $payment = Payment::findOrFail($id);
+            }
+
+            $payment->update(['status' => 'pending']);
+
+            return redirect()->route('payments.index')
+                ->with('success', 'Payment restored successfully!');
+        } catch (\Exception $e) {
+            return redirect()->route('payments.index')
+                ->with('error', 'Failed to restore payment: ' . $e->getMessage());
         }
     }
 
@@ -193,12 +233,24 @@ class PaymentRecordController extends Controller
 
             $paymongoQuery = PayMongoPayment::query();
             if ($method === 'cash') $paymongoQuery->whereRaw('1 = 0');
-            if ($status !== 'all') $paymongoQuery->where('status', $status);
+            if ($status === 'archived') {
+                $paymongoQuery->where('status', 'archived');
+            } elseif ($status === 'all') {
+                $paymongoQuery->where('status', '!=', 'archived');
+            } else {
+                $paymongoQuery->where('status', $status);
+            }
             $paymongoPayments = $paymongoQuery->orderByDesc('created_at')->get();
 
             $paymentQuery = Payment::query();
             if ($method === 'gcash') $paymentQuery->whereRaw('1 = 0');
-            if ($status !== 'all') $paymentQuery->where('status', $status);
+            if ($status === 'archived') {
+                $paymentQuery->where('status', 'archived');
+            } elseif ($status === 'all') {
+                $paymentQuery->where('status', '!=', 'archived');
+            } else {
+                $paymentQuery->where('status', $status);
+            }
             $payments = $paymentQuery->orderByDesc('created_at')->get();
 
             foreach ($paymongoPayments as $payment) {

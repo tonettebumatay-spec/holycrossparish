@@ -148,8 +148,19 @@
                                                 View
                                             </a>
 
-                                            <!-- ✅ Archive -->
-                                            @if($payment['status'] !== 'archived')
+                                            @if($payment['status'] === 'archived')
+                                                <!-- ✅ Restore (kung archived) -->
+                                                <form action="{{ route('payments.restore', ['id' => $payment['id'], 'source' => $payment['source']]) }}" 
+                                                      method="POST" 
+                                                      onsubmit="return confirm('Restore this payment?')">
+                                                    @csrf
+                                                    <button type="submit" 
+                                                            class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-[10px] font-black uppercase hover:bg-blue-200">
+                                                        Restore
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <!-- ✅ Archive (kung hindi archived) -->
                                                 <form action="{{ route('payments.archive', ['id' => $payment['id'], 'source' => $payment['source']]) }}" 
                                                       method="POST" 
                                                       onsubmit="return confirm('Archive this payment?')">
