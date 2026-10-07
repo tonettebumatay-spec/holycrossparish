@@ -21,6 +21,7 @@ class PayMongoController extends Controller
 
     /**
      * Create QR Ph payment
+     * FIXED AMOUNT: PHP 5.00
      */
     public function createQrPhPayment(Request $request)
     {
@@ -28,7 +29,6 @@ class PayMongoController extends Controller
             Log::info('PAYMONGO_QRPH_REQUEST', $request->all());
 
             $validator = Validator::make($request->all(), [
-                'amount'      => 'required|numeric|min:1',
                 'description' => 'nullable|string|max:255',
             ]);
 
@@ -41,7 +41,10 @@ class PayMongoController extends Controller
             }
 
             $user = $request->user();
-            $amount = $request->input('amount');
+
+            // ✅ FIXED AMOUNT — PHP 5.00
+            $amount = 5.00;
+
             $description = $request->input('description') ?? 'Parish Service Fee';
             $referenceNumber = 'HCP-' . strtoupper(uniqid());
 
@@ -50,7 +53,7 @@ class PayMongoController extends Controller
                 ->post($this->baseUrl . '/payment_intents', [
                     'data' => [
                         'attributes' => [
-                            'amount' => intval($amount * 100),
+                            'amount' => intval($amount * 100), // 500 cents = PHP 5.00
                             'currency' => 'PHP',
                             'payment_method_allowed' => ['qrph'],
                             'description' => $description,
@@ -110,12 +113,11 @@ class PayMongoController extends Controller
 
             $attachedIntent = $attachResponse->json()['data'];
 
-            // 4. Save QR code to file (hindi sa DB)
+            // 4. Save QR code to file
             $qrCodeUrl = null;
             $qrBase64 = $attachedIntent['attributes']['next_action']['code']['image_url'] ?? null;
 
             if ($qrBase64) {
-                // Remove "data:image/png;base64," prefix
                 $imageData = explode(',', $qrBase64)[1] ?? null;
 
                 if ($imageData) {
@@ -125,7 +127,7 @@ class PayMongoController extends Controller
                 }
             }
 
-            // 5. Save to database (qr_code_url = file path, hindi base64)
+            // 5. Save to database
             $record = PayMongoPayment::create([
                 'user_id'               => $user?->id,
                 'paymongo_id'           => $paymentIntentId,
@@ -148,6 +150,7 @@ class PayMongoController extends Controller
             Log::info('PAYMONGO_QRPH_CREATED', [
                 'id' => $record->id,
                 'reference' => $referenceNumber,
+                'amount' => $amount,
                 'qr_url' => $qrCodeUrl,
             ]);
 
