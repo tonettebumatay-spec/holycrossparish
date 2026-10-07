@@ -21,6 +21,7 @@ class PayMongoPayment extends Model
         'currency',
         'payment_method',
         'status',
+        'paid_at',              // ✅ BAGO
         'qr_code_url',
         'payment_intent_status',
         'raw_response',
@@ -28,6 +29,7 @@ class PayMongoPayment extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'paid_at' => 'datetime',  // ✅ BAGO
     ];
 
     public function user()

@@ -210,6 +210,7 @@ class PayMongoController extends Controller
 
     /**
      * Webhook handler
+     * ✅ FIXED: Use payment_intent_id instead of payment id
      */
     public function webhook(Request $request)
     {
@@ -224,16 +225,58 @@ class PayMongoController extends Controller
                 return response()->json(['success' => false, 'message' => 'Invalid payload'], 400);
             }
 
-            $paymentIntentId = $paymentData['id'] ?? null;
+            // ✅ FIX: Kunin ang tamang ID base sa event type
+            $idToMatch = null;
 
+            if ($eventType === 'payment.paid' || $eventType === 'payment.failed') {
+                // payment.paid / payment.failed → gamitin ang payment_intent_id mula sa attributes
+                $idToMatch = $paymentData['attributes']['payment_intent_id'] ?? null;
+
+                // Fallback: kung wala, gamitin ang data.id
+                if (!$idToMatch) {
+                    $idToMatch = $paymentData['id'] ?? null;
+                }
+            } elseif ($eventType === 'checkout_session.payment.paid') {
+                // checkout_session → payment_intent_id nasa attributes.payment_intent
+                $idToMatch = $paymentData['attributes']['payment_intent']['id'] ?? null;
+
+                if (!$idToMatch) {
+                    $idToMatch = $paymentData['id'] ?? null;
+                }
+            } elseif ($eventType === 'qrph.expired') {
+                // qrph.expired → payment_intent_id nasa attributes
+                $idToMatch = $paymentData['attributes']['payment_intent_id'] ?? null;
+            }
+
+            Log::info('PAYMONGO_WEBHOOK_MATCHING', [
+                'event_type' => $eventType,
+                'id_to_match' => $idToMatch,
+                'payment_data_id' => $paymentData['id'] ?? null,
+            ]);
+
+            if (!$idToMatch) {
+                Log::warning('PAYMONGO_WEBHOOK_NO_ID', ['event_type' => $eventType]);
+                return response()->json(['success' => false, 'message' => 'No matching ID'], 400);
+            }
+
+            // ✅ Update base sa event type
             if ($eventType === 'payment.paid' || $eventType === 'checkout_session.payment.paid') {
-                PayMongoPayment::where('paymongo_id', $paymentIntentId)
-                    ->update(['status' => 'paid']);
+                $updated = PayMongoPayment::where('paymongo_id', $idToMatch)
+                    ->update([
+                        'status' => 'paid',
+                        'paid_at' => now(),
+                    ]);
+
+                Log::info('PAYMONGO_WEBHOOK_UPDATED', [
+                    'event_type' => $eventType,
+                    'id_to_match' => $idToMatch,
+                    'rows_updated' => $updated,
+                ]);
             } elseif ($eventType === 'payment.failed') {
-                PayMongoPayment::where('paymongo_id', $paymentIntentId)
+                PayMongoPayment::where('paymongo_id', $idToMatch)
                     ->update(['status' => 'failed']);
             } elseif ($eventType === 'qrph.expired') {
-                PayMongoPayment::where('paymongo_id', $paymentIntentId)
+                PayMongoPayment::where('paymongo_id', $idToMatch)
                     ->update(['status' => 'expired']);
             }
 
@@ -242,6 +285,7 @@ class PayMongoController extends Controller
         } catch (\Exception $e) {
             Log::error('PAYMONGO_WEBHOOK_ERROR', [
                 'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json(['success' => false], 500);
