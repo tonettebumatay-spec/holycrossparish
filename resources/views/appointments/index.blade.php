@@ -3,14 +3,16 @@
         <div class="max-w-7xl mx-auto px-6">
 
             <!-- Header -->
-            <div class="flex justify-between items-center mb-8">
+            <div class="flex justify-between items-center mb-8 gap-3 flex-wrap">
                 <a href="{{ route('dashboard') }}" class="inline-flex items-center px-5 py-2 bg-white border border-gray-300 rounded-full text-sm font-semibold text-gray-700 hover:bg-gray-50 transition shadow-sm">
                     ← Back to Dashboard
                 </a>
                 <h1 class="text-3xl font-black text-gray-800 tracking-tight uppercase underline decoration-purple-600 underline-offset-4">
                     Appointment Management
                 </h1>
-                <div class="w-20"></div>
+                <a href="{{ url('/admin/availability') }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-full text-xs font-black uppercase tracking-widest transition shadow-md">
+                    📅 Manage Availability
+                </a>
             </div>
 
             <!-- Flash Messages -->
