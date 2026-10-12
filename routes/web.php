@@ -34,6 +34,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('availability/bulk', [AppointmentAvailabilityController::class, 'storeBulk'])->name('availability.bulk');
+
+        // ✅ BAGO: Delete All Archived (dapat nasa TAAS ng resource route)
+        Route::delete('availability/delete-archived', [AppointmentAvailabilityController::class, 'deleteArchived'])->name('availability.deleteArchived');
+
         Route::resource('availability', AppointmentAvailabilityController::class)->except(['show', 'edit', 'update']);
         Route::patch('availability/{id}/toggle', [AppointmentAvailabilityController::class, 'toggleActive'])->name('availability.toggle');
     });
