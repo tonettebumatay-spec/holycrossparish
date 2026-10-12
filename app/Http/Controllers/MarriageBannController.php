@@ -6,6 +6,7 @@ use App\Models\MarriageBann;
 use App\Mail\MarriageBannCreatedMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
@@ -147,5 +148,48 @@ class MarriageBannController extends Controller
 
         return redirect()->route('banns.index')
             ->with('success', 'Marriage banns deleted successfully!');
+    }
+
+    /**
+     * ✅ API: Get active marriage banns (public, walang auth).
+     */
+    public function apiIndex()
+    {
+        try {
+            // Auto-update expired status
+            MarriageBann::updateExpiredStatus();
+
+            $banns = MarriageBann::active()
+                ->orderByDesc('banns_date')
+                ->get()
+                ->map(function ($bann) {
+                    return [
+                        'id'            => $bann->id,
+                        'groom_name'    => $bann->groom_name,
+                        'bride_name'    => $bann->bride_name,
+                        'wedding_date'  => $bann->wedding_date?->format('Y-m-d'),
+                        'banns_date'    => $bann->banns_date?->format('Y-m-d'),
+                        'expires_at'    => $bann->expires_at?->format('Y-m-d'),
+                        'notes'         => $bann->notes,
+                        'status'        => $bann->status,
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'count'   => $banns->count(),
+                'banns'   => $banns,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('API_BANNS_ERROR', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Server error: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }
