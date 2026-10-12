@@ -14,6 +14,8 @@ use App\Http\Controllers\PayMongoController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\RequirementController;
 use App\Http\Controllers\SupportApiController;
+use App\Http\Controllers\MarriageBannController;   
+use App\Http\Controllers\CalendarController;       
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -50,7 +52,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/otp/password/send', [OtpController::class, 'sendPasswordResetOtp']);
     Route::post('/otp/password/verify', [OtpController::class, 'verifyPasswordResetOtp']);
 
-   // Public data (schedules/events)
+    // Public data (schedules/events)
     Route::get('/schedules', [ScheduleController::class, 'indexApi']);
     Route::get('/events', [ScheduleController::class, 'eventsApi']);
 
@@ -59,6 +61,12 @@ Route::prefix('v1')->group(function () {
 
     // ---- Booking Requirements (Public) ----
     Route::get('/requirements/{sacrament}', [RequirementController::class, 'apiGetRequirements']);
+
+    // ---- ✅ Marriage Banns (Public) ----
+    Route::get('/banns', [MarriageBannController::class, 'apiIndex']);
+
+    // ---- ✅ Calendar Events (Public) ----
+    Route::get('/calendar/events', [CalendarController::class, 'events']);
 
     // ---- Sacrament Bookings (Public) ----
     // Format 1: /book-{sacrament}
