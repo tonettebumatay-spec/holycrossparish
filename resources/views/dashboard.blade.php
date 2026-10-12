@@ -12,7 +12,9 @@
         $calendarEventCount = $calendarEventCount ?? 0;
         $supportCount = $supportCount ?? 0;
         $bannsCount = $bannsCount ?? 0;
-        $availabilityCount = $availabilityCount ?? 0;  {{-- ✅ BAGO --}}
+
+        // BAGO: Availability Count
+        $availabilityCount = $availabilityCount ?? 0;
     @endphp
 
     <div class="relative min-h-[calc(100vh-140px)]">
@@ -276,7 +278,7 @@
 
 
                     <!-- ========================= -->
-                    <!-- ✅ AVAILABILITY (BAGO) -->
+                    <!-- AVAILABILITY (BAGO) -->
                     <!-- ========================= -->
                     <a
                         href="{{ url('/admin/availability') }}"
