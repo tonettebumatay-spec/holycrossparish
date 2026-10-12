@@ -46,7 +46,7 @@ class DashboardController extends Controller
             MarriageBann::updateExpiredStatus();
             $bannsCount = MarriageBann::where('status', 'active')->count();
 
-            // ==================== ✅ AVAILABILITY SLOTS (BAGO) ====================
+            // ==================== AVAILABILITY SLOTS ====================
             $availabilityCount = DB::table('appointment_availabilities')
                 ->where('is_active', true)
                 ->count();
@@ -70,15 +70,12 @@ class DashboardController extends Controller
 
                 'paymentCount' => $paymentCount,
 
-                'onlineViewingCount' => DB::table('viewings')->count() ?? 0,
-
                 'calendarEventCount' => $calendarEventCount,
 
                 'supportCount' => $supportCount,
 
                 'bannsCount' => $bannsCount,
 
-                // ✅ BAGO: Availability Count
                 'availabilityCount' => $availabilityCount,
             ];
 
@@ -94,11 +91,10 @@ class DashboardController extends Controller
                 'pendingCertificatesCount' => 0,
                 'appointmentCount' => 0,
                 'paymentCount' => 0,
-                'onlineViewingCount' => 0,
                 'calendarEventCount' => 0,
                 'supportCount' => 0,
                 'bannsCount' => 0,
-                'availabilityCount' => 0,   
+                'availabilityCount' => 0,
             ]);
         }
     }

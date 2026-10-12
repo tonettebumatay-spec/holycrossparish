@@ -8,12 +8,9 @@
         $pendingCertificatesCount = $pendingCertificatesCount ?? 0;
         $appointmentCount = $appointmentCount ?? 0;
         $paymentCount = $paymentCount ?? 0;
-        $onlineViewingCount = $onlineViewingCount ?? 0;
         $calendarEventCount = $calendarEventCount ?? 0;
         $supportCount = $supportCount ?? 0;
         $bannsCount = $bannsCount ?? 0;
-
-        // BAGO: Availability Count
         $availabilityCount = $availabilityCount ?? 0;
     @endphp
 
@@ -31,7 +28,7 @@
             <div class="max-w-[1600px] mx-auto px-6 py-12">
 
                 <!-- DASHBOARD CARDS -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-10 gap-4 justify-items-center">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-4 justify-items-center">
 
 
                     <!-- ========================= -->
@@ -170,33 +167,6 @@
 
 
                     <!-- ========================= -->
-                    <!-- Online Viewing -->
-                    <!-- ========================= -->
-                    <a
-                        href="{{ Route::has('viewing.index') ? route('viewing.index') : '#' }}"
-                        class="block w-full bg-white rounded-3xl shadow-lg p-6 border border-white/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
-                    >
-                        <div>
-                            <h4 class="text-xs font-black text-gray-500 uppercase tracking-[0.12em] mb-6 leading-tight">
-                                Online Viewing
-                            </h4>
-
-                            <p class="text-6xl font-black text-indigo-600 mb-6 tracking-tighter">
-                                {{ $onlineViewingCount }}
-                            </p>
-                        </div>
-
-                        <div>
-                            <div class="h-1 w-12 bg-indigo-100 mb-6"></div>
-
-                            <span class="text-xs font-black text-indigo-500 uppercase tracking-widest flex items-center">
-                                View <span class="ml-2 flex-shrink-0">→</span>
-                            </span>
-                        </div>
-                    </a>
-
-
-                    <!-- ========================= -->
                     <!-- Calendar -->
                     <!-- ========================= -->
                     <a
@@ -278,7 +248,7 @@
 
 
                     <!-- ========================= -->
-                    <!-- AVAILABILITY (BAGO) -->
+                    <!-- AVAILABILITY -->
                     <!-- ========================= -->
                     <a
                         href="{{ url('/admin/availability') }}"
