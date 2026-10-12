@@ -11,12 +11,33 @@ class CertificateController extends Controller
 {
     public function index()
     {
-        $certificates = Certificate::query()
+        // ✅ Active: pending lang
+        $activeCertificates = Certificate::query()
+            ->where('status', 'pending')
             ->orderByDesc('request_date')
             ->orderByDesc('id')
             ->get();
 
-        return view('certificates.index', compact('certificates'));
+        // ✅ Archived: completed + cancelled
+        $archivedCertificates = Certificate::query()
+            ->whereIn('status', ['completed', 'cancelled'])
+            ->orderByDesc('request_date')
+            ->orderByDesc('id')
+            ->get();
+
+        // Stats
+        $stats = [
+            'total'     => Certificate::count(),
+            'pending'   => Certificate::where('status', 'pending')->count(),
+            'completed' => Certificate::where('status', 'completed')->count(),
+            'cancelled' => Certificate::where('status', 'cancelled')->count(),
+        ];
+
+        return view('certificates.index', compact(
+            'activeCertificates',
+            'archivedCertificates',
+            'stats'
+        ));
     }
 
     public function store(Request $request)
@@ -44,7 +65,7 @@ class CertificateController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'user_name'        => 'required|string|max:255',
-                'service_type'     => 'required|string', // baptism, communion, etc.
+                'service_type'     => 'required|string',
                 'contact_number'   => 'required|string|max:20',
                 'details'          => 'nullable|string',
                 'appointment_date' => 'nullable|date',
@@ -67,8 +88,6 @@ class CertificateController extends Controller
             $appointmentDate = $request->input('appointment_date');
             $appointmentTime = $request->input('time');
 
-            // Normalize certificate_type para sa existing schema
-            // (Baptismal, Communion, Confirmation, Wedding)
             $certificateType = match (strtolower($serviceType)) {
                 'baptism'      => 'Baptismal',
                 'communion'    => 'Communion',
@@ -128,5 +147,28 @@ class CertificateController extends Controller
         $certificate->update(['status' => 'cancelled']);
 
         return redirect()->route('certificates.index')->with('success', 'Certificate request cancelled.');
+    }
+
+    /**
+     * ✅ BAGO: Delete a certificate (permanent).
+     */
+    public function destroy($id)
+    {
+        try {
+            $certificate = Certificate::findOrFail($id);
+            $certificate->delete();
+
+            return redirect()->route('certificates.index')
+                ->with('success', 'Certificate deleted successfully.');
+
+        } catch (\Exception $e) {
+            Log::error('CERTIFICATE_DELETE_ERROR', [
+                'id'      => $id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return redirect()->route('certificates.index')
+                ->with('error', 'Failed to delete certificate: ' . $e->getMessage());
+        }
     }
 }

@@ -34,10 +34,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('availability/bulk', [AppointmentAvailabilityController::class, 'storeBulk'])->name('availability.bulk');
-
-        // ✅ BAGO: Delete All Archived (dapat nasa TAAS ng resource route)
         Route::delete('availability/delete-archived', [AppointmentAvailabilityController::class, 'deleteArchived'])->name('availability.deleteArchived');
-
         Route::resource('availability', AppointmentAvailabilityController::class)->except(['show', 'edit', 'update']);
         Route::patch('availability/{id}/toggle', [AppointmentAvailabilityController::class, 'toggleActive'])->name('availability.toggle');
     });
@@ -66,6 +63,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/certificates', [CertificateController::class, 'store'])->name('certificates.store');
     Route::post('/certificates/{id}/complete', [CertificateController::class, 'complete'])->name('certificates.complete');
     Route::post('/certificates/{id}/cancel', [CertificateController::class, 'cancel'])->name('certificates.cancel');
+    // ✅ BAGO: Delete route
+    Route::delete('/certificates/{id}', [CertificateController::class, 'destroy'])->name('certificates.destroy');
     
     Route::get('/schedules', [ScheduleController::class, 'index'])->name('schedules.index');
     Route::post('/schedules', [ScheduleController::class, 'store'])->name('schedules.store');
