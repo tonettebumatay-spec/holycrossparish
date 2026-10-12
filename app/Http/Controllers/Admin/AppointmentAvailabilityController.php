@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AppointmentAvailability;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class AppointmentAvailabilityController extends Controller
@@ -64,10 +65,8 @@ class AppointmentAvailabilityController extends Controller
         $skipped = 0;
 
         foreach (self::FIXED_SLOTS as $slot) {
-            // Check kung existing na yung date + start_time combination
             $exists = AppointmentAvailability::where('available_date', $date)
                 ->where(function ($q) use ($slot) {
-                    // Match both "08:00" and "08:00:00" formats
                     $q->where('start_time', $slot['start'])
                       ->orWhere('start_time', $slot['start'] . ':00');
                 })
@@ -79,8 +78,6 @@ class AppointmentAvailabilityController extends Controller
             }
 
             AppointmentAvailability::create([
-                // Legacy column — kept for DB constraint.
-                // All slots are generic (available to all sacraments).
                 'sacrament_type' => 'baptism',
                 'available_date' => $date,
                 'start_time'     => $slot['start'],
@@ -134,5 +131,33 @@ class AppointmentAvailabilityController extends Controller
         $availability->is_active = !$availability->is_active;
         $availability->save();
         return back()->with('success', 'Slot status updated.');
+    }
+
+    /**
+     * ✅ BAGO: Delete ALL archived slots (past dates).
+     */
+    public function deleteArchived()
+    {
+        try {
+            $today = now()->toDateString();
+
+            $count = AppointmentAvailability::where('available_date', '<', $today)->delete();
+
+            Log::info('AVAILABILITY_ARCHIVED_DELETED', [
+                'count' => $count,
+                'date'  => $today,
+            ]);
+
+            return redirect()->route('admin.availability.index')
+                ->with('success', "✅ {$count} archived slot(s) deleted successfully.");
+
+        } catch (\Exception $e) {
+            Log::error('AVAILABILITY_DELETE_ARCHIVED_ERROR', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return redirect()->route('admin.availability.index')
+                ->with('error', 'Failed to delete archived slots: ' . $e->getMessage());
+        }
     }
 }

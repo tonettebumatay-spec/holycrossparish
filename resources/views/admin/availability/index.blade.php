@@ -88,7 +88,6 @@
                     <tbody>
                         @foreach($activeAvailabilities as $slot)
                             @php
-                                // Safe date formatting (handles Carbon + string)
                                 $dateStr = $slot->available_date instanceof \DateTimeInterface
                                     ? $slot->available_date->format('M d, Y')
                                     : \Carbon\Carbon::parse($slot->available_date)->format('M d, Y');
@@ -136,10 +135,24 @@
     {{-- ============================================================ --}}
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title mb-3">
-                <span class="badge bg-secondary me-2">Archive</span>
-                Past Availability
-            </h5>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title mb-0">
+                    <span class="badge bg-secondary me-2">Archive</span>
+                    Past Availability
+                </h5>
+
+                {{-- ✅ BAGO: Delete All Archived Button --}}
+                @if($archivedAvailabilities->isNotEmpty())
+                    <form action="{{ route('admin.availability.deleteArchived') }}" method="POST" class="d-inline"
+                          onsubmit="return confirm('⚠️ Delete ALL {{ $archivedAvailabilities->count() }} archived slots?\n\nThis action CANNOT be undone.')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-sm btn-danger">
+                            🗑 Delete All Archived ({{ $archivedAvailabilities->count() }})
+                        </button>
+                    </form>
+                @endif
+            </div>
 
             @if($archivedAvailabilities->isEmpty())
                 <p class="text-muted mb-0">No archived availability. Past dates will appear here automatically.</p>
