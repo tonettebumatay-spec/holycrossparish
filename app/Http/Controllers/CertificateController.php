@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Certificate;
+use App\Models\BookingRequirement;
+use App\Mail\CertificateCompletedMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class CertificateController extends Controller
@@ -133,12 +136,37 @@ class CertificateController extends Controller
         }
     }
 
+    /**
+     * ✅ Mark as completed AND send email with requirements.
+     */
     public function complete($id)
     {
-        $certificate = Certificate::findOrFail($id);
-        $certificate->update(['status' => 'completed']);
+        try {
+            $certificate = Certificate::findOrFail($id);
+            $certificate->update(['status' => 'completed']);
 
-        return redirect()->route('certificates.index')->with('success', 'Certificate marked as completed.');
+            // Kunin ang requirements base sa certificate type (Baptismal -> baptism, etc.)
+            $sacramentKey = strtolower($certificate->certificate_type);
+            if ($sacramentKey == 'baptismal') $sacramentKey = 'baptism';
+
+            $requirements = BookingRequirement::where('sacrament_type', $sacramentKey)
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->get();
+
+            // Mag-send ng Email kung may email ang user
+            if (!empty($certificate->email)) {
+                Mail::to($certificate->email)->send(new CertificateCompletedMail($certificate, $requirements));
+            }
+
+            return redirect()->route('certificates.index')
+                ->with('success', 'Certificate marked as completed and email sent to ' . ($certificate->email ?? 'user') . '.');
+
+        } catch (\Exception $e) {
+            Log::error('CERTIFICATE_COMPLETE_ERROR: ' . $e->getMessage());
+            return redirect()->route('certificates.index')
+                ->with('error', 'Certificate marked as completed, but email failed to send.');
+        }
     }
 
     public function cancel($id)
@@ -150,7 +178,7 @@ class CertificateController extends Controller
     }
 
     /**
-     * ✅ BAGO: Delete a certificate (permanent).
+     * ✅ Delete a certificate (permanent).
      */
     public function destroy($id)
     {
