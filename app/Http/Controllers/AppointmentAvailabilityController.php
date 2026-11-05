@@ -82,4 +82,70 @@ class AppointmentAvailabilityController extends Controller
             'data' => $data,
         ]);
     }
+
+    /**
+     * ✅ BAGO: API para sa Green/Red Calendar (Android).
+     * Nagre-return ng listahan ng araw sa isang buwan at kung available ba ito.
+     */
+    public function apiGetMonthAvailability(Request $request)
+    {
+        try {
+            $monthStr = $request->query('month'); // Format: YYYY-MM
+            if (!$monthStr) return response()->json(['success' => false, 'message' => 'Month required'], 400);
+
+            $dateObj = \Carbon\Carbon::parse($monthStr . '-01');
+            $year = $dateObj->year;
+            $month = $dateObj->month;
+
+            // ✅ Kunin lahat ng availability (Safe query para hindi maapektuhan ng oras)
+            $availabilities = AppointmentAvailability::whereYear('available_date', $year)
+                ->whereMonth('available_date', $month)
+                ->where('is_active', true)
+                ->get()
+                ->groupBy(function($item) {
+                    return \Carbon\Carbon::parse($item->available_date)->format('Y-m-d');
+                });
+
+            // ✅ Kunin lahat ng na-book na appointments
+            $bookedCounts = DB::table('appointments')
+                ->whereYear('appointment_date', $year)
+                ->whereMonth('appointment_date', $month)
+                ->whereNotIn('status', ['cancelled', 'expired'])
+                ->get()
+                ->groupBy(function($item) {
+                    return \Carbon\Carbon::parse($item->appointment_date)->format('Y-m-d');
+                });
+
+            $result = [];
+            $today = now()->toDateString();
+            $daysInMonth = $dateObj->daysInMonth;
+
+            for ($day = 1; $day <= $daysInMonth; $day++) {
+                $currentDate = \Carbon\Carbon::createFromDate($year, $month, $day);
+                $dateStr = $currentDate->format('Y-m-d');
+                
+                $totalSlots = isset($availabilities[$dateStr]) ? $availabilities[$dateStr]->count() : 0;
+                $booked = isset($bookedCounts[$dateStr]) ? $bookedCounts[$dateStr]->count() : 0;
+                
+                // Available kung may slots at hindi pa puno, at hindi past date
+                $isAvailable = ($totalSlots > $booked) && ($dateStr >= $today);
+
+                $result[] = [
+                    'date' => $dateStr,
+                    'is_available' => $isAvailable,
+                    'total_slots' => $totalSlots,
+                    'booked_slots' => $booked,
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'month' => $monthStr,
+                'dates' => $result
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
 }
