@@ -56,7 +56,9 @@ Route::prefix('v1')->group(function () {
     Route::get('/schedules', [ScheduleController::class, 'indexApi']);
     Route::get('/events', [ScheduleController::class, 'eventsApi']);
 
-    // Public availability for Android booking
+    // ✅ Public availability for Android booking
+    // DAPAT NASA TAAS ITO para hindi ma-catch ng {sacrament} route
+    Route::get('/availability/month', [AppointmentAvailabilityController::class, 'apiGetMonthAvailability']);
     Route::get('/availability/{sacrament}', [AppointmentAvailabilityController::class, 'apiGetSlots']);
 
     // ---- Booking Requirements (Public) ----
