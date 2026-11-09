@@ -29,7 +29,7 @@
                 </div>
             @endif
 
-            {{-- ✅ Stats Cards --}}
+            {{-- Stats Cards --}}
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                     <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">Total</p>
@@ -49,9 +49,7 @@
                 </div>
             </div>
 
-            {{-- ============================================================ --}}
-            {{-- ACTIVE CERTIFICATES (Pending)                                --}}
-            {{-- ============================================================ --}}
+            {{-- ACTIVE CERTIFICATES --}}
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-[30px] p-8 border border-gray-100 mb-8">
                 <div class="flex items-center justify-between mb-6 border-b border-gray-50 pb-4">
                     <div class="flex items-center gap-3">
@@ -124,12 +122,10 @@
                                                     </button>
                                                 </form>
 
-                                                <form action="{{ route('certificates.cancel', $certificate->id) }}" method="POST">
-                                                    @csrf
-                                                    <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-[11px] font-black uppercase tracking-widest">
-                                                        Cancel
-                                                    </button>
-                                                </form>
+                                                <!-- ✅ MODAL TRIGGER IMBES NA FORM SUBMIT -->
+                                                <button type="button" onclick="openCancelModal({{ $certificate->id }})" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-[11px] font-black uppercase tracking-widest">
+                                                    Cancel
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -140,9 +136,7 @@
                 @endif
             </div>
 
-            {{-- ============================================================ --}}
-            {{-- ARCHIVED CERTIFICATES (Completed + Cancelled)               --}}
-            {{-- ============================================================ --}}
+            {{-- ARCHIVED CERTIFICATES --}}
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-[30px] p-8 border border-gray-100">
                 <div class="flex items-center justify-between mb-6 border-b border-gray-50 pb-4">
                     <div class="flex items-center gap-3">
@@ -201,8 +195,9 @@
                                             <form action="{{ route('certificates.destroy', $certificate->id) }}" method="POST" class="inline" onsubmit="return confirm('Delete this certificate permanently? This cannot be undone.')">
                                                 @csrf
                                                 @method('DELETE')
+                                                <!-- ✅ INALIS ANG ICON -->
                                                 <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-[11px] font-black uppercase tracking-widest">
-                                                    🗑 Delete
+                                                    Delete
                                                 </button>
                                             </form>
                                         </td>
@@ -213,7 +208,51 @@
                     </div>
                 @endif
             </div>
-
         </div>
     </div>
+
+    <!-- ✅ BAGONG CANCEL MODAL -->
+    <div id="cancelModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center pb-3 border-b mb-4">
+                <h3 class="text-lg font-bold text-gray-800">Cancel Certificate</h3>
+                <button type="button" onclick="closeCancelModal()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
+            </div>
+
+            <form id="cancelForm" method="POST">
+                @csrf
+                <div class="mb-4">
+                    <label for="cancellation_reason" class="block text-sm font-medium text-gray-700 mb-2">
+                        Reason for Cancellation
+                    </label>
+                    <textarea name="cancellation_reason" id="cancellation_reason" rows="3" required class="w-full text-sm border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500" placeholder="State reason here..."></textarea>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeCancelModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-semibold rounded-lg transition">
+                        Close
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition">
+                        Confirm Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ✅ JAVASCRIPT PARA SA MODAL -->
+    <script>
+        function openCancelModal(id) {
+            const modal = document.getElementById('cancelModal');
+            const form = document.getElementById('cancelForm');
+            // I-set ang action URL base sa certificate ID
+            form.action = `/certificates/${id}/cancel`;
+            modal.classList.remove('hidden');
+        }
+
+        function closeCancelModal() {
+            document.getElementById('cancelModal').classList.add('hidden');
+            document.getElementById('cancelForm').reset();
+        }
+    </script>
 </x-app-layout>

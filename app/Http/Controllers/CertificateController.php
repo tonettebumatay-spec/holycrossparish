@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Certificate;
 use App\Models\BookingRequirement;
 use App\Mail\CertificateCompletedMail;
+use App\Mail\CertificateCancelledMail; // ✅ Bago
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -14,21 +15,18 @@ class CertificateController extends Controller
 {
     public function index()
     {
-        // ✅ Active: pending lang
         $activeCertificates = Certificate::query()
             ->where('status', 'pending')
             ->orderByDesc('request_date')
             ->orderByDesc('id')
             ->get();
 
-        // ✅ Archived: completed + cancelled
         $archivedCertificates = Certificate::query()
             ->whereIn('status', ['completed', 'cancelled'])
             ->orderByDesc('request_date')
             ->orderByDesc('id')
             ->get();
 
-        // Stats
         $stats = [
             'total'     => Certificate::count(),
             'pending'   => Certificate::where('status', 'pending')->count(),
@@ -58,9 +56,6 @@ class CertificateController extends Controller
         return redirect()->route('certificates.index')->with('success', 'Certificate request submitted successfully!');
     }
 
-    /**
-     * API: Store certificate request from Android app.
-     */
     public function apiStore(Request $request)
     {
         try {
@@ -136,16 +131,12 @@ class CertificateController extends Controller
         }
     }
 
-    /**
-     * ✅ Mark as completed AND send email with requirements.
-     */
     public function complete($id)
     {
         try {
             $certificate = Certificate::findOrFail($id);
             $certificate->update(['status' => 'completed']);
 
-            // Kunin ang requirements base sa certificate type (Baptismal -> baptism, etc.)
             $sacramentKey = strtolower($certificate->certificate_type);
             if ($sacramentKey == 'baptismal') $sacramentKey = 'baptism';
 
@@ -154,7 +145,6 @@ class CertificateController extends Controller
                 ->orderBy('sort_order')
                 ->get();
 
-            // Mag-send ng Email kung may email ang user
             if (!empty($certificate->email)) {
                 Mail::to($certificate->email)->send(new CertificateCompletedMail($certificate, $requirements));
             }
@@ -169,17 +159,38 @@ class CertificateController extends Controller
         }
     }
 
-    public function cancel($id)
+    /**
+     * ✅ BAGO: Cancel with Reason and Email
+     */
+    public function cancel(Request $request, $id)
     {
-        $certificate = Certificate::findOrFail($id);
-        $certificate->update(['status' => 'cancelled']);
+        try {
+            $certificate = Certificate::findOrFail($id);
+            
+            // Kunin ang reason mula sa form
+            $reason = $request->input('cancellation_reason', 'No reason provided');
+            
+            // I-update ang status at idagdag ang reason sa details
+            $certificate->update([
+                'status' => 'cancelled',
+                'details' => trim($certificate->details . "\n\n[Admin Cancellation Reason]: " . $reason)
+            ]);
 
-        return redirect()->route('certificates.index')->with('success', 'Certificate request cancelled.');
+            // Mag-send ng Email
+            if (!empty($certificate->email)) {
+                Mail::to($certificate->email)->send(new CertificateCancelledMail($certificate, $reason));
+            }
+
+            return redirect()->route('certificates.index')
+                ->with('success', 'Certificate cancelled and email sent to ' . ($certificate->email ?? 'user') . '.');
+
+        } catch (\Exception $e) {
+            Log::error('CERTIFICATE_CANCEL_ERROR: ' . $e->getMessage());
+            return redirect()->route('certificates.index')
+                ->with('error', 'Failed to cancel: ' . $e->getMessage());
+        }
     }
 
-    /**
-     * ✅ Delete a certificate (permanent).
-     */
     public function destroy($id)
     {
         try {

@@ -1,15 +1,4 @@
 <x-app-layout>
-    @php
-        $bookCount = $bookCount ?? 5;
-        $massScheduleCount = $massScheduleCount ?? 0;
-        $pendingCertificatesCount = $pendingCertificatesCount ?? 0;
-        $appointmentCount = $appointmentCount ?? 0;
-        $paymentCount = $paymentCount ?? 0;
-        $calendarEventCount = $calendarEventCount ?? 0;
-        $supportCount = $supportCount ?? 0;
-        $bannsCount = $bannsCount ?? 0;
-    @endphp
-
     <div class="relative min-h-[calc(100vh-140px)]">
 
         <!-- Background -->
@@ -17,206 +6,54 @@
             class="fixed inset-0 -z-10 bg-cover bg-center"
             style="background-image: url('https://seepangasinan.com/wp-content/uploads/2022/08/1499243164_explora-holy-cross-parish-reliquary-2-1536x863.jpg');"
         ></div>
-
+        
+        <!-- ✅ Inalis ang blur at ginawang 30% transparent lang -->
         <div class="fixed inset-0 -z-10 bg-white/30"></div>
 
-        <main class="relative">
-            <div class="max-w-[1600px] mx-auto px-6 py-12">
+        <main class="relative py-12">
+            <div class="max-w-7xl mx-auto px-6">
+                
+                <!-- GRID: 4 Columns -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
 
-                <!-- DASHBOARD CARDS -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-4 justify-items-center">
+                    @foreach($cards as $card)
+                        <a href="{{ $card['link_url'] }}" 
+                           class="bg-[#FCFAF5] rounded-[24px] p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group h-full border border-[#E8E0D5]">
+                            
+                            <div>
+                                <!-- Title -->
+                                <div class="flex items-center gap-3 mb-6">
+                                    <!-- Icon Box (Beige) -->
+                                    <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-[#EBE3D5] text-xl shadow-sm group-hover:scale-110 transition-transform">
+                                        {{ $card['icon'] }}
+                                    </div>
+                                    <!-- Title Text -->
+                                    <h4 class="text-sm font-black text-[#3E2723] uppercase tracking-wider">
+                                        {{ $card['title'] }}
+                                    </h4>
+                                </div>
 
+                                <!-- Count (Dark Brown) -->
+                                <p class="text-6xl font-black text-[#3E2723] mb-6 tracking-tighter">
+                                    {{ $card['count'] }}
+                                </p>
+                            </div>
 
-                    <!-- ========================= -->
-                    <!-- Indexed Books -->
-                    <!-- ========================= -->
-                    <a
-                        href="{{ Route::has('records.index') ? route('records.index') : '#' }}"
-                        class="block w-full bg-white rounded-3xl shadow-lg p-6 border border-white/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
-                    >
-                        <div>
-                            <h4 class="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-6 leading-tight">
-                                Indexed Books
-                            </h4>
-                            <p class="text-6xl font-black text-blue-600 mb-6 tracking-tighter">
-                                {{ $bookCount }}
-                            </p>
-                        </div>
-                        <div>
-                            <div class="h-1 w-12 bg-blue-100 mb-6"></div>
-                            <span class="text-xs font-black text-blue-500 uppercase tracking-widest flex items-center leading-tight">
-                                Open Records <span class="ml-2 flex-shrink-0">→</span>
-                            </span>
-                        </div>
-                    </a>
-
-
-                    <!-- ========================= -->
-                    <!-- Mass Schedules -->
-                    <!-- ========================= -->
-                    <a
-                        href="{{ Route::has('schedules.index') ? route('schedules.index') : '#' }}"
-                        class="block w-full bg-white rounded-3xl shadow-lg p-6 border border-white/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
-                    >
-                        <div>
-                            <h4 class="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-6 leading-tight">
-                                Mass Schedules
-                            </h4>
-                            <p class="text-6xl font-black text-green-600 mb-6 tracking-tighter">
-                                {{ $massScheduleCount }}
-                            </p>
-                        </div>
-                        <div>
-                            <div class="h-1 w-12 bg-green-100 mb-6"></div>
-                            <span class="text-xs font-black text-green-500 uppercase tracking-[0.08em] flex items-center leading-tight">
-                                View Schedules <span class="ml-2 flex-shrink-0">→</span>
-                            </span>
-                        </div>
-                    </a>
-
-
-                    <!-- ========================= -->
-                    <!-- Certificates -->
-                    <!-- ========================= -->
-                    <a
-                        href="{{ Route::has('certificates.index') ? route('certificates.index') : '#' }}"
-                        class="block w-full bg-white rounded-3xl shadow-lg p-6 border border-white/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
-                    >
-                        <div>
-                            <h4 class="text-[11px] font-black text-gray-500 uppercase tracking-[0.08em] mb-6 leading-tight text-center">
-                                Certificates
-                            </h4>
-                            <p class="text-6xl font-black text-amber-500 mb-6 tracking-tighter">
-                                {{ $pendingCertificatesCount }}
-                            </p>
-                        </div>
-                        <div>
-                            <div class="h-1 w-12 bg-amber-100 mb-6"></div>
-                            <span class="text-xs font-black text-amber-500 uppercase tracking-[0.05em] flex items-center leading-tight">
-                                Pending Requests <span class="ml-1 flex-shrink-0">→</span>
-                            </span>
-                        </div>
-                    </a>
-
-
-                    <!-- ========================= -->
-                    <!-- Appointments -->
-                    <!-- ========================= -->
-                    <a
-                        href="{{ Route::has('appointments.index') ? route('appointments.index') : '#' }}"
-                        class="block w-full bg-white rounded-3xl shadow-lg p-6 border border-white/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
-                    >
-                        <div>
-                            <h4 class="text-[11px] font-black text-gray-500 uppercase tracking-[0.06em] mb-6 leading-tight text-center">
-                                Appointments
-                            </h4>
-                            <p class="text-6xl font-black text-purple-600 mb-6 tracking-tighter">
-                                {{ $appointmentCount }}
-                            </p>
-                        </div>
-                        <div>
-                            <div class="h-1 w-12 bg-purple-100 mb-6"></div>
-                            <span class="text-xs font-black text-purple-500 uppercase tracking-[0.04em] flex items-center leading-tight">
-                                Manage Bookings <span class="ml-1 flex-shrink-0">→</span>
-                            </span>
-                        </div>
-                    </a>
-
-
-                    <!-- ========================= -->
-                    <!-- Payment Records -->
-                    <!-- ========================= -->
-                    <a
-                        href="{{ Route::has('payments.index') ? route('payments.index') : '#' }}"
-                        class="block w-full bg-white rounded-3xl shadow-lg p-6 border border-white/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
-                    >
-                        <div>
-                            <h4 class="text-xs font-black text-gray-500 uppercase tracking-[0.12em] mb-6 leading-tight">
-                                Payment Records
-                            </h4>
-                            <p class="text-6xl font-black text-[#5D4037] mb-6 tracking-tighter">
-                                {{ $paymentCount }}
-                            </p>
-                        </div>
-                        <div>
-                            <div class="h-1 w-12 bg-orange-100 mb-6"></div>
-                            <span class="text-xs font-black text-[#5D4037] uppercase tracking-[0.08em] flex items-center leading-tight">
-                                View Payments <span class="ml-1 flex-shrink-0">→</span>
-                            </span>
-                        </div>
-                    </a>
-
-
-                    <!-- ========================= -->
-                    <!-- Calendar -->
-                    <!-- ========================= -->
-                    <a
-                        href="{{ Route::has('calendar.index') ? route('calendar.index') : '#' }}"
-                        class="block w-full bg-white rounded-3xl shadow-lg p-6 border border-white/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
-                    >
-                        <div>
-                            <h4 class="text-xs font-black text-gray-500 uppercase tracking-[0.2em] mb-6 leading-tight">
-                                Calendar
-                            </h4>
-                            <p class="text-6xl font-black text-cyan-600 mb-6 tracking-tighter">
-                                {{ $calendarEventCount }}
-                            </p>
-                        </div>
-                        <div>
-                            <div class="h-1 w-12 bg-cyan-100 mb-6"></div>
-                            <span class="text-xs font-black text-cyan-500 uppercase tracking-[0.07em] flex items-center">
-                                View Calendar <span class="ml-1 flex-shrink-0">→</span>
-                            </span>
-                        </div>
-                    </a>
-
-
-                    <!-- ========================= -->
-                    <!-- Customer Support -->
-                    <!-- ========================= -->
-                    <a
-                        href="{{ Route::has('support.index') ? route('support.index') : '#' }}"
-                        class="block w-full bg-white rounded-3xl shadow-lg p-6 border border-white/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
-                    >
-                        <div>
-                            <h4 class="text-xs font-black text-gray-500 uppercase tracking-[0.10em] mb-6 leading-tight">
-                                Customer Support
-                            </h4>
-                            <p class="text-6xl font-black text-pink-600 mb-6 tracking-tighter">
-                                💬
-                            </p>
-                        </div>
-                        <div>
-                            <div class="h-1 w-12 bg-pink-100 mb-6"></div>
-                            <span class="text-xs font-black text-pink-500 uppercase tracking-[0.05em] flex items-center leading-tight">
-                                View Messages <span class="ml-1 flex-shrink-0">→</span>
-                            </span>
-                        </div>
-                    </a>
-
-
-                    <!-- ========================= -->
-                    <!-- Marriage Banns -->
-                    <!-- ========================= -->
-                    <a
-                        href="{{ Route::has('banns.index') ? route('banns.index') : '#' }}"
-                        class="block w-full bg-white rounded-3xl shadow-lg p-6 border border-white/60 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
-                    >
-                        <div>
-                            <h4 class="text-xs font-black text-gray-500 uppercase tracking-[0.10em] mb-6 leading-tight">
-                                Marriage Banns
-                            </h4>
-                            <p class="text-6xl font-black text-rose-600 mb-6 tracking-tighter">
-                                💍
-                            </p>
-                        </div>
-                        <div>
-                            <div class="h-1 w-12 bg-rose-100 mb-6"></div>
-                            <span class="text-xs font-black text-rose-500 uppercase tracking-[0.07em] flex items-center">
-                                View Banns <span class="ml-1 flex-shrink-0">→</span>
-                            </span>
-                        </div>
-                    </a>
+                            <!-- Link Text -->
+                            <div class="flex items-center justify-between mt-auto pt-4 border-t border-[#E8E0D5]/50">
+                                <span class="text-[11px] font-bold text-[#5D4037] uppercase tracking-widest">
+                                    {{ $card['link_text'] }}
+                                </span>
+                                
+                                <!-- MALAKING ARROW NA MAY BILOG -->
+                                <div class="w-8 h-8 rounded-full bg-[#EBE3D5] flex items-center justify-center group-hover:bg-[#3E2723] transition-colors duration-300">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#3E2723] group-hover:text-white transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </a>
+                    @endforeach
 
                 </div>
             </div>

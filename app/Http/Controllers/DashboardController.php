@@ -20,74 +20,83 @@ class DashboardController extends Controller
     public function index()
     {
         try {
-            // ==================== SACRAMENTAL RECORDS ====================
-            $sacramentalRecordCount = Baptism::count()
-                + Communion::count()
-                + Confirmation::count()
-                + Wedding::count()
-                + Funeral::count();
-
-            // ==================== APPOINTMENTS ====================
+            // ==================== DATA QUERIES ====================
             $appointmentCount = Appointment::count();
-
-            // ==================== PAYMENT RECORDS (GCash + Cash) ====================
-            $paymongoCount = PayMongoPayment::count();
-            $cashCount = Payment::count();
-            $paymentCount = $paymongoCount + $cashCount;
-
-            // ==================== CALENDAR EVENTS ====================
-            $calendarEventCount = Appointment::whereNotNull('appointment_date')->count()
-                + DB::table('schedules')->where('status', 'pending')->count();
-
-            // ==================== SUPPORT CONVERSATIONS ====================
+            $paymentCount = PayMongoPayment::count() + Payment::count();
+            $calendarEventCount = Appointment::whereNotNull('appointment_date')->count() + DB::table('schedules')->where('status', 'pending')->count();
+            
+            // ✅ Support Count (Bilang ng active conversations)
             $supportCount = SupportConversation::where('is_archived', false)->count();
 
-            // ==================== MARRIAGE BANNS ====================
-            MarriageBann::updateExpiredStatus();
+            // ✅ Marriage Banns Count (Bilang ng active banns lang)
+            MarriageBann::updateExpiredStatus(); // I-update muna ang mga expired bago bilangin
             $bannsCount = MarriageBann::where('status', 'active')->count();
 
-            // ==================== DASHBOARD DATA ====================
-            $data = [
-                'bookCount' => 5,
-
-                'sacramentalRecordCount' => $sacramentalRecordCount,
-
-                'massScheduleCount' => DB::table('schedules')
-                    ->where('status', 'pending')
-                    ->whereDate('date', '>=', now()->toDateString())
-                    ->count(),
-
-                'pendingCertificatesCount' => DB::table('certificates')
-                    ->where('status', 'pending')
-                    ->count() ?? 0,
-
-                'appointmentCount' => $appointmentCount,
-
-                'paymentCount' => $paymentCount,
-
-                'calendarEventCount' => $calendarEventCount,
-
-                'supportCount' => $supportCount,
-
-                'bannsCount' => $bannsCount,
+            // ==================== CARDS ARRAY ====================
+            $cards = [
+                [
+                    'title' => 'Indexed Books',
+                    'count' => 5,
+                    'icon' => '📖',
+                    'link_text' => 'Open Records',
+                    'link_url' => route('records.index')
+                ],
+                [
+                    'title' => 'Mass Schedules',
+                    'count' => DB::table('schedules')->where('status', 'pending')->whereDate('date', '>=', now()->toDateString())->count(),
+                    'icon' => '⛪',
+                    'link_text' => 'View Schedules',
+                    'link_url' => route('schedules.index')
+                ],
+                [
+                    'title' => 'Certificates',
+                    'count' => DB::table('certificates')->where('status', 'pending')->count() ?? 0,
+                    'icon' => '📜',
+                    'link_text' => 'Pending Requests',
+                    'link_url' => route('certificates.index')
+                ],
+                [
+                    'title' => 'Appointments',
+                    'count' => $appointmentCount,
+                    'icon' => '📅',
+                    'link_text' => 'Manage Bookings',
+                    'link_url' => route('appointments.index')
+                ],
+                [
+                    'title' => 'Payment Records',
+                    'count' => $paymentCount,
+                    'icon' => '💳',
+                    'link_text' => 'View Payments',
+                    'link_url' => route('payments.index')
+                ],
+                [
+                    'title' => 'Calendar',
+                    'count' => $calendarEventCount,
+                    'icon' => '🗓️',
+                    'link_text' => 'View Calendar',
+                    'link_url' => route('calendar.index')
+                ],
+                [
+                    'title' => 'Customer Support',
+                    'count' => $supportCount, // ✅ Pinalitan ng dynamic count
+                    'icon' => '🎧',
+                    'link_text' => 'View Messages',
+                    'link_url' => route('support.index')
+                ],
+                [
+                    'title' => 'Marriage Banns',
+                    'count' => $bannsCount, // ✅ Pinalitan ng dynamic count
+                    'icon' => '💍',
+                    'link_text' => 'View Banns',
+                    'link_url' => route('banns.index')
+                ]
             ];
 
-            return view('dashboard', $data);
+            return view('dashboard', compact('cards'));
 
         } catch (\Exception $e) {
             Log::error('Dashboard Error: ' . $e->getMessage());
-
-            return view('dashboard', [
-                'bookCount' => 0,
-                'sacramentalRecordCount' => 0,
-                'massScheduleCount' => 0,
-                'pendingCertificatesCount' => 0,
-                'appointmentCount' => 0,
-                'paymentCount' => 0,
-                'calendarEventCount' => 0,
-                'supportCount' => 0,
-                'bannsCount' => 0,
-            ]);
+            return view('dashboard', ['cards' => []]);
         }
     }
 }
