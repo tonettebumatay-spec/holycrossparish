@@ -21,23 +21,36 @@ class DashboardController extends Controller
     {
         try {
             // ==================== DATA QUERIES ====================
-            
-            // ✅ ACTIVE Appointments lang (pending at approved)
-            $appointmentCount = Appointment::whereIn('status', ['pending', 'approved'])->count();
-            
-            $paymentCount = PayMongoPayment::count() + Payment::count();
-            
-            // ✅ Calendar Events (Active lang din para tama ang bilang)
+            $today = now()->toDateString();
+
+            // ✅ ACTIVE APPOINTMENTS (Pareho sa logic ng Appointments Page)
+            // Kukunin lang natin yung mga walang appointment date (pending) 
+            // O kaya yung may appointment date na today o future, at hindi cancelled/expired.
+            $appointmentCount = Appointment::query()
+                ->where(function ($query) use ($today) {
+                    // 1. Walang petsa (Pending)
+                    $query->whereNull('appointment_date')
+                          ->orWhere(function ($q) use ($today) {
+                              // 2. May petsa, today o future
+                              $q->where('appointment_date', '>=', $today)
+                                ->whereNotIn('status', ['cancelled', 'expired']);
+                          });
+                })
+                ->whereNotIn('status', ['cancelled', 'expired'])
+                ->count();
+
+            // ✅ CALENDAR EVENTS (Active Events lang)
             $calendarEventCount = Appointment::whereNotNull('appointment_date')
-                ->whereIn('status', ['pending', 'approved'])
+                ->where('appointment_date', '>=', $today)
+                ->whereNotIn('status', ['cancelled', 'expired'])
                 ->count() 
                 + DB::table('schedules')->where('status', 'pending')->count();
-            
-            // ✅ Support Count (Active conversations)
+
+            $paymentCount = PayMongoPayment::count() + Payment::count();
             $supportCount = SupportConversation::where('is_archived', false)->count();
 
-            // ✅ Marriage Banns Count (Active lang)
-            MarriageBann::updateExpiredStatus(); // I-update muna ang expired
+            // ✅ Marriage Banns Count
+            MarriageBann::updateExpiredStatus();
             $bannsCount = MarriageBann::where('status', 'active')->count();
 
             // ==================== CARDS ARRAY ====================
@@ -51,7 +64,7 @@ class DashboardController extends Controller
                 ],
                 [
                     'title' => 'Mass Schedules',
-                    'count' => DB::table('schedules')->where('status', 'pending')->whereDate('date', '>=', now()->toDateString())->count(),
+                    'count' => DB::table('schedules')->where('status', 'pending')->whereDate('date', '>=', $today)->count(),
                     'icon' => '⛪',
                     'link_text' => 'View Schedules',
                     'link_url' => route('schedules.index')
@@ -65,7 +78,7 @@ class DashboardController extends Controller
                 ],
                 [
                     'title' => 'Appointments',
-                    'count' => $appointmentCount, // Active lang
+                    'count' => $appointmentCount, // ✅ Tamang bilang na
                     'icon' => '📅',
                     'link_text' => 'Manage Bookings',
                     'link_url' => route('appointments.index')
@@ -79,7 +92,7 @@ class DashboardController extends Controller
                 ],
                 [
                     'title' => 'Calendar',
-                    'count' => $calendarEventCount, // Active events lang
+                    'count' => $calendarEventCount, // ✅ Tamang bilang na
                     'icon' => '🗓️',
                     'link_text' => 'View Calendar',
                     'link_url' => route('calendar.index')
