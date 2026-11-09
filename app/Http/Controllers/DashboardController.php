@@ -21,15 +21,23 @@ class DashboardController extends Controller
     {
         try {
             // ==================== DATA QUERIES ====================
-            $appointmentCount = Appointment::count();
-            $paymentCount = PayMongoPayment::count() + Payment::count();
-            $calendarEventCount = Appointment::whereNotNull('appointment_date')->count() + DB::table('schedules')->where('status', 'pending')->count();
             
-            // ✅ Support Count (Bilang ng active conversations)
+            // ✅ ACTIVE Appointments lang (pending at approved)
+            $appointmentCount = Appointment::whereIn('status', ['pending', 'approved'])->count();
+            
+            $paymentCount = PayMongoPayment::count() + Payment::count();
+            
+            // ✅ Calendar Events (Active lang din para tama ang bilang)
+            $calendarEventCount = Appointment::whereNotNull('appointment_date')
+                ->whereIn('status', ['pending', 'approved'])
+                ->count() 
+                + DB::table('schedules')->where('status', 'pending')->count();
+            
+            // ✅ Support Count (Active conversations)
             $supportCount = SupportConversation::where('is_archived', false)->count();
 
-            // ✅ Marriage Banns Count (Bilang ng active banns lang)
-            MarriageBann::updateExpiredStatus(); // I-update muna ang mga expired bago bilangin
+            // ✅ Marriage Banns Count (Active lang)
+            MarriageBann::updateExpiredStatus(); // I-update muna ang expired
             $bannsCount = MarriageBann::where('status', 'active')->count();
 
             // ==================== CARDS ARRAY ====================
@@ -57,7 +65,7 @@ class DashboardController extends Controller
                 ],
                 [
                     'title' => 'Appointments',
-                    'count' => $appointmentCount,
+                    'count' => $appointmentCount, // Active lang
                     'icon' => '📅',
                     'link_text' => 'Manage Bookings',
                     'link_url' => route('appointments.index')
@@ -71,21 +79,21 @@ class DashboardController extends Controller
                 ],
                 [
                     'title' => 'Calendar',
-                    'count' => $calendarEventCount,
+                    'count' => $calendarEventCount, // Active events lang
                     'icon' => '🗓️',
                     'link_text' => 'View Calendar',
                     'link_url' => route('calendar.index')
                 ],
                 [
                     'title' => 'Customer Support',
-                    'count' => $supportCount, // ✅ Pinalitan ng dynamic count
+                    'count' => $supportCount,
                     'icon' => '🎧',
                     'link_text' => 'View Messages',
                     'link_url' => route('support.index')
                 ],
                 [
                     'title' => 'Marriage Banns',
-                    'count' => $bannsCount, // ✅ Pinalitan ng dynamic count
+                    'count' => $bannsCount,
                     'icon' => '💍',
                     'link_text' => 'View Banns',
                     'link_url' => route('banns.index')
