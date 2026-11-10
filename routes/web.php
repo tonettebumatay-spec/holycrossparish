@@ -14,6 +14,7 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\MarriageBannController;
 use App\Http\Controllers\PublicBannController;
+use App\Http\Controllers\PasswordResetController; // ✅ Password Reset
 use App\Http\Controllers\Admin\AppointmentAvailabilityController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,20 @@ Route::get('/verify/{type}/{id}', [RecordController::class, 'verify'])->name('re
 
 // ==================== PUBLIC MARRIAGE BANNS ====================
 Route::get('/banns', [PublicBannController::class, 'index'])->name('banns.public');
+
+// ==================== ✅ PASSWORD RESET (OTP STEP-BY-STEP) ====================
+// Step 1: Email Input
+Route::get('/forgot-password', [PasswordResetController::class, 'showForgotForm'])->name('password.request');
+Route::post('/forgot-password', [PasswordResetController::class, 'sendOtp'])->name('password.email');
+
+// Step 2: OTP Verification
+Route::get('/verify-otp', [PasswordResetController::class, 'showVerifyForm'])->name('password.verify-otp-form');
+Route::post('/verify-otp', [PasswordResetController::class, 'verifyOtp'])->name('password.verify-otp');
+
+// Step 3: New Password Input
+Route::get('/reset-password-final', [PasswordResetController::class, 'showResetForm'])->name('password.reset-form');
+Route::post('/reset-password-final', [PasswordResetController::class, 'resetPassword'])->name('password.update-otp');
+
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
@@ -63,7 +78,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/certificates', [CertificateController::class, 'store'])->name('certificates.store');
     Route::post('/certificates/{id}/complete', [CertificateController::class, 'complete'])->name('certificates.complete');
     Route::post('/certificates/{id}/cancel', [CertificateController::class, 'cancel'])->name('certificates.cancel');
-    // ✅ BAGO: Delete route
     Route::delete('/certificates/{id}', [CertificateController::class, 'destroy'])->name('certificates.destroy');
     
     Route::get('/schedules', [ScheduleController::class, 'index'])->name('schedules.index');
@@ -91,7 +105,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/payments', [PaymentRecordController::class, 'index'])->name('payments.index');
     Route::get('/payments/export', [PaymentRecordController::class, 'export'])->name('payments.export');
     Route::get('/payments/{id}/{source}', [PaymentRecordController::class, 'show'])->name('payments.show');
-    Route::post('/payments/{id}/mark-paid', [PaymentRecordController::class, 'markAsPaid'])->name('payments.markPaid');
+    Route::post('/payments/{id}/mark-paid', [PaymentRecordController::class, 'markAsPaid'])->name('payments.markAsPaid');
     Route::post('/payments/{id}/{source}/archive', [PaymentRecordController::class, 'archive'])->name('payments.archive');
     Route::post('/payments/{id}/{source}/restore', [PaymentRecordController::class, 'restore'])->name('payments.restore');
     Route::delete('/payments/{id}/{source}', [PaymentRecordController::class, 'destroy'])->name('payments.destroy');
