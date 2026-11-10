@@ -14,8 +14,14 @@
                 <img src="{{ asset('images/parishlogo.png') }}" alt="Logo" class="w-16">
             </div>
 
-            
             <h2 class="text-3xl font-bold text-[#4d290a] mb-8 tracking-wider uppercase">Login</h2>
+
+            <!-- Session Status (Para sa success message pag nag-reset ng password) -->
+            @if (session('status'))
+                <div class="mb-4 font-medium text-sm text-green-600 text-center">
+                    {{ session('status') }}
+                </div>
+            @endif
 
             <form method="POST" action="{{ route('login') }}" class="w-full space-y-6">
                 @csrf
@@ -34,19 +40,28 @@
                            class="w-full px-4 py-3 bg-transparent border-t-0 border-l-0 border-r-0 border-b-2 border-[#4d290a] focus:ring-0 focus:border-[#7a4211] text-lg placeholder-[#4d290a]">
                 </div>
 
+                <!-- ✅ FORGOT PASSWORD LINK -->
+                <div class="flex justify-end">
+                    <a href="{{ route('password.request') }}" class="text-sm font-bold text-[#4d290a]/70 hover:text-[#4d290a] transition duration-300">
+                        Forgot Password?
+                    </a>
+                </div>
+
                 <!-- Login Button -->
-                <div class="pt-4">
+                <div class="pt-2">
                     <button type="submit" 
                             class="w-full bg-[#4d290a] hover:bg-[#361d07] text-white font-bold py-4 rounded-xl text-xl transition duration-300">
                         LOGIN
                     </button>
                 </div>
 
-                          <!-- Admin-managed notice -->
+                <!-- Admin-managed notice -->
                 <div class="text-center mt-6">
                     <p class="text-[#4d290a]/70 text-sm font-medium">
                         Admin-managed accounts only.
                     </p>
                 </div>
+            </form>
+        </div>
     </div>
 </x-guest-layout>
