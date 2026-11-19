@@ -57,7 +57,6 @@ class BookingController extends Controller
                 ], 422);
             }
 
-            // 👇 Kukunin natin diretso sa naka-login na user
             $user = $request->user();
             $userName = $request->input('user_name');
             $contactNumber = $request->input('contact_number');
@@ -76,7 +75,6 @@ class BookingController extends Controller
                 ]
             ));
 
-            // 👇 Kukunin natin ang ID at Email mula sa $user (Token)
             $requestUserId = $user ? $user->id : null;
             $requestEmail = $user ? $user->email : null;
 
@@ -129,12 +127,9 @@ class BookingController extends Controller
                     'contact_number'   => $contactNumber,
                     'details'          => $detailsJson,
                     'status'           => 'pending',
-                    
-                    // 👇 Dito na natin ise-save ang user ID at email
                     'user_id'          => $requestUserId,
                     'email'            => $requestEmail ?? ($parsed['email'] ?? null),
-                    
-                    // 👇 FIX: Ginawa nating plain string para walang timezone conversion
+                    // FIX: Plain string format (walang timezone)
                     'expires_at'       => \Carbon\Carbon::now()->addHours(24)->format('Y-m-d H:i:s'),
                 ]);
 

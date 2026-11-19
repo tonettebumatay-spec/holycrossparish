@@ -26,8 +26,9 @@ class Appointment extends Model
 
     protected $casts = [
         'appointment_date' => 'date',
-        'expires_at' => 'datetime',
-        'expired_at' => 'datetime',
+        // 👇 GINAGAWA NATING STRING PARA HINDI MAG-ADJUST NG ORAS
+        'expires_at' => 'string', 
+        'expired_at' => 'string',
         'expiry_reminder_sent' => 'boolean',
     ];
 
@@ -35,23 +36,25 @@ class Appointment extends Model
 
     public function isExpired(): bool
     {
-        return $this->expires_at && $this->expires_at->isPast();
+        return $this->expires_at && \Carbon\Carbon::parse($this->expires_at)->isPast();
     }
 
     public function isExpiringSoon(): bool
     {
-        return $this->expires_at
-            && $this->expires_at->isFuture()
-            && $this->expires_at->diffInHours(now()) < 1;
+        if (!$this->expires_at) return false;
+        $expiresAt = \Carbon\Carbon::parse($this->expires_at);
+        
+        return $expiresAt->isFuture() && $expiresAt->diffInHours(now()) < 1;
     }
 
     public function getTimeRemainingAttribute(): ?string
     {
-        if (!$this->expires_at || $this->expires_at->isPast()) {
-            return null;
-        }
+        if (!$this->expires_at) return null;
+        $expiresAt = \Carbon\Carbon::parse($this->expires_at);
+        
+        if ($expiresAt->isPast()) return null;
 
-        return $this->expires_at->diffForHumans(now(), true);
+        return $expiresAt->diffForHumans(now(), true);
     }
 
     public function scopeActive($query)
@@ -59,7 +62,7 @@ class Appointment extends Model
         return $query->where('status', 'pending')
             ->where(function ($q) {
                 $q->whereNull('expires_at')
-                  ->orWhere('expires_at', '>', now());
+                  ->orWhere('expires_at', '>', now()->format('Y-m-d H:i:s'));
             });
     }
 
