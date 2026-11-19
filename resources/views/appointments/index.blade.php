@@ -164,7 +164,7 @@
                                                 </span>
                                                 @if(($app->status ?? 'pending') === 'pending' && $app->expires_at)
                                                     <div class="text-[10px] mt-1 {{ $app->isExpiringSoon() ? 'text-red-600 font-bold' : 'text-gray-500' }}">
-                                                        ⏰ Expires {{ $app->expires_at->diffForHumans() }}
+                                                        ⏰ Expires {{ \Carbon\Carbon::parse($app->expires_at)->diffForHumans() }}
                                                     </div>
                                                 @endif
                                             @endif
@@ -306,7 +306,7 @@
                                                 </span>
                                                 @if($app->expired_at)
                                                     <div class="text-[10px] mt-1 text-gray-400">
-                                                        {{ $app->expired_at->format('M d, Y g:i A') }}
+                                                        {{ \Carbon\Carbon::parse($app->expired_at)->format('M d, Y g:i A') }}
                                                     </div>
                                                 @endif
                                             @else
