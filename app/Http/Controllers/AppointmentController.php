@@ -217,7 +217,8 @@ class AppointmentController extends Controller
                     'status' => $item->status ?? 'pending',
                     'cancellation_reason' => $item->cancellation_reason,
                     'is_locked' => (bool) ($item->is_locked ?? false),
-                    'expires_at' => $item->expires_at?->toDateTimeString(),
+                    // ✅ FIX: Handle string expires_at safely
+                    'expires_at' => $item->expires_at ? \Carbon\Carbon::parse($item->expires_at)->toDateTimeString() : null,
                     'time_remaining' => $item->time_remaining,
                     'is_expired' => $item->isExpired(),
                     'submitted_at' => $item->created_at
@@ -304,9 +305,6 @@ class AppointmentController extends Controller
         return response()->json(['status' => 'error', 'message' => 'Use booking endpoints'], 400);
     }
 
-    /**
-     * ✅ Restore an expired booking.
-     */
     public function restore($id)
     {
         try {
@@ -318,7 +316,7 @@ class AppointmentController extends Controller
 
             $appointment->update([
                 'status' => 'pending',
-                'expires_at' => now()->addHours(24),
+                'expires_at' => \Carbon\Carbon::now()->addHours(24)->format('Y-m-d H:i:s'), // ✅ safe string
                 'expired_at' => null,
                 'expiry_reminder_sent' => false,
             ]);
@@ -329,9 +327,6 @@ class AppointmentController extends Controller
         }
     }
 
-    /**
-     * ✅ Force expire a booking (admin only).
-     */
     public function forceExpire($id)
     {
         try {
@@ -343,7 +338,7 @@ class AppointmentController extends Controller
 
             $appointment->update([
                 'status' => 'expired',
-                'expired_at' => now(),
+                'expired_at' => \Carbon\Carbon::now()->format('Y-m-d H:i:s'), // ✅ safe string
             ]);
 
             return back()->with('success', 'Booking expired successfully!');
