@@ -57,6 +57,7 @@ class BookingController extends Controller
                 ], 422);
             }
 
+            // 👇 ITO ANG BINAGO: Kukunin natin diretso sa naka-login na user
             $user = $request->user();
             $userName = $request->input('user_name');
             $contactNumber = $request->input('contact_number');
@@ -75,9 +76,9 @@ class BookingController extends Controller
                 ]
             ));
 
-            // 👇 KUNIN ANG USER ID AT EMAIL MULA SA REQUEST (Galing sa Android App)
-            $requestUserId = $request->input('user_id');
-            $requestEmail = $request->input('email');
+            // 👇 Kukunin natin ang ID at Email mula sa $user (Token), hindi sa request body
+            $requestUserId = $user ? $user->id : null;
+            $requestEmail = $user ? $user->email : null;
 
             $booking = DB::transaction(function () use (
                 $appointmentDate,
@@ -88,8 +89,8 @@ class BookingController extends Controller
                 $detailsJson,
                 $user,
                 $parsed,
-                $requestUserId, // 👈 Idinagdag sa use()
-                $requestEmail   // 👈 Idinagdag sa use()
+                $requestUserId,
+                $requestEmail
             ) {
                 AppointmentAvailability::where('available_date', $appointmentDate)
                     ->where('is_active', true)
@@ -129,9 +130,9 @@ class BookingController extends Controller
                     'details'          => $detailsJson,
                     'status'           => 'pending',
                     
-                    // 👇 ITO ANG BINAGO NATIN PARA SA USER ID AT EMAIL
-                    'user_id'          => $requestUserId ?? $user?->id,
-                    'email'            => $requestEmail ?? $user?->email ?? ($parsed['email'] ?? null),
+                    // 👇 Dito na natin ise-save ang user ID at email
+                    'user_id'          => $requestUserId,
+                    'email'            => $requestEmail ?? ($parsed['email'] ?? null),
                     
                     'expires_at'       => now()->addHours(24),
                 ]);

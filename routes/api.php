@@ -56,36 +56,20 @@ Route::prefix('v1')->group(function () {
     Route::get('/schedules', [ScheduleController::class, 'indexApi']);
     Route::get('/events', [ScheduleController::class, 'eventsApi']);
 
-    // ✅ Public availability for Android booking
-    // DAPAT NASA TAAS ITO para hindi ma-catch ng {sacrament} route
+    // Public availability
     Route::get('/availability/month', [AppointmentAvailabilityController::class, 'apiGetMonthAvailability']);
     Route::get('/availability/{sacrament}', [AppointmentAvailabilityController::class, 'apiGetSlots']);
 
-    // ---- Booking Requirements (Public) ----
+    // Booking Requirements (Public)
     Route::get('/requirements/{sacrament}', [RequirementController::class, 'apiGetRequirements']);
 
-    // ---- ✅ Marriage Banns (Public) ----
+    // Marriage Banns (Public)
     Route::get('/banns', [MarriageBannController::class, 'apiIndex']);
 
-    // ---- ✅ Calendar Events (Public) ----
+    // Calendar Events (Public)
     Route::get('/calendar/events', [CalendarController::class, 'events']);
 
-    // ---- Sacrament Bookings (Public) ----
-    // Format 1: /book-{sacrament}
-    Route::post('/book-baptism', [BookingController::class, 'storeBaptism']);
-    Route::post('/book-communion', [BookingController::class, 'storeCommunion']);
-    Route::post('/book-confirmation', [BookingController::class, 'storeConfirmation']);
-    Route::post('/book-wedding', [BookingController::class, 'storeWedding']);
-    Route::post('/book-funeral', [BookingController::class, 'storeFuneral']);
-
-    // Format 2: /booking/{sacrament}
-    Route::post('/booking/baptism', [BookingController::class, 'storeBaptism']);
-    Route::post('/booking/communion', [BookingController::class, 'storeCommunion']);
-    Route::post('/booking/confirmation', [BookingController::class, 'storeConfirmation']);
-    Route::post('/booking/wedding', [BookingController::class, 'storeWedding']);
-    Route::post('/booking/funeral', [BookingController::class, 'storeFuneral']);
-
-    // ---- PayMongo Webhook (Public — walang auth) ----
+    // PayMongo Webhook (Public)
     Route::post('/paymongo/webhook', [PayMongoController::class, 'webhook']);
 
     // ==================== PROTECTED ENDPOINTS ====================
@@ -101,26 +85,31 @@ Route::prefix('v1')->group(function () {
         Route::get('/my-appointments', [AppointmentController::class, 'myAppointments']);
         Route::get('/appointments', [AppointmentController::class, 'index']);
         Route::get('/booked-slots', [AppointmentAvailabilityController::class, 'bookedSlots']);
-
-        // Get scheduled/approved appointments for the logged-in user
         Route::get('/my-confirmed-appointments', [AppointmentController::class, 'getConfirmedAppointments']);
+
+        // ---- SACRAMENT BOOKINGS (INILIPAT DITO) ----
+        Route::post('/book-baptism', [BookingController::class, 'storeBaptism']);
+        Route::post('/book-communion', [BookingController::class, 'storeCommunion']);
+        Route::post('/book-confirmation', [BookingController::class, 'storeConfirmation']);
+        Route::post('/book-wedding', [BookingController::class, 'storeWedding']);
+        Route::post('/book-funeral', [BookingController::class, 'storeFuneral']);
+
+        Route::post('/booking/baptism', [BookingController::class, 'storeBaptism']);
+        Route::post('/booking/communion', [BookingController::class, 'storeCommunion']);
+        Route::post('/booking/confirmation', [BookingController::class, 'storeConfirmation']);
+        Route::post('/booking/wedding', [BookingController::class, 'storeWedding']);
+        Route::post('/booking/funeral', [BookingController::class, 'storeFuneral']);
 
         // ---- Generic appointment & certificate ----
         Route::post('/appointment', [AppointmentController::class, 'store']);
-
-        // Certificate request from Android app (returns JSON)
         Route::post('/certificates', [CertificateController::class, 'apiStore']);
 
-        // ---- ID Verification ----
+        // ---- ID Verification & Face Recognition ----
         Route::post('/id-verifications', [IdVerificationController::class, 'apiStore']);
-
-        // ---- Face Recognition ----
         Route::post('/face-recognitions', [FaceRecognitionController::class, 'apiStore']);
 
         // ---- Payment ----
         Route::post('/payments', [PaymentController::class, 'apiStore']);
-
-        // ---- PayMongo QR Ph ----
         Route::post('/paymongo/qrph', [PayMongoController::class, 'createQrPhPayment']);
         Route::get('/paymongo/status/{reference}', [PayMongoController::class, 'getStatus']);
 
