@@ -134,7 +134,8 @@ class BookingController extends Controller
                     'user_id'          => $requestUserId,
                     'email'            => $requestEmail ?? ($parsed['email'] ?? null),
                     
-                    'expires_at'       => now()->addHours(24),
+                    // 👇 IDINAGDAG NATIN ANG .utc() PARA MAIWASAN ANG SQLSTATE 22009 ERROR
+                    'expires_at'       => now()->utc()->addHours(24),
                 ]);
 
                 return [
