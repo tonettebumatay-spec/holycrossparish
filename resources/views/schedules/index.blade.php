@@ -26,14 +26,22 @@
                         Back to Dashboard
                     </a>
 
-                    <button @click="openModal = true" class="group flex items-center gap-3 px-6 py-3 bg-[#5D4037] hover:bg-[#4E342E] text-white rounded-2xl shadow-sm transition-all">
-                        <span class="text-sm font-black uppercase tracking-widest">Post New Schedule</span>
-                        <div class="bg-white/20 rounded-full p-1 group-hover:rotate-90 transition-transform">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
-                            </svg>
-                        </div>
-                    </button>
+                    <!-- 👇 IDINAGDAG NATIN ANG BIBLE VERSE BUTTON DITO SA TABI NG POST NEW SCHEDULE 👇 -->
+                    <div class="flex items-center gap-3">
+                        <a href="{{ route('admin.bible-verses.index') }}" class="group flex items-center gap-2 px-6 py-3 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl shadow-sm transition-all">
+                            <span class="text-sm font-black uppercase tracking-widest">📖 Bible Verse</span>
+                        </a>
+
+                        <button @click="openModal = true" class="group flex items-center gap-3 px-6 py-3 bg-[#5D4037] hover:bg-[#4E342E] text-white rounded-2xl shadow-sm transition-all">
+                            <span class="text-sm font-black uppercase tracking-widest">Post New Schedule</span>
+                            <div class="bg-white/20 rounded-full p-1 group-hover:rotate-90 transition-transform">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
+                                </svg>
+                            </div>
+                        </button>
+                    </div>
+                    <!-- 👆 HANGGANG DITO 👆 -->
                 </div>
 
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-[30px] p-10 border border-gray-100">
