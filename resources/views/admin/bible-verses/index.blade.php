@@ -3,11 +3,21 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             
             <!-- Header Section -->
-            <div class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-800">Manage Bible Verses</h1>
-                <p class="text-sm text-gray-600 mt-1">
-                    Add, schedule, and manage the Bible Verse of the Day displayed on the mobile app.
-                </p>
+            <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">Manage Bible Verses</h1>
+                    <p class="text-sm text-gray-600 mt-1">
+                        Add, schedule, and manage the Bible Verse of the Day displayed on the mobile app.
+                    </p>
+                </div>
+                
+                <!-- 👇 BACK BUTTON DITO 👇 -->
+                <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-gray-50 transition shadow-sm self-start md:self-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Back to Dashboard
+                </a>
             </div>
 
             <!-- Flash Message -->
