@@ -14,19 +14,10 @@ use App\Http\Controllers\PayMongoController;
 use App\Http\Controllers\OtpController;
 use App\Http\Controllers\RequirementController;
 use App\Http\Controllers\SupportApiController;
-use App\Http\Controllers\MarriageBannController;   
-use App\Http\Controllers\CalendarController;       
+use App\Http\Controllers\MarriageBannController;
+use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\Api\BibleVerseApiController; // 👈 BAGONG DAGDAG
 use Illuminate\Support\Facades\Route;
-
-/*
-|--------------------------------------------------------------------------
-| API Routes - Version 1
-|--------------------------------------------------------------------------
-|
-| Base URL: /api/v1
-| All endpoints are prefixed with `/api/v1`
-|
-*/
 
 Route::get('/test', function () {
     return response()->json([
@@ -38,13 +29,12 @@ Route::get('/test', function () {
 Route::prefix('v1')->group(function () {
 
     // ==================== PUBLIC ENDPOINTS ====================
-    // No authentication required
 
-    // Authentication (register & login)
+    // Authentication
     Route::post('/register', [SacramentApiController::class, 'registerMobileUser']);
     Route::post('/login', [SacramentApiController::class, 'loginMobileUser']);
 
-    // ==================== OTP ENDPOINTS ====================
+    // OTP
     Route::post('/otp/login/send', [OtpController::class, 'sendLoginOtp']);
     Route::post('/otp/login/verify', [OtpController::class, 'verifyLoginOtp']);
     Route::post('/otp/register/send', [OtpController::class, 'sendRegisterOtp']);
@@ -52,42 +42,37 @@ Route::prefix('v1')->group(function () {
     Route::post('/otp/password/send', [OtpController::class, 'sendPasswordResetOtp']);
     Route::post('/otp/password/verify', [OtpController::class, 'verifyPasswordResetOtp']);
 
-    // Public data (schedules/events)
+    // Public data
     Route::get('/schedules', [ScheduleController::class, 'indexApi']);
     Route::get('/events', [ScheduleController::class, 'eventsApi']);
 
-    // Public availability
     Route::get('/availability/month', [AppointmentAvailabilityController::class, 'apiGetMonthAvailability']);
     Route::get('/availability/{sacrament}', [AppointmentAvailabilityController::class, 'apiGetSlots']);
 
-    // Booking Requirements (Public)
     Route::get('/requirements/{sacrament}', [RequirementController::class, 'apiGetRequirements']);
-
-    // Marriage Banns (Public)
     Route::get('/banns', [MarriageBannController::class, 'apiIndex']);
-
-    // Calendar Events (Public)
     Route::get('/calendar/events', [CalendarController::class, 'events']);
 
-    // PayMongo Webhook (Public)
     Route::post('/paymongo/webhook', [PayMongoController::class, 'webhook']);
 
+    // Bible Verse API (Public) 👈 BAGONG DAGDAG
+    Route::get('/bible-verse/today', [BibleVerseApiController::class, 'getTodayVerse']);
+
     // ==================== PROTECTED ENDPOINTS ====================
-    // All routes below require a valid Sanctum token (Bearer token)
 
     Route::middleware('auth:sanctum')->group(function () {
 
-        // ---- Authentication & Profile ----
+        // Auth & Profile
         Route::post('/logout', [SacramentApiController::class, 'logoutMobileUser']);
         Route::get('/profile', [SacramentApiController::class, 'getUserProfile']);
 
-        // ---- Appointments / Bookings ----
+        // Appointments / Bookings
         Route::get('/my-appointments', [AppointmentController::class, 'myAppointments']);
         Route::get('/appointments', [AppointmentController::class, 'index']);
         Route::get('/booked-slots', [AppointmentAvailabilityController::class, 'bookedSlots']);
         Route::get('/my-confirmed-appointments', [AppointmentController::class, 'getConfirmedAppointments']);
 
-        // ---- SACRAMENT BOOKINGS (INILIPAT DITO) ----
+        // Sacrament Bookings
         Route::post('/book-baptism', [BookingController::class, 'storeBaptism']);
         Route::post('/book-communion', [BookingController::class, 'storeCommunion']);
         Route::post('/book-confirmation', [BookingController::class, 'storeConfirmation']);
@@ -100,26 +85,26 @@ Route::prefix('v1')->group(function () {
         Route::post('/booking/wedding', [BookingController::class, 'storeWedding']);
         Route::post('/booking/funeral', [BookingController::class, 'storeFuneral']);
 
-        // ---- Generic appointment & certificate ----
+        // Generic appointment & certificate
         Route::post('/appointment', [AppointmentController::class, 'store']);
         Route::post('/certificates', [CertificateController::class, 'apiStore']);
 
-        // ---- ID Verification & Face Recognition ----
+        // ID Verification & Face Recognition
         Route::post('/id-verifications', [IdVerificationController::class, 'apiStore']);
         Route::post('/face-recognitions', [FaceRecognitionController::class, 'apiStore']);
 
-        // ---- Payment ----
+        // Payment
         Route::post('/payments', [PaymentController::class, 'apiStore']);
         Route::post('/paymongo/qrph', [PayMongoController::class, 'createQrPhPayment']);
         Route::get('/paymongo/status/{reference}', [PayMongoController::class, 'getStatus']);
 
-        // ---- Customer Service Support ----
+        // Support
         Route::get('/support/conversation', [SupportApiController::class, 'getOrCreateConversation']);
         Route::get('/support/messages', [SupportApiController::class, 'getMessages']);
         Route::post('/support/messages', [SupportApiController::class, 'sendMessage']);
         Route::get('/support/info', [SupportApiController::class, 'getSupportInfo']);
 
-        // ---- Appointment Availability (Admin only) ----
+        // Appointment Availability (Admin only)
         Route::get('/availability', [AppointmentAvailabilityController::class, 'index']);
         Route::post('/availability', [AppointmentAvailabilityController::class, 'store']);
         Route::put('/availability/{id}', [AppointmentAvailabilityController::class, 'update']);

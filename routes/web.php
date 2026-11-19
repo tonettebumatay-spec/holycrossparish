@@ -14,8 +14,9 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\MarriageBannController;
 use App\Http\Controllers\PublicBannController;
-use App\Http\Controllers\PasswordResetController; // ✅ Password Reset
+use App\Http\Controllers\PasswordResetController; 
 use App\Http\Controllers\Admin\AppointmentAvailabilityController;
+use App\Http\Controllers\Admin\BibleVerseController; // 👈 IDINAGDAG
 use Illuminate\Support\Facades\Route;
 
 require __DIR__.'/auth.php';
@@ -30,15 +31,10 @@ Route::get('/verify/{type}/{id}', [RecordController::class, 'verify'])->name('re
 Route::get('/banns', [PublicBannController::class, 'index'])->name('banns.public');
 
 // ==================== ✅ PASSWORD RESET (OTP STEP-BY-STEP) ====================
-// Step 1: Email Input
 Route::get('/forgot-password', [PasswordResetController::class, 'showForgotForm'])->name('password.request');
 Route::post('/forgot-password', [PasswordResetController::class, 'sendOtp'])->name('password.email');
-
-// Step 2: OTP Verification
 Route::get('/verify-otp', [PasswordResetController::class, 'showVerifyForm'])->name('password.verify-otp-form');
 Route::post('/verify-otp', [PasswordResetController::class, 'verifyOtp'])->name('password.verify-otp');
-
-// Step 3: New Password Input
 Route::get('/reset-password-final', [PasswordResetController::class, 'showResetForm'])->name('password.reset-form');
 Route::post('/reset-password-final', [PasswordResetController::class, 'resetPassword'])->name('password.update-otp');
 
@@ -47,11 +43,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // 👇 IDINAGDAG DITO ANG BIBLE VERSE ROUTES PARA SA ADMIN
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('availability/bulk', [AppointmentAvailabilityController::class, 'storeBulk'])->name('availability.bulk');
         Route::delete('availability/delete-archived', [AppointmentAvailabilityController::class, 'deleteArchived'])->name('availability.deleteArchived');
         Route::resource('availability', AppointmentAvailabilityController::class)->except(['show', 'edit', 'update']);
         Route::patch('availability/{id}/toggle', [AppointmentAvailabilityController::class, 'toggleActive'])->name('availability.toggle');
+        
+        // Bible Verse Routes
+        Route::get('/bible-verses', [BibleVerseController::class, 'index'])->name('bible-verses.index');
+        Route::post('/bible-verses', [BibleVerseController::class, 'store'])->name('bible-verses.store');
+        Route::delete('/bible-verses/{id}', [BibleVerseController::class, 'destroy'])->name('bible-verses.destroy');
     });
 
     Route::get('/records/search', [RecordController::class, 'search'])->name('records.search');
