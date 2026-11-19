@@ -9,30 +9,30 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class CertificateCancelledMail extends Mailable
+class CertificateCompletedMail extends Mailable
 {
     use Queueable, SerializesModels;
 
     public $certificate;
-    public $reason;
+    public $requirements;
 
-    public function __construct(Certificate $certificate, $reason)
+    public function __construct(Certificate $certificate, $requirements = [])
     {
         $this->certificate = $certificate;
-        $this->reason = $reason;
+        $this->requirements = $requirements;
     }
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Certificate Request Cancelled - Holy Cross Parish',
+            subject: 'Certificate Ready for Pickup - Holy Cross Parish',
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'emails.certificate-cancelled',
+            view: 'emails.certificate-completed',
         );
     }
 }
