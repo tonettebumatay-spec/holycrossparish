@@ -75,6 +75,10 @@ class BookingController extends Controller
                 ]
             ));
 
+            // 👇 KUNIN ANG USER ID AT EMAIL MULA SA REQUEST (Galing sa Android App)
+            $requestUserId = $request->input('user_id');
+            $requestEmail = $request->input('email');
+
             $booking = DB::transaction(function () use (
                 $appointmentDate,
                 $appointmentTime,
@@ -83,7 +87,9 @@ class BookingController extends Controller
                 $contactNumber,
                 $detailsJson,
                 $user,
-                $parsed
+                $parsed,
+                $requestUserId, // 👈 Idinagdag sa use()
+                $requestEmail   // 👈 Idinagdag sa use()
             ) {
                 AppointmentAvailability::where('available_date', $appointmentDate)
                     ->where('is_active', true)
@@ -122,8 +128,11 @@ class BookingController extends Controller
                     'contact_number'   => $contactNumber,
                     'details'          => $detailsJson,
                     'status'           => 'pending',
-                    'user_id'          => $user?->id,
-                    'email'            => $user?->email ?? ($parsed['email'] ?? null),
+                    
+                    // 👇 ITO ANG BINAGO NATIN PARA SA USER ID AT EMAIL
+                    'user_id'          => $requestUserId ?? $user?->id,
+                    'email'            => $requestEmail ?? $user?->email ?? ($parsed['email'] ?? null),
+                    
                     'expires_at'       => now()->addHours(24),
                 ]);
 
