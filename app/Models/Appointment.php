@@ -32,6 +32,9 @@ class Appointment extends Model
         'expiry_reminder_sent' => 'boolean',
     ];
 
+    // 👇 IDINAGDAG NATIN ITO PARA MAIWASAN ANG SQLSTATE 22009 ERROR SA POSTGRESQL
+    protected $dateFormat = 'Y-m-d H:i:sP';
+
     // ==================== EXPIRY METHODS ====================
 
     /**
