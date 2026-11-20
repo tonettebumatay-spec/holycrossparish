@@ -92,6 +92,24 @@
                 </div>
             @endif
 
+            <!-- 👇 FLASH MESSAGES DITO 👇 -->
+            @if(session('success'))
+                <div id="flash-success" class="max-w-7xl mx-auto px-6 mt-6 transition-opacity duration-500">
+                    <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-r-lg shadow-sm">
+                        {{ session('success') }}
+                    </div>
+                </div>
+            @endif
+
+            @if(session('error'))
+                <div id="flash-error" class="max-w-7xl mx-auto px-6 mt-6 transition-opacity duration-500">
+                    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-r-lg shadow-sm">
+                        {{ session('error') }}
+                    </div>
+                </div>
+            @endif
+            <!-- 👆 HANGGANG DITO 👆 -->
+
             {{ $slot }}
         </main>
     </div>
@@ -120,6 +138,23 @@
                 theme: "dark",
                 allowInput: false,
             });
+
+            // 👇 AUTO-DISMISS FLASH MESSAGES 👇
+            const flashSuccess = document.getElementById('flash-success');
+            if (flashSuccess) {
+                setTimeout(() => {
+                    flashSuccess.style.opacity = '0'; 
+                    setTimeout(() => flashSuccess.remove(), 500); 
+                }, 3000); 
+            }
+
+            const flashError = document.getElementById('flash-error');
+            if (flashError) {
+                setTimeout(() => {
+                    flashError.style.opacity = '0';
+                    setTimeout(() => flashError.remove(), 500);
+                }, 3000);
+            }
         });
     </script>
 </body>

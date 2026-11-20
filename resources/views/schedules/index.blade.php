@@ -11,12 +11,8 @@
 
         <div class="py-12">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-
-                @if(session('success'))
-                    <div class="mb-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 font-black uppercase text-[10px] tracking-widest rounded-r-xl">
-                        {{ session('success') }}
-                    </div>
-                @endif
+                
+                <!-- (Tinanggal ang Flash Message dito) -->
 
                 <div class="flex justify-between mb-6 gap-4">
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm">
@@ -26,7 +22,6 @@
                         Back to Dashboard
                     </a>
 
-                    <!-- 👇 IDINAGDAG NATIN ANG BIBLE VERSE BUTTON DITO SA TABI NG POST NEW SCHEDULE 👇 -->
                     <div class="flex items-center gap-3">
                         <a href="{{ route('admin.bible-verses.index') }}" class="group flex items-center gap-2 px-6 py-3 bg-purple-700 hover:bg-purple-800 text-white rounded-2xl shadow-sm transition-all">
                             <span class="text-sm font-black uppercase tracking-widest">📖 Bible Verse</span>
@@ -41,7 +36,6 @@
                             </div>
                         </button>
                     </div>
-                    <!-- 👆 HANGGANG DITO 👆 -->
                 </div>
 
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-[30px] p-10 border border-gray-100">
