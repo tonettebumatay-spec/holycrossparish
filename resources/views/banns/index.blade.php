@@ -15,11 +15,7 @@
                 </a>
             </div>
 
-            @if(session('success'))
-                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r-lg">
-                    {{ session('success') }}
-                </div>
-            @endif
+            <!-- (Tinanggal ang Flash Message dito) -->
 
             <!-- Stats -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

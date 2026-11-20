@@ -15,58 +15,55 @@
                 </a>
             </div>
 
-            @if(session('success'))
-                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r-lg">
-                    {{ session('success') }}
-                </div>
-            @endif
+            <!-- (Tinanggal ang Flash Message dito) -->
 
             <!-- Conversations List -->
             <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 bg-gray-50 border-b flex items-center justify-between">
-                    <h2 class="text-lg font-black text-gray-800 uppercase">Conversations</h2>
-                    <span class="text-xs text-gray-500 font-semibold">Total: {{ $conversations->count() }}</span>
+                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <h2 class="text-sm font-black text-gray-700 uppercase tracking-widest">Conversations</h2>
+                    <span class="text-xs font-bold text-gray-500">Total: {{ $conversations->count() }}</span>
                 </div>
 
-                @if($conversations->isEmpty())
-                    <div class="text-center py-16">
-                        <p class="text-gray-400 italic">No conversations yet.</p>
-                    </div>
-                @else
-                    <div class="divide-y divide-gray-100">
-                        @foreach($conversations as $conv)
-                            <a href="{{ route('support.show', $conv->id) }}" class="block px-6 py-4 hover:bg-gray-50 transition">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-12 h-12 bg-[#4A3728] rounded-full flex items-center justify-center text-white font-black">
-                                            {{ strtoupper(substr($conv->user_name ?? 'U', 0, 1)) }}
-                                        </div>
-                                        <div>
-                                            <p class="font-bold text-gray-900">{{ $conv->user_name ?? 'Unknown User' }}</p>
-                                            <p class="text-xs text-gray-500">{{ $conv->user_email ?? 'N/A' }}</p>
-                                            @if($conv->latestMessage)
-                                                <p class="text-xs text-gray-400 mt-1 truncate max-w-md">
-                                                    {{ $conv->latestMessage->message }}
-                                                </p>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    <div class="text-right">
-                                        @if($conv->unread_by_admin > 0)
-                                            <span class="inline-flex px-3 py-1 bg-red-500 text-white rounded-full text-xs font-black">
-                                                {{ $conv->unread_by_admin }} NEW
-                                            </span>
-                                        @endif
-                                        <p class="text-xs text-gray-400 mt-1">
-                                            {{ $conv->last_message_at?->diffForHumans() ?? 'N/A' }}
-                                        </p>
-                                    </div>
+                <div class="divide-y divide-gray-100">
+                    @forelse($conversations as $conversation)
+                        <a href="{{ route('support.show', $conversation->id) }}" class="block hover:bg-gray-50 transition">
+                            <div class="px-6 py-4 flex items-center gap-4">
+                                <!-- Avatar -->
+                                <div class="w-12 h-12 rounded-full bg-[#4A3728] text-white flex items-center justify-center font-bold text-lg">
+                                    {{ strtoupper(substr($conversation->user->name ?? 'U', 0, 1)) }}
                                 </div>
-                            </a>
-                        @endforeach
-                    </div>
-                @endif
+
+                                <!-- Details -->
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex justify-between items-baseline mb-1">
+                                        <h3 class="text-sm font-bold text-gray-900 truncate">{{ $conversation->user->name ?? 'Unknown User' }}</h3>
+                                        <span class="text-[10px] font-bold text-gray-400">{{ $conversation->updated_at->diffForHumans() }}</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 truncate">{{ $conversation->user->email ?? 'No email' }}</p>
+                                    <p class="text-xs text-gray-400 truncate mt-1">
+                                        @if($conversation->messages->isNotEmpty())
+                                            {{ Str::limit($conversation->messages->last()->message, 60) }}
+                                        @else
+                                            No messages yet.
+                                        @endif
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    @empty
+                        <div class="py-16 text-center">
+                            <div class="inline-flex p-6 bg-gray-50 rounded-full text-gray-400 mb-4">
+                                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-700">No Conversations Yet</h3>
+                            <p class="text-gray-400 mt-2 text-sm">Messages from parishioners will appear here.</p>
+                        </div>
+                    @endforelse
+                </div>
             </div>
+
         </div>
     </div>
 </x-app-layout>
