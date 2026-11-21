@@ -2,13 +2,10 @@
     <div class="min-h-screen w-full flex items-center justify-center bg-cover bg-center bg-no-repeat" 
          style="background-image: url('https://lh3.googleusercontent.com/gps-cs-s/ANWiy9RY-VjQ8i7rGQqFuXRfcJUgl_QgVphhIa373BUYFUaoGX5QD2mCXjkV9C63Pq8lLEQ3oIgxUZVPR9FbSllwI9QvSlSJMgWr8HDWR0Kukf5_QGOfhnBUoG89T7xpTPdwd-XjVuk=s680-w680-h510-rw');">
         
-        <!-- Overlay -->
-        <div class="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+        <!-- Tinanggal ang blur at dark overlay dito -->
 
-        <!-- Form Container -->
         <div class="relative z-10 w-full max-w-md mx-4 p-8 bg-white/95 rounded-3xl shadow-2xl border border-white/50 text-center overflow-hidden">
             
-            <!-- Success Screen -->
             <div id="success-screen" class="hidden flex-col items-center justify-center py-10 animate-fade-in">
                 <div class="w-24 h-24 bg-blue-50 border-2 border-blue-200 rounded-3xl flex items-center justify-center mb-6 shadow-inner animate-bounce">
                     <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -19,7 +16,6 @@
                 <p class="text-gray-500 mt-2 text-sm font-medium">Redirecting to reset password...</p>
             </div>
 
-            <!-- Input Screen -->
             <div id="input-screen">
                 <div class="text-center mb-8">
                     <h2 class="text-3xl font-black text-[#4A3728] uppercase tracking-tighter mb-2">Verify OTP</h2>
@@ -38,7 +34,6 @@
                     <input type="hidden" name="email" value="{{ $email }}">
                     <input type="hidden" name="otp" id="final-otp">
 
-                    <!-- 6-Digit Input Boxes -->
                     <div class="flex justify-center gap-2 sm:gap-3 mb-8">
                         <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-input w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-black border-2 border-gray-200 rounded-xl focus:border-[#4A3728] focus:ring-4 focus:ring-[#4A3728]/10 transition-all bg-gray-50 text-[#4A3728]" autofocus>
                         <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-input w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-black border-2 border-gray-200 rounded-xl focus:border-[#4A3728] focus:ring-4 focus:ring-[#4A3728]/10 transition-all bg-gray-50 text-[#4A3728]">

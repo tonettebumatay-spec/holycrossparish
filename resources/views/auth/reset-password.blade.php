@@ -2,7 +2,7 @@
     <div class="min-h-screen w-full flex items-center justify-center bg-cover bg-center bg-no-repeat" 
          style="background-image: url('https://lh3.googleusercontent.com/gps-cs-s/ANWiy9RY-VjQ8i7rGQqFuXRfcJUgl_QgVphhIa373BUYFUaoGX5QD2mCXjkV9C63Pq8lLEQ3oIgxUZVPR9FbSllwI9QvSlSJMgWr8HDWR0Kukf5_QGOfhnBUoG89T7xpTPdwd-XjVuk=s680-w680-h510-rw');">
         
-        <div class="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+        <!-- Tinanggal ang blur at overlay dito -->
 
         <div class="relative z-10 w-full max-w-md mx-4 p-8 bg-white/95 rounded-3xl shadow-2xl border border-white/50">
             <div class="text-center mb-8">
