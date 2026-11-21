@@ -16,7 +16,7 @@
         <div id="input-screen">
             <div class="text-center mb-8">
                 <h2 class="text-3xl font-black text-[#4A3728] uppercase tracking-tighter mb-2">Verify OTP</h2>
-                <p class="text-sm text-gray-500 font-medium">Enter the 4-digit code sent to your email.</p>
+                <p class="text-sm text-gray-500 font-medium">Enter the 6-digit code sent to your email.</p>
             </div>
 
             @if($errors->any())
@@ -31,12 +31,14 @@
                 <input type="hidden" name="email" value="{{ $email }}">
                 <input type="hidden" name="otp" id="final-otp">
 
-                <!-- 4-Digit Input Boxes -->
-                <div class="flex justify-center gap-4 mb-8">
-                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-input w-16 h-20 text-center text-3xl font-black border-2 border-gray-200 rounded-2xl focus:border-[#4A3728] focus:ring-4 focus:ring-[#4A3728]/10 transition-all bg-gray-50 text-[#4A3728]" autofocus>
-                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-input w-16 h-20 text-center text-3xl font-black border-2 border-gray-200 rounded-2xl focus:border-[#4A3728] focus:ring-4 focus:ring-[#4A3728]/10 transition-all bg-gray-50 text-[#4A3728]">
-                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-input w-16 h-20 text-center text-3xl font-black border-2 border-gray-200 rounded-2xl focus:border-[#4A3728] focus:ring-4 focus:ring-[#4A3728]/10 transition-all bg-gray-50 text-[#4A3728]">
-                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-input w-16 h-20 text-center text-3xl font-black border-2 border-gray-200 rounded-2xl focus:border-[#4A3728] focus:ring-4 focus:ring-[#4A3728]/10 transition-all bg-gray-50 text-[#4A3728]">
+                <!-- 6-Digit Input Boxes -->
+                <div class="flex justify-center gap-2 sm:gap-3 mb-8">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-input w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-black border-2 border-gray-200 rounded-xl focus:border-[#4A3728] focus:ring-4 focus:ring-[#4A3728]/10 transition-all bg-gray-50 text-[#4A3728]" autofocus>
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-input w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-black border-2 border-gray-200 rounded-xl focus:border-[#4A3728] focus:ring-4 focus:ring-[#4A3728]/10 transition-all bg-gray-50 text-[#4A3728]">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-input w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-black border-2 border-gray-200 rounded-xl focus:border-[#4A3728] focus:ring-4 focus:ring-[#4A3728]/10 transition-all bg-gray-50 text-[#4A3728]">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-input w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-black border-2 border-gray-200 rounded-xl focus:border-[#4A3728] focus:ring-4 focus:ring-[#4A3728]/10 transition-all bg-gray-50 text-[#4A3728]">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-input w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-black border-2 border-gray-200 rounded-xl focus:border-[#4A3728] focus:ring-4 focus:ring-[#4A3728]/10 transition-all bg-gray-50 text-[#4A3728]">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-input w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-black border-2 border-gray-200 rounded-xl focus:border-[#4A3728] focus:ring-4 focus:ring-[#4A3728]/10 transition-all bg-gray-50 text-[#4A3728]">
                 </div>
 
                 <button type="submit" class="w-full bg-[#4A3728] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-xs hover:bg-[#3A2A1E] hover:shadow-lg transition-all">
@@ -76,7 +78,7 @@
                 let otpValue = '';
                 inputs.forEach(input => otpValue += input.value);
                 
-                if (otpValue.length === 4) {
+                if (otpValue.length === 6) { // 👈 BINAGO NATIN ITO SA 6 PARA SA 6-DIGIT
                     finalOtp.value = otpValue;
                     
                     inputScreen.style.display = 'none';
@@ -86,7 +88,7 @@
                         form.submit(); 
                     }, 1500);
                 } else {
-                    alert("Please enter all 4 digits.");
+                    alert("Please enter all 6 digits.");
                 }
             });
         });
