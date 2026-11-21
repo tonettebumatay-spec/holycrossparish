@@ -42,8 +42,8 @@
 
                 <!-- Password with Eye Icon -->
                 <div class="relative" x-data="{ show: false }">
-                    <!-- 👇 DEFAULT TYPE AY 'password' 👇 -->
-                    <input id="password" :type="show ? 'text' : 'password'" name="password" required 
+                    <!-- 👇 SIGURADUHING ANG DEFAULT AY type="password" 👇 -->
+                    <input id="password" type="password" x-bind:type="show ? 'text' : 'password'" name="password" required 
                            placeholder="Password"
                            class="w-full px-4 py-3 pr-12 bg-transparent border-t-0 border-l-0 border-r-0 border-b-2 border-[#4d290a] focus:ring-0 focus:border-[#7a4211] text-lg placeholder-[#4d290a]">
                     
