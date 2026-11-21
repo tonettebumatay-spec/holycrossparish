@@ -1,31 +1,94 @@
 <x-guest-layout>
-    <div class="max-w-md mx-auto mt-10 p-8 bg-white/90 rounded-3xl shadow-xl backdrop-blur-md border border-white/20">
-        <div class="text-center mb-8">
-            <h2 class="text-2xl font-black text-[#4A3728] uppercase tracking-wider mb-2">Verify OTP</h2>
-            <p class="text-sm text-gray-600">Enter the 6-digit code sent to your email.</p>
+    <div class="max-w-md mx-auto mt-10 p-8 bg-white/95 rounded-3xl shadow-2xl border border-white/50 backdrop-blur-md text-center relative overflow-hidden">
+        
+        <!-- Success Screen (Hidden by default) -->
+        <div id="success-screen" class="hidden flex-col items-center justify-center py-10 animate-fade-in">
+            <div class="w-24 h-24 bg-blue-50 border-2 border-blue-200 rounded-3xl flex items-center justify-center mb-6 shadow-inner animate-bounce">
+                <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <h2 class="text-3xl font-black text-gray-800 uppercase tracking-tighter">Verified Successfully</h2>
+            <p class="text-gray-500 mt-2 text-sm font-medium">Redirecting to reset password...</p>
         </div>
 
-        @if($errors->any())
-            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 mb-4 text-sm rounded">
-                {{ $errors->first() }}
-            </div>
-        @endif
-
-        <form method="POST" action="{{ route('password.verify-otp') }}">
-            @csrf
-            
-            <input type="hidden" name="email" value="{{ $email }}">
-
-            <div class="mb-6">
-                <!-- ✅ INALIS ANG tracking-[0.5em] AT GINAWANG text-xl -->
-                <input id="otp" type="text" name="otp" required
-                       class="w-full border-2 border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#4A3728] bg-white text-gray-800 text-center text-xl font-bold"
-                       placeholder="000000" maxlength="6" value="{{ old('otp') }}">
+        <!-- Input Screen -->
+        <div id="input-screen">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-black text-[#4A3728] uppercase tracking-tighter mb-2">Verify OTP</h2>
+                <p class="text-sm text-gray-500 font-medium">Enter the 4-digit code sent to your email.</p>
             </div>
 
-            <button type="submit" class="w-full bg-[#4A3728] text-white font-black py-3 rounded-xl uppercase tracking-widest text-xs hover:bg-[#3A2A1E] transition-colors">
-                Verify OTP
-            </button>
-        </form>
+            @if($errors->any())
+                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 mb-6 text-sm rounded-r-xl font-bold text-left">
+                    {{ $errors->first() }}
+                </div>
+            @endif
+
+            <form id="otp-form" method="POST" action="{{ route('password.verify-otp') }}">
+                @csrf
+                
+                <input type="hidden" name="email" value="{{ $email }}">
+                <input type="hidden" name="otp" id="final-otp">
+
+                <!-- 4-Digit Input Boxes -->
+                <div class="flex justify-center gap-4 mb-8">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-input w-16 h-20 text-center text-3xl font-black border-2 border-gray-200 rounded-2xl focus:border-[#4A3728] focus:ring-4 focus:ring-[#4A3728]/10 transition-all bg-gray-50 text-[#4A3728]" autofocus>
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-input w-16 h-20 text-center text-3xl font-black border-2 border-gray-200 rounded-2xl focus:border-[#4A3728] focus:ring-4 focus:ring-[#4A3728]/10 transition-all bg-gray-50 text-[#4A3728]">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-input w-16 h-20 text-center text-3xl font-black border-2 border-gray-200 rounded-2xl focus:border-[#4A3728] focus:ring-4 focus:ring-[#4A3728]/10 transition-all bg-gray-50 text-[#4A3728]">
+                    <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]*" class="otp-input w-16 h-20 text-center text-3xl font-black border-2 border-gray-200 rounded-2xl focus:border-[#4A3728] focus:ring-4 focus:ring-[#4A3728]/10 transition-all bg-gray-50 text-[#4A3728]">
+                </div>
+
+                <button type="submit" class="w-full bg-[#4A3728] text-white font-black py-4 rounded-2xl uppercase tracking-widest text-xs hover:bg-[#3A2A1E] hover:shadow-lg transition-all">
+                    Verify OTP
+                </button>
+            </form>
+        </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputs = document.querySelectorAll('.otp-input');
+            const form = document.getElementById('otp-form');
+            const finalOtp = document.getElementById('final-otp');
+            const inputScreen = document.getElementById('input-screen');
+            const successScreen = document.getElementById('success-screen');
+
+            // Auto-focus logic
+            inputs.forEach((input, index) => {
+                input.addEventListener('input', (e) => {
+                    if (e.target.value.length === 1 && index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    }
+                });
+
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Backspace' && e.target.value.length === 0 && index > 0) {
+                        inputs[index - 1].focus();
+                    }
+                });
+            });
+
+            // On submit, combine inputs at ipakita ang success animation
+            form.addEventListener('submit', function(e) {
+                e.preventDefault(); 
+                
+                let otpValue = '';
+                inputs.forEach(input => otpValue += input.value);
+                
+                if (otpValue.length === 4) {
+                    finalOtp.value = otpValue;
+                    
+                    inputScreen.style.display = 'none';
+                    successScreen.style.display = 'flex';
+
+                    setTimeout(() => {
+                        form.submit(); 
+                    }, 1500);
+                } else {
+                    alert("Please enter all 4 digits.");
+                }
+            });
+        });
+    </script>
 </x-guest-layout>
