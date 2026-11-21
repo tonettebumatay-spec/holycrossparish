@@ -23,17 +23,7 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
 
-            @if(session('success'))
-                <div class="mb-6 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 font-black uppercase text-[10px] tracking-widest rounded-r-xl">
-                    {{ session('success') }}
-                </div>
-            @endif
-
-            @if(session('error'))
-                <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 font-black uppercase text-[10px] tracking-widest rounded-r-xl">
-                    {{ session('error') }}
-                </div>
-            @endif
+            <!-- (Tinanggal ang Flash Messages dito) -->
 
             <!-- Stats Cards -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
